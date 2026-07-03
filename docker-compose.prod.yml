@@ -1,0 +1,109 @@
+name: demo-night-app
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: demo-night-app:latest
+    container_name: demo-night-app
+    env_file:
+      - ${ENV_FILE:-.env.production}
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_URL: https://demo-night.tk.sg
+      NEXTAUTH_URL: https://demo-night.tk.sg
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-https://demo-night.tk.sg}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-demo_night}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-demo_night_app}
+      DATABASE_URL_NON_POOLING: postgresql://${POSTGRES_USER:-demo_night}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-demo_night_app}
+      KV_URL: redis://redis:6379
+      KV_REST_API_URL: http://redis-http
+      KV_REST_API_TOKEN: ${KV_REST_API_TOKEN:?Set KV_REST_API_TOKEN}
+      KV_REST_API_READ_ONLY_TOKEN: ${KV_REST_API_READ_ONLY_TOKEN:?Set KV_REST_API_READ_ONLY_TOKEN}
+      VIRTUAL_PORT: 3000
+      VIRTUAL_HOST: demo-night.tk.sg
+      LETSENCRYPT_HOST: demo-night.tk.sg
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-sysops@m.tinkertanker.com}
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-http:
+        condition: service_started
+    networks:
+      - default
+      - devtksg
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: demo-night-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-demo_night_app}
+      POSTGRES_USER: ${POSTGRES_USER:-demo_night}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-demo_night} -d ${POSTGRES_DB:-demo_night_app}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: demo-night-redis
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-http:
+    image: hiett/serverless-redis-http:latest
+    container_name: demo-night-redis-http
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: ${KV_REST_API_TOKEN:?Set KV_REST_API_TOKEN}
+      SRH_CONNECTION_STRING: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    name: demo-night-postgres-data
+  redis-data:
+    name: demo-night-redis-data
+
+networks:
+  devtksg:
+    external: true
