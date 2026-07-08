@@ -11,6 +11,7 @@ import { type EventConfig } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
+import { AdminList } from "./components/AdminList";
 import { UpsertEventModal } from "./components/UpsertEventModal";
 import Logos from "~/components/Logos";
 import { Button } from "~/components/ui/button";
@@ -77,7 +78,7 @@ export default function AdminHomePage() {
             Create Event
           </Button>
         </div>
-        <div className="xs:gap-4 flex flex-col gap-2">
+        <div className="flex flex-col gap-2 xs:gap-4">
           {isLoading ? (
             <>
               <EventSkeleton />
@@ -153,7 +154,7 @@ export default function AdminHomePage() {
                           <span className="font-medium">
                             {event._count.demos}
                           </span>
-                          <span className="xs:block hidden text-muted-foreground">
+                          <span className="hidden text-muted-foreground xs:block">
                             {event._count.demos === 1 ? "demo" : "demos"}
                           </span>
                         </div>
@@ -162,7 +163,7 @@ export default function AdminHomePage() {
                           <span className="font-medium">
                             {event._count.attendees}
                           </span>
-                          <span className="xs:block hidden text-muted-foreground">
+                          <span className="hidden text-muted-foreground xs:block">
                             {event._count.attendees === 1
                               ? "attendee"
                               : "attendees"}
@@ -199,6 +200,9 @@ export default function AdminHomePage() {
               </Card>
             ))
           )}
+        </div>
+        <div className="mt-8">
+          <AdminList />
         </div>
       </div>
       <UpsertEventModal

@@ -12,6 +12,12 @@ async function main() {
     },
   });
 
+  await prisma.admin.upsert({
+    where: { email: "test@example.com" },
+    update: {},
+    create: { email: "test@example.com" },
+  });
+
   const demosInfo = [
     {
       name: "Cofactory",

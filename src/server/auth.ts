@@ -67,6 +67,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    signIn: async ({ user, account }) => {
+      // The credentials provider is already restricted to development in
+      // its authorize() above
+      if (account?.provider === "credentials") return true;
+      const email = user.email?.toLowerCase();
+      if (!email) return false;
+      const admin = await db.admin.findUnique({ where: { email } });
+      return !!admin;
+    },
     session: ({ session, user }) => ({
       ...session,
       user: {

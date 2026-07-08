@@ -57,6 +57,13 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// Emails allowed to sign in to the admin dashboard
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 // ############# Business logic #############
 
 model Event {

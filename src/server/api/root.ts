@@ -1,6 +1,7 @@
 import { eventRouter } from "~/server/api/routers/event";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
+import { adminRouter } from "./routers/admin";
 import { attendeeRouter } from "./routers/attendee";
 import { awardRouter } from "./routers/award";
 import { demoRouter } from "./routers/demo";
@@ -15,6 +16,7 @@ import { voteRouter } from "./routers/vote";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
+  admin: adminRouter,
   event: eventRouter,
   submission: submissionRouter,
   demo: demoRouter,
