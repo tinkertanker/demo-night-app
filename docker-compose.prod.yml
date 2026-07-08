@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-https://demo-night.tk.sg}
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-https://demo-night.tk.sg}
     image: demo-night-app:latest
     container_name: demo-night-app
     env_file:

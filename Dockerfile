@@ -16,6 +16,12 @@ RUN yarn install --frozen-lockfile
 
 FROM base AS builder
 ENV SKIP_ENV_VALIDATION=1
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time,
+# so they must be provided here rather than at container runtime
+ARG NEXT_PUBLIC_URL
+ARG NEXT_PUBLIC_BASE_URL
+ENV NEXT_PUBLIC_URL=$NEXT_PUBLIC_URL
+ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN yarn build
