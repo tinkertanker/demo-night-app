@@ -31,7 +31,9 @@ export function getBrandingClient(isPitchNight?: boolean): Branding {
   return {
     isPitchNight: finalIsPitchNight,
     appName: finalIsPitchNight ? "Pitch Night" : "Demo Night",
-    logoPath: finalIsPitchNight ? "/images/pitch.png" : "/images/logo.png",
-    orgName: "The AI Collective",
+    logoPath: finalIsPitchNight
+      ? "/images/pitch.png"
+      : "/images/tinkercademy-icon.png",
+    orgName: "Tinkercademy",
   };
 }
