@@ -89,14 +89,6 @@ export function FeedbackItem({ feedback }: { feedback: FeedbackAndAttendee }) {
     if (feedback.claps) {
       summary.push(`👏<span class="text-xs"> x${feedback.claps}</span>`);
     }
-    // if (feedback.tellMeMore) {
-    //   summary.push("📬");
-    // }
-    // for (const [id, action] of Object.entries(QuickActions.actions)) {
-    //   if (feedback.quickActions.includes(id)) {
-    //     summary.push(action.icon);
-    //   }
-    // }
     return summary.join(" • ");
   }, [feedback]);
 

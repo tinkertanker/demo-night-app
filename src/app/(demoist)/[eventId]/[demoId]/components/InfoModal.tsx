@@ -1,10 +1,3 @@
-import {
-  QUICK_ACTIONS_ICON,
-  QUICK_ACTIONS_TITLE,
-  type QuickAction,
-} from "~/lib/types/quickAction";
-import { cn } from "~/lib/utils";
-
 import Button from "~/components/Button";
 import { useModal } from "~/components/modal/provider";
 
@@ -12,42 +5,28 @@ type ActionItem = {
   icon: string;
   title?: string;
   description?: string;
-  indent?: boolean;
 };
 
 const actionItems: ActionItem[] = [
   {
     icon: "👏",
     title: "Claps:",
-    description:
-      "Attendees were able to clap as many times as they liked! The more, the merrier!",
+    description: "Attendees clapped as many times as they liked!",
   },
   {
-    icon: "📬",
-    title: "Email me:",
-    description: "Send them an email with more info!",
+    icon: "🥳",
+    title: "Cheers:",
+    description: "Attendees cheered for their favourite moments!",
   },
   {
-    icon: QUICK_ACTIONS_ICON,
-    title: `The attendee answered "${QUICK_ACTIONS_TITLE}"`,
+    icon: "🎉",
+    title: "Confetti:",
+    description: "Attendees showered the demo with confetti!",
   },
 ];
 
-export default function InfoModal({
-  quickActions,
-}: {
-  quickActions: QuickAction[];
-}) {
+export default function InfoModal() {
   const modal = useModal();
-
-  const allActionItems: ActionItem[] = [
-    ...actionItems,
-    ...quickActions.map((action) => ({
-      icon: action.icon,
-      description: action.description,
-      indent: true,
-    })),
-  ];
 
   return (
     <form
@@ -68,11 +47,8 @@ export default function InfoModal({
         </p>
       </div>
       <ul className="text-md flex w-full flex-col gap-2 font-semibold leading-6 text-gray-700">
-        {allActionItems.map((item) => (
-          <li
-            key={item.icon}
-            className={cn("flex items-center gap-3", item.indent && "pl-6")}
-          >
+        {actionItems.map((item) => (
+          <li key={item.icon} className="flex items-center gap-3">
             <span className="text-4xl">{item.icon}</span>
             <p>
               <span className="font-bold text-black">{item.title} </span>

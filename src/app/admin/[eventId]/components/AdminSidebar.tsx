@@ -257,7 +257,7 @@ export function AdminSidebar({
                   </div>
                 </SidebarMenuButton>
                 <SidebarMenuBadge>
-                  {config.quickActions.length}
+                  {config.partners.length}
                 </SidebarMenuBadge>
               </SidebarMenuItem>
             </SidebarMenu>

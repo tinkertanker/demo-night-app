@@ -7,7 +7,6 @@ import { useMemo, useState } from "react";
 
 import { feedbackScore } from "~/lib/feedback";
 import { EventPhase } from "~/lib/types/currentEvent";
-import { type QuickAction } from "~/lib/types/quickAction";
 import { cn } from "~/lib/utils";
 import { type FeedbackAndAttendee } from "~/server/api/routers/demo";
 import { api } from "~/trpc/react";
@@ -42,7 +41,7 @@ const REFRESH_INTERVAL =
   env.NEXT_PUBLIC_NODE_ENV === "development" ? 1_000 : 5_000;
 
 export default function DemosAndFeedbackTab() {
-  const { currentEvent, event, refetchEvent, config } = useDashboardContext();
+  const { currentEvent, event, refetchEvent } = useDashboardContext();
   const isDemoPhase =
     currentEvent?.id === event?.id && currentEvent?.phase === EventPhase.Demos;
   const [selectedDemo, setSelectedDemo] = useState<Demo | undefined>(
@@ -166,10 +165,7 @@ export default function DemosAndFeedbackTab() {
                 ? `Feedback for ${selectedDemo.name}`
                 : "Feedback"}
             </h2>
-            <FeedbackOverview
-              feedback={feedback ?? []}
-              quickActions={config.quickActions}
-            />
+            <FeedbackOverview feedback={feedback ?? []} />
           </div>
           <div className="h-full max-h-[calc(100vh-122px)] space-y-2 overflow-y-auto">
             <AnimatePresence mode="popLayout">
@@ -178,7 +174,6 @@ export default function DemosAndFeedbackTab() {
                   <FeedbackItem
                     key={item.id}
                     item={item}
-                    quickActions={config.quickActions}
                     onDelete={(id) =>
                       deleteFeedbackMutation
                         .mutateAsync(id)
@@ -202,11 +197,9 @@ export default function DemosAndFeedbackTab() {
 function FeedbackItem({
   item,
   onDelete,
-  quickActions,
 }: {
   item: FeedbackAndAttendee;
   onDelete: (id: string) => void;
-  quickActions: QuickAction[];
 }) {
   const summaryString = useMemo(() => {
     const summary: string[] = [];
@@ -216,16 +209,16 @@ function FeedbackItem({
     if (item.claps) {
       summary.push(`👏<span class="text-xs text-black"> x${item.claps}</span>`);
     }
-    if (item.tellMeMore) {
-      summary.push("📬");
+    if (item.cheers) {
+      summary.push(`🥳<span class="text-xs text-black"> x${item.cheers}</span>`);
     }
-    quickActions.forEach((action) => {
-      if (item.quickActions.includes(action.id)) {
-        summary.push(action.icon);
-      }
-    });
+    if (item.confetti) {
+      summary.push(
+        `🎉<span class="text-xs text-black"> x${item.confetti}</span>`,
+      );
+    }
     return summary.join(" • ");
-  }, [item, quickActions]);
+  }, [item]);
 
   return (
     <motion.div

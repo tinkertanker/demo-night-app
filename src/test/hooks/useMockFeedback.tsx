@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import { ATTENDEE_TYPES } from "~/lib/types/attendeeTypes";
-import { DEFAULT_QUICK_ACTIONS } from "~/lib/types/quickAction";
 import { type FeedbackAndAttendee } from "~/server/api/routers/demo";
 
 export const useMockFeedback = () => {
@@ -19,10 +18,8 @@ export const useMockFeedback = () => {
           comment: "New automated feedback",
           rating: Math.floor(Math.random() * 6) + 1,
           claps: Math.floor(Math.random() * 6),
-          tellMeMore: Math.random() > 0.5,
-          quickActions: DEFAULT_QUICK_ACTIONS.filter(
-            () => Math.random() > 0.5,
-          ).map(({ id }) => id),
+          cheers: Math.floor(Math.random() * 4),
+          confetti: Math.floor(Math.random() * 3),
           createdAt: new Date(),
           updatedAt: new Date(),
           attendee: {

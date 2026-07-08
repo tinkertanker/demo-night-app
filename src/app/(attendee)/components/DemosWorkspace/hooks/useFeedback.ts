@@ -95,8 +95,8 @@ function emptyFeedback(
     demoId,
     rating: null,
     claps: 0,
-    tellMeMore: false,
-    quickActions: [],
+    cheers: 0,
+    confetti: 0,
     comment: null,
   };
 }
@@ -105,8 +105,8 @@ function feedbackIsEmpty(feedback: LocalFeedback): boolean {
   return (
     feedback.rating === null &&
     feedback.claps === 0 &&
-    feedback.tellMeMore === false &&
-    feedback.quickActions.length === 0 &&
+    feedback.cheers === 0 &&
+    feedback.confetti === 0 &&
     feedback.comment === null
   );
 }

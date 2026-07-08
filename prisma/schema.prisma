@@ -177,11 +177,11 @@ model Feedback {
   demo       Demo     @relation(fields: [demoId], references: [id], onDelete: Cascade)
   demoId     String
 
-  rating       Int?
-  claps        Int      @default(0)
-  tellMeMore   Boolean  @default(false)
-  quickActions String[] @default([])
-  comment      String?
+  rating   Int?
+  claps    Int     @default(0)
+  cheers   Int     @default(0)
+  confetti Int     @default(0)
+  comment  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

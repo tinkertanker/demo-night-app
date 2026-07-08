@@ -6,69 +6,30 @@ import type Particle from "react-confetti/dist/types/Particle";
 
 import useWindowSize from "~/lib/hooks/useWindowSize";
 
-import { type LocalFeedback } from "~/app/(attendee)/components/DemosWorkspace/hooks/useFeedback";
-
-export function TellMeMoreConfetti({ feedback }: { feedback: LocalFeedback }) {
+export function ReactionConfetti({
+  demoId,
+  count,
+  emoji,
+}: {
+  demoId: string;
+  count: number;
+  emoji: string;
+}) {
   const { windowSize } = useWindowSize();
   const [_active, _setActive] = useState(false);
   const [previousFeedbackDemoId, setPreviousFeedbackDemoId] =
     useState<string>("");
+  const [previousCount, setPreviousCount] = useState(0);
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (feedback.demoId !== previousFeedbackDemoId) {
-      setPreviousFeedbackDemoId(feedback.demoId);
+    if (demoId !== previousFeedbackDemoId) {
+      setPreviousFeedbackDemoId(demoId);
+      setPreviousCount(count);
       _setActive(false);
       return;
     }
-    if (feedback.tellMeMore) {
-      _setActive(true);
-      timeoutId.current = setTimeout(() => {
-        _setActive(false);
-      }, 1000);
-    } else {
-      _setActive(false);
-    }
-    return () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-    };
-  }, [feedback.demoId, feedback.tellMeMore]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const drawShape = (ctx: CanvasRenderingContext2D) => {
-    ctx.font = "30px sans-serif";
-    ctx.fillText("📧", 0, 0);
-  };
-
-  return (
-    <Confetti
-      width={windowSize.width}
-      height={windowSize.height}
-      drawShape={drawShape}
-      tweenDuration={1000}
-      gravity={0.05}
-      numberOfPieces={_active ? 300 : 0}
-    />
-  );
-}
-
-export function ClapsConfetti({ feedback }: { feedback: LocalFeedback }) {
-  const { windowSize } = useWindowSize();
-  const [_active, _setActive] = useState(false);
-  const [previousFeedbackDemoId, setPreviousFeedbackDemoId] =
-    useState<string>("");
-  const [previousClaps, setPreviousClaps] = useState(0);
-  const timeoutId = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (feedback.demoId !== previousFeedbackDemoId) {
-      setPreviousFeedbackDemoId(feedback.demoId);
-      setPreviousClaps(feedback.claps);
-      _setActive(false);
-      return;
-    }
-    if (feedback.claps > previousClaps) {
+    if (count > previousCount) {
       _setActive(true);
       if (timeoutId.current) {
         clearTimeout(timeoutId.current);
@@ -77,20 +38,20 @@ export function ClapsConfetti({ feedback }: { feedback: LocalFeedback }) {
         () => {
           _setActive(false);
         },
-        100 * (feedback.claps - previousClaps),
+        100 * (count - previousCount),
       );
     }
-    setPreviousClaps(feedback.claps);
+    setPreviousCount(count);
     return () => {
       if (timeoutId.current) {
         clearTimeout(timeoutId.current);
       }
     };
-  }, [feedback.demoId, feedback.claps]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [demoId, count]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const drawShape = (ctx: CanvasRenderingContext2D) => {
     ctx.font = "40px sans-serif";
-    ctx.fillText("👏", 0, 0);
+    ctx.fillText(emoji, 0, 0);
   };
 
   return (

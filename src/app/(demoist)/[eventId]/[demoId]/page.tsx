@@ -2,7 +2,7 @@ import { type Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { EventPhase } from "~/lib/types/currentEvent";
-import { type EventConfig, eventConfigSchema } from "~/lib/types/eventConfig";
+import { type EventConfig } from "~/lib/types/eventConfig";
 import { api } from "~/trpc/server";
 
 import DemoRecap from "./components/DemoRecap";
@@ -94,12 +94,10 @@ export default async function DemoistPage({
     );
   }
 
-  const quickActions = eventConfigSchema.parse(event.config).quickActions;
-
   return (
     <main className="m-auto flex size-full max-w-xl flex-col text-black">
       <EventHeader event={event} demoName={demo.name} />
-      <DemoRecap demo={demo} event={event} quickActions={quickActions} />
+      <DemoRecap demo={demo} event={event} />
     </main>
   );
 }

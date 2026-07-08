@@ -151,13 +151,13 @@ async function main() {
     {
       rating: 5,
       claps: 7,
-      tellMeMore: true,
+      cheers: 3,
       comment: "Great demo! Please tell me more! 😄",
     },
     {
       rating: 4,
       claps: 2,
-      quickActions: ["invest"],
+      confetti: 2,
       comment: "Well done!",
     },
     {
@@ -173,7 +173,8 @@ async function main() {
     demoId: "demo-1",
     rating: feedback.rating,
     claps: feedback.claps,
-    tellMeMore: feedback.tellMeMore,
+    cheers: feedback.cheers ?? 0,
+    confetti: feedback.confetti ?? 0,
     comment: feedback.comment,
   }));
 

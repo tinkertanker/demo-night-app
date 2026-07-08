@@ -12,12 +12,12 @@ type BaseFeedback = {
   id: string;
   rating: number | null;
   claps: number;
+  cheers: number;
+  confetti: number;
   comment: string | null;
 };
 
 type FeedbackAttribution = {
-  tellMeMore: boolean;
-  quickActions: string[];
   attendee: {
     name: string | null;
     email: string | null;
@@ -40,8 +40,8 @@ export type DemoStats = {
   totalFeedback: number;
   averageRating: number | null;
   totalClaps: number;
-  totalTellMeMore: number;
-  quickActionCounts: Record<string, number>;
+  totalCheers: number;
+  totalConfetti: number;
   totalMoneyRaised: number;
 };
 
@@ -64,29 +64,20 @@ export const demoRouter = createTRPCRouter({
       }
       const allFeedback: DemoFeedback[] = [];
       for (const feedback of demo.feedback) {
-        if (feedback.tellMeMore || feedback.quickActions.length > 0) {
-          allFeedback.push({
-            id: feedback.id,
-            claps: feedback.claps,
-            comment: feedback.comment,
-            rating: feedback.rating,
-            tellMeMore: feedback.tellMeMore,
-            quickActions: feedback.quickActions,
-            attendee: {
-              name: feedback.attendee?.name,
-              email: feedback.attendee?.email,
-              linkedin: feedback.attendee?.linkedin,
-              type: feedback.attendee.type,
-            },
-          });
-        } else {
-          allFeedback.push({
-            id: feedback.id,
-            claps: feedback.claps,
-            comment: feedback.comment,
-            rating: feedback.rating,
-          });
-        }
+        allFeedback.push({
+          id: feedback.id,
+          claps: feedback.claps,
+          cheers: feedback.cheers,
+          confetti: feedback.confetti,
+          comment: feedback.comment,
+          rating: feedback.rating,
+          attendee: {
+            name: feedback.attendee?.name,
+            email: feedback.attendee?.email,
+            linkedin: feedback.attendee?.linkedin,
+            type: feedback.attendee.type,
+          },
+        });
       }
       return { ...demo, feedback: allFeedback };
     }),
@@ -310,15 +301,11 @@ export const demoRouter = createTRPCRouter({
           ? ratingsOnly.reduce((sum, r) => sum + r, 0) / ratingsOnly.length
           : null;
       const totalClaps = demo.feedback.reduce((sum, f) => sum + f.claps, 0);
-      const totalTellMeMore = demo.feedback.filter((f) => f.tellMeMore).length;
-
-      // Count quick actions
-      const quickActionCounts: Record<string, number> = {};
-      demo.feedback.forEach((f) => {
-        f.quickActions.forEach((action) => {
-          quickActionCounts[action] = (quickActionCounts[action] ?? 0) + 1;
-        });
-      });
+      const totalCheers = demo.feedback.reduce((sum, f) => sum + f.cheers, 0);
+      const totalConfetti = demo.feedback.reduce(
+        (sum, f) => sum + f.confetti,
+        0,
+      );
 
       // Calculate total money raised (in cents)
       const totalMoneyRaised = demo.votes.reduce(
@@ -330,8 +317,8 @@ export const demoRouter = createTRPCRouter({
         totalFeedback,
         averageRating,
         totalClaps,
-        totalTellMeMore,
-        quickActionCounts,
+        totalCheers,
+        totalConfetti,
         totalMoneyRaised,
       };
     }),

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "~/lib/utils";
 import { type PublicDemo } from "~/server/api/routers/event";
 
-import { ClapsConfetti, TellMeMoreConfetti } from "~/components/Confetti";
+import { ReactionConfetti } from "~/components/Confetti";
 import RatingSlider from "~/components/RatingSlider";
 import { useModal } from "~/components/modal/provider";
 
@@ -17,7 +17,7 @@ import InfoModal from "./InfoModal";
 import { FeedbackSaveStatus, useFeedback } from "./hooks/useFeedback";
 
 export default function DemosWorkspace() {
-  const { currentEvent, event, attendee, config } = useWorkspaceContext();
+  const { currentEvent, event, attendee } = useWorkspaceContext();
   const { id: eventId, currentDemoId } = currentEvent;
   const [selectedDemo, setSelectedDemo] = useState<PublicDemo>(event.demos[0]!);
   const { feedback, setFeedback, saveStatus } = useFeedback(
@@ -114,25 +114,36 @@ export default function DemosWorkspace() {
             <SaveStatusIndicator status={saveStatus} />
           </div>
         </motion.div>
-        <ActionButtons
-          feedback={feedback}
-          setFeedback={setFeedback}
-          quickActions={config.quickActions}
-        />
+        <ActionButtons feedback={feedback} setFeedback={setFeedback} />
       </AnimatePresence>
       <button
         className="fixed bottom-2 left-2 z-10 h-9 w-9 cursor-pointer rounded-full bg-gray-200 p-[6px] text-gray-500 shadow-xl hover:bg-gray-300 hover:text-gray-700"
         onClick={() =>
-          modal?.show(
-            <InfoModal quickActions={config.quickActions} event={event} />,
-          )
+          modal?.show(<InfoModal event={event} />)
         }
       >
         <BadgeInfo />
       </button>
       <div className="z-3 pointer-events-none fixed inset-0">
-        <TellMeMoreConfetti feedback={feedback} />
-        <ClapsConfetti feedback={feedback} />
+        {feedback && (
+          <>
+            <ReactionConfetti
+              demoId={feedback.demoId}
+              count={feedback.claps}
+              emoji="👏"
+            />
+            <ReactionConfetti
+              demoId={feedback.demoId}
+              count={feedback.cheers}
+              emoji="🥳"
+            />
+            <ReactionConfetti
+              demoId={feedback.demoId}
+              count={feedback.confetti}
+              emoji="🎉"
+            />
+          </>
+        )}
       </div>
     </>
   );

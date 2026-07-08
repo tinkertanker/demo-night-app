@@ -364,7 +364,8 @@ export const eventRouter = createTRPCRouter({
             .map((attendee, attendeeIndex) => {
               const rating = Math.floor(Math.random() * 3) + 3; // 3-5 stars
               const claps = Math.floor(Math.random() * 8); // 0-7 claps
-              const tellMeMore = Math.random() > 0.7; // 30% chance
+              const cheers = Math.floor(Math.random() * 6); // 0-5 cheers
+              const confetti = Math.floor(Math.random() * 4); // 0-3 confetti
               const comments = [
                 "Great demo! Really impressive work.",
                 "Love the idea, excited to see where this goes!",
@@ -381,10 +382,10 @@ export const eventRouter = createTRPCRouter({
                   attendeeId: attendee.id,
                   rating,
                   claps,
-                  tellMeMore,
+                  cheers,
+                  confetti,
                   comment:
                     comments[Math.floor(Math.random() * comments.length)]!,
-                  quickActions: Math.random() > 0.7 ? ["invest"] : [],
                 },
               });
             }),

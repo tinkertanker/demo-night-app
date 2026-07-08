@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { type Branding, getBrandingClient } from "~/lib/branding";
 import { escapeCsvField } from "~/lib/csvUtils";
 import { type EventConfig } from "~/lib/types/eventConfig";
-import { QUICK_ACTIONS_TITLE, type QuickAction } from "~/lib/types/quickAction";
 import { type CompleteDemo } from "~/server/api/routers/demo";
 import { type CompleteEvent } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
@@ -25,11 +24,9 @@ import InfoModal from "./InfoModal";
 export default function DemoRecap({
   demo,
   event,
-  quickActions,
 }: {
   demo: CompleteDemo;
   event: CompleteEvent;
-  quickActions: QuickAction[];
 }) {
   const secret = new URLSearchParams(
     typeof window !== "undefined" ? window.location.search : "",
@@ -55,25 +52,16 @@ export default function DemoRecap({
               Here&apos;s all your feedback and followups!
             </p>
           </div>
-          <ActionButtons
-            demo={demo}
-            event={event}
-            quickActions={quickActions}
-          />
+          <ActionButtons demo={demo} event={event} />
           {stats && (
             <DemoStats
               stats={stats}
               isPitchNight={isPitchNight}
-              quickActions={quickActions}
             />
           )}
           <RatingSummary demo={demo} />
           {demo.feedback.map((feedback) => (
-            <FeedbackItem
-              key={feedback.id}
-              feedback={feedback}
-              quickActions={quickActions}
-            />
+            <FeedbackItem key={feedback.id} feedback={feedback} />
           ))}
         </div>
       </div>
@@ -127,11 +115,9 @@ function CSVDownloadButton({
 function ActionButtons({
   demo,
   event,
-  quickActions,
 }: {
   demo: CompleteDemo;
   event: CompleteEvent;
-  quickActions: QuickAction[];
 }) {
   const branding = getBrandingClient(
     (event.config as EventConfig | null)?.isPitchNight ?? false,
@@ -143,48 +129,34 @@ function ActionButtons({
   };
 
   const showInfoModal = () => {
-    modal?.show(<InfoModal quickActions={quickActions} />);
+    modal?.show(<InfoModal />);
   };
 
   const headers = useMemo(
     () => [
       { label: "Claps", key: "claps" },
+      { label: "Cheers", key: "cheers" },
+      { label: "Confetti", key: "confetti" },
       { label: "Comment", key: "comment" },
-      { label: "Tell me more?", key: "tellMeMore" },
-      ...quickActions.map((action) => ({
-        label: `${action.icon} ${QUICK_ACTIONS_TITLE.replace(
-          "...",
-          "",
-        )} ${action.description.charAt(0).toLowerCase() + action.description.slice(1)}`,
-        key: `quickActions.${action.id}`,
-      })),
       { label: "Attendee name", key: "attendee.name" },
       { label: "Attendee email", key: "attendee.email" },
       { label: "Attendee linkedin", key: "attendee.linkedin" },
       { label: "Attendee type", key: "attendee.type" },
     ],
-    [quickActions],
+    [],
   );
 
   const feedback = demo.feedback.map((feedback) => ({
     claps: feedback.claps,
+    cheers: feedback.cheers ?? 0,
+    confetti: feedback.confetti ?? 0,
     comment: escapeCsvField(feedback.comment),
-    tellMeMore: feedback.tellMeMore,
     attendee: {
       name: escapeCsvField(feedback.attendee?.name),
       email: escapeCsvField(feedback.attendee?.email),
       linkedin: escapeCsvField(feedback.attendee?.linkedin),
       type: escapeCsvField(feedback.attendee?.type),
     },
-    ...quickActions.reduce<Record<string, boolean | undefined>>(
-      (acc, action) => {
-        acc[`quickActions.${action.id}`] = feedback.quickActions?.includes(
-          action.id,
-        );
-        return acc;
-      },
-      {},
-    ),
   }));
 
   return (

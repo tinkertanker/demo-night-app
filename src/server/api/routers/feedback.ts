@@ -38,8 +38,8 @@ export const feedbackRouter = createTRPCRouter({
         demoId: z.string(),
         rating: z.number().min(1).max(10).optional().nullable(),
         claps: z.number().min(0).optional(),
-        tellMeMore: z.boolean().optional(),
-        quickActions: z.array(z.string()).optional(),
+        cheers: z.number().min(0).optional(),
+        confetti: z.number().min(0).optional(),
         comment: z.string().optional().nullable(),
       }),
     )

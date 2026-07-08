@@ -1,16 +1,12 @@
-import { type QuickAction } from "~/lib/types/quickAction";
 import { type DemoStats as Stats } from "~/server/api/routers/demo";
 
 export default function DemoStats({
   stats,
   isPitchNight,
-  quickActions,
 }: {
   stats: Stats;
   isPitchNight: boolean;
-  quickActions: QuickAction[];
 }) {
-  const hasQuickActions = Object.keys(stats.quickActionCounts).length > 0;
   const showMoneyRaised = isPitchNight && stats.totalMoneyRaised > 0;
 
   return (
@@ -29,7 +25,7 @@ export default function DemoStats({
         </div>
       )}
 
-      {/* Row 2: Total, Claps, Tell Me More, Quick Actions */}
+      {/* Row 2: Total and reactions */}
       <div className="flex w-full flex-row gap-2 rounded-lg bg-gray-300/50 p-2 shadow-xl backdrop-blur">
         <div className="flex basis-1/4 flex-col items-center justify-center rounded-lg bg-white/50 py-2">
           <p className="line-clamp-1 text-sm font-bold text-gray-500">Total</p>
@@ -44,31 +40,17 @@ export default function DemoStats({
           </p>
         </div>
         <div className="flex basis-1/4 flex-col items-center justify-center rounded-lg bg-white/50 py-2">
-          <p className="line-clamp-1">📬</p>
+          <p className="line-clamp-1">🥳</p>
           <p className="line-clamp-1 text-xl font-bold">
-            {stats.totalTellMeMore}
+            {stats.totalCheers.toLocaleString()}
           </p>
         </div>
-        {hasQuickActions ? (
-          <div className="flex basis-1/4 flex-col items-center justify-center rounded-lg bg-white/50 py-2">
-            <p className="line-clamp-1">
-              {quickActions.map((a) => a.icon).join(" • ")}
-            </p>
-            <p
-              className="line-clamp-1 text-xl font-bold"
-              dangerouslySetInnerHTML={{
-                __html: quickActions
-                  .map((a) => stats.quickActionCounts[a.id] ?? 0)
-                  .join(" <span class='text-base text-gray-500'>•</span> "),
-              }}
-            />
-          </div>
-        ) : (
-          <div className="flex basis-1/4 flex-col items-center justify-center rounded-lg bg-white/50 py-2">
-            <p className="line-clamp-1 text-sm font-bold text-gray-500">-</p>
-            <p className="line-clamp-1 text-xl font-bold">-</p>
-          </div>
-        )}
+        <div className="flex basis-1/4 flex-col items-center justify-center rounded-lg bg-white/50 py-2">
+          <p className="line-clamp-1">🎉</p>
+          <p className="line-clamp-1 text-xl font-bold">
+            {stats.totalConfetti.toLocaleString()}
+          </p>
+        </div>
       </div>
     </div>
   );

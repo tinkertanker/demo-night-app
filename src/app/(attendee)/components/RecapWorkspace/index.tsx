@@ -8,7 +8,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { type QuickAction } from "~/lib/types/quickAction";
 import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
 
@@ -111,7 +110,6 @@ export default function RecapWorkspace() {
                 key={f.id}
                 feedback={f}
                 demo={event.demos.find((d) => d.id === f.demoId)}
-                quickActions={config.quickActions}
               />
             ))}
           </div>
@@ -285,20 +283,20 @@ function DemoItem({ demo }: { demo: PublicDemo }) {
 function FeedbackItem({
   feedback,
   demo,
-  quickActions,
 }: {
   feedback: Feedback;
   demo?: PublicDemo;
-  quickActions: QuickAction[];
 }) {
   const summary = [
     feedback.claps
       ? `👏<span class="text-xs"> x${feedback.claps}</span>`
       : null,
-    feedback.tellMeMore ? "📬" : null,
-    ...feedback.quickActions.map(
-      (id) => quickActions.find((a) => a.id === id)?.icon ?? "❓",
-    ),
+    feedback.cheers
+      ? `🥳<span class="text-xs"> x${feedback.cheers}</span>`
+      : null,
+    feedback.confetti
+      ? `🎉<span class="text-xs"> x${feedback.confetti}</span>`
+      : null,
   ];
   const summaryString = summary.filter((s) => s).join(" • ");
   return (

@@ -1,11 +1,5 @@
 import { getBrandingClient } from "~/lib/branding";
 import { type EventConfig } from "~/lib/types/eventConfig";
-import {
-  QUICK_ACTIONS_ICON,
-  QUICK_ACTIONS_TITLE,
-  type QuickAction,
-} from "~/lib/types/quickAction";
-import { cn } from "~/lib/utils";
 import { type CompleteEvent } from "~/server/api/routers/event";
 
 import Button from "~/components/Button";
@@ -15,46 +9,30 @@ type ActionItem = {
   icon: string;
   title?: string;
   description?: string;
-  indent?: boolean;
 };
 
 const actionItems: ActionItem[] = [
   {
     icon: "👏",
     title: "Clap:",
-    description:
-      "Show your appreciation by clapping as many times as you'd like! The more, the merrier!",
+    description: "Show your appreciation — tap as many times as you like!",
   },
   {
-    icon: "📬",
-    title: "Learn more:",
-    description: "Send me an email with more info!",
+    icon: "🥳",
+    title: "Cheer:",
+    description: "Big moment? Let them know you loved it!",
   },
   {
-    icon: QUICK_ACTIONS_ICON,
-    title: QUICK_ACTIONS_TITLE,
+    icon: "🎉",
+    title: "Celebrate:",
+    description: "Shower the demo with confetti!",
   },
 ];
 
-export default function InfoModal({
-  quickActions,
-  event,
-}: {
-  quickActions: QuickAction[];
-  event: CompleteEvent;
-}) {
+export default function InfoModal({ event }: { event: CompleteEvent }) {
   const config = event.config as EventConfig;
   const { isPitchNight } = getBrandingClient(config?.isPitchNight);
   const modal = useModal();
-
-  const allActionItems: ActionItem[] = [
-    ...actionItems,
-    ...quickActions.map((action) => ({
-      icon: action.icon,
-      description: action.description,
-      indent: true,
-    })),
-  ];
 
   return (
     <form
@@ -75,11 +53,8 @@ export default function InfoModal({
         </p>
       </div>
       <ul className="text-md flex w-full flex-col gap-2 font-semibold leading-6 text-gray-700">
-        {allActionItems.map((item) => (
-          <li
-            key={item.icon}
-            className={cn("flex items-center gap-3", item.indent && "pl-6")}
-          >
+        {actionItems.map((item) => (
+          <li key={item.icon} className="flex items-center gap-3">
             <span className="text-4xl">{item.icon}</span>
             <p>
               <span className="font-bold text-black">{item.title} </span>
