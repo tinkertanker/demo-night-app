@@ -31,22 +31,6 @@ export default function Logos({
         height={logoSize}
         className="logo"
       />
-      <Image
-        src="/images/ai-collective.png"
-        id="logo"
-        alt="logo"
-        width={logoSize}
-        height={logoSize}
-        className="logo"
-      />
-      {/* <Image
-        src="/images/produnt-hunt.png"
-        id="logo"
-        alt="logo"
-        width={logoSize}
-        height={logoSize}
-        className="logo"
-      /> */}
     </div>
   );
 }
