@@ -35,8 +35,8 @@ export function ActionButtons({
           whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
           whileTap={{ scale: 1.5, transition: { duration: 0.2 } }}
           className={cn(
-            "aspect-square w-20 rounded-full border-4 from-blue-400/40 from-50% to-blue-500/60 text-center text-[40px] shadow-[0_10px_40px_rgb(59,130,246,0.5)] backdrop-blur transition-all bg-radient-ellipse-c hover:bg-blue-500/20",
-            feedback?.tellMeMore ? "border-blue-500" : "border-transparent",
+            "aspect-square w-20 rounded-full border-2 bg-white text-center text-[40px] shadow-lg shadow-black/10 transition-all",
+            feedback?.tellMeMore ? "border-primary bg-primary/5" : "border-black/5",
           )}
           onClick={() => {
             if (feedback) {
@@ -53,7 +53,7 @@ export function ActionButtons({
             <ConfettiExplosion
               active={isExploding}
               config={{
-                colors: ["#809fff", "#99b3ff", "#b3c6ff"],
+                colors: ["#f05d57", "#f4827d", "#f9aca9"],
                 elementCount: 200,
                 duration: 5000,
               }}
@@ -61,7 +61,7 @@ export function ActionButtons({
           </div>
           <span>📬</span>
         </motion.button>
-        <p className="pointer-events-none absolute w-28 pt-[104px] text-center text-sm font-semibold text-gray-400">
+        <p className="pointer-events-none absolute w-28 pt-[104px] text-center text-sm font-medium text-muted-foreground">
           Email me!
         </p>
       </div>
@@ -70,8 +70,8 @@ export function ActionButtons({
           whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
           whileTap={{ scale: 1.5, transition: { duration: 0.2 } }}
           className={cn(
-            "relative aspect-square w-28 rounded-full border-4 from-orange-400/40 from-50% to-orange-600/60 text-center text-lg text-orange-600 shadow-[0_15px_60px_rgb(234,88,12,0.5)] backdrop-blur transition-all bg-radient-ellipse-c hover:bg-orange-500/20",
-            feedback?.claps ? "border-orange-500" : "border-transparent",
+            "relative aspect-square w-28 rounded-full border-2 bg-white text-center text-lg text-primary-dark shadow-lg shadow-black/10 transition-all",
+            feedback?.claps ? "border-primary bg-primary/5" : "border-black/5",
           )}
           onClick={() => {
             if (feedback) {
@@ -118,18 +118,18 @@ function QuickActionsButton({
           whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
           whileTap={{ scale: 1.5, transition: { duration: 0.2 } }}
           className={cn(
-            "aspect-square w-20 rounded-full border-4 border-transparent from-yellow-300/40 from-50% to-yellow-500/60 text-center text-[40px] shadow-[0_10px_40px_rgb(234,179,8,0.5)] backdrop-blur transition-all bg-radient-ellipse-c hover:bg-yellow-500/20",
+            "aspect-square w-20 rounded-full border-2 border-black/5 bg-white text-center text-[40px] shadow-lg shadow-black/10 transition-all",
             showButtons
-              ? "from-red-400/40 to-red-500/60 shadow-[0_10px_40px_rgb(239,68,68,0.5)] hover:bg-red-500/20"
+              ? "border-primary bg-primary/5"
               : feedback?.quickActions.length
-                ? "border-yellow-500"
+                ? "border-primary"
                 : "",
           )}
           onClick={() => setShowButtons(!showButtons)}
         >
           {showButtons ? "❌" : QUICK_ACTIONS_ICON}
         </motion.button>
-        <p className="pointer-events-none absolute w-32 pt-[104px] text-center text-sm font-semibold text-gray-400">
+        <p className="pointer-events-none absolute w-32 pt-[104px] text-center text-sm font-medium text-muted-foreground">
           {QUICK_ACTIONS_TITLE}
         </p>
       </div>
@@ -143,16 +143,16 @@ function QuickActionsButton({
           >
             {quickActions.map((action) => (
               <div key={action.id} className="relative w-[300px]">
-                <p className="pointer-events-none absolute -left-3 top-1/2 line-clamp-1 -translate-x-full -translate-y-1/2 rounded-full bg-white/60 p-2 text-sm font-semibold text-gray-400 backdrop-blur-sm">
+                <p className="pointer-events-none absolute -left-3 top-1/2 line-clamp-1 -translate-x-full -translate-y-1/2 rounded-full bg-white/60 p-2 text-sm font-medium text-muted-foreground backdrop-blur-sm">
                   {action.description}
                 </p>
                 <motion.button
                   whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
                   whileTap={{ scale: 1.5, transition: { duration: 0.2 } }}
                   className={cn(
-                    "relative aspect-square w-20 rounded-full border-4 border-transparent from-yellow-300/40 from-50% to-yellow-500/60 text-center text-[40px] shadow-[0_10px_40px_rgb(234,179,8,0.5)] backdrop-blur transition-all bg-radient-ellipse-c hover:bg-yellow-500/20",
+                    "relative aspect-square w-20 rounded-full border-2 border-black/5 bg-white text-center text-[40px] shadow-lg shadow-black/10 transition-all",
                     feedback?.quickActions.includes(action.id)
-                      ? "border-yellow-500"
+                      ? "border-primary bg-primary/5"
                       : "",
                   )}
                   onClick={() => {

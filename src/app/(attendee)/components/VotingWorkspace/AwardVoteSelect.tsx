@@ -49,8 +49,10 @@ export default function AwardVoteSelect({
       <div
         onClick={toggleExpand}
         className={cn(
-          "flex w-full cursor-pointer flex-row items-center justify-between rounded-lg px-4 py-3 text-center text-lg font-semibold shadow-lg backdrop-blur transition-all duration-300 ease-in-out",
-          vote?.demoId ? "bg-green-400/50" : "bg-red-400/50",
+          "flex w-full cursor-pointer flex-row items-center justify-between rounded-lg border px-4 py-3 text-center text-lg font-semibold shadow-md backdrop-blur transition-all duration-300 ease-in-out",
+          vote?.demoId
+            ? "border-green-300 bg-green-50/90"
+            : "border-dashed border-primary/50 bg-primary/5 text-primary-dark",
         )}
       >
         <motion.div
@@ -108,11 +110,11 @@ export default function AwardVoteSelect({
                       setIsExpanded(false);
                     }}
                     className={cn(
-                      "flex cursor-pointer flex-row items-center justify-between gap-2 rounded-lg bg-white/80 px-4 py-3 text-lg font-semibold shadow-xl backdrop-blur-lg backdrop-brightness-150 hover:bg-gray-100/80 focus:outline-none",
+                      "flex cursor-pointer flex-row items-center justify-between gap-2 rounded-lg border border-black/5 bg-white/90 px-4 py-3 text-lg font-semibold shadow-md backdrop-blur-lg hover:bg-secondary focus:outline-none",
                       voteDemoIds.includes(demo.id) &&
-                        "bg-gray-200/60 hover:bg-red-200/60",
+                        "bg-gray-100/90 text-muted-foreground",
                       vote?.demoId === demo.id &&
-                        "bg-green-300/80 hover:bg-green-400/80",
+                        "border-green-300 bg-green-50/90 text-foreground hover:bg-green-100/90",
                     )}
                   >
                     <div className="flex w-full flex-col leading-6">

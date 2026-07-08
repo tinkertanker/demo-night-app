@@ -46,11 +46,11 @@ export function DemoSelectionHeader({
         <div
           onClick={toggleExpand}
           className={cn(
-            "flex w-full cursor-pointer flex-row items-center justify-between rounded-lg px-4 py-3 text-center text-lg font-semibold shadow-lg backdrop-blur transition-all duration-300 ease-in-out",
+            "flex w-full cursor-pointer flex-row items-center justify-between rounded-lg border px-4 py-3 text-center text-lg font-semibold shadow-md backdrop-blur transition-all duration-300 ease-in-out",
             selectedDemo?.id === currentDemoId
-              ? "bg-green-400/50"
-              : "bg-red-400/50",
-            isExpanded ? " bg-black/40 hover:bg-black/50" : "",
+              ? "border-green-300 bg-green-50/90"
+              : "border-red-300 bg-red-50/90",
+            isExpanded ? "border-transparent bg-black/40 hover:bg-black/50" : "",
           )}
         >
           <motion.div
@@ -111,10 +111,10 @@ export function DemoSelectionHeader({
                     setIsExpanded(false);
                   }}
                   className={cn(
-                    "flex cursor-pointer flex-row items-center justify-between gap-2 rounded-lg px-4 py-3 text-lg font-semibold shadow-xl backdrop-blur-lg backdrop-brightness-150 focus:outline-none",
+                    "flex cursor-pointer flex-row items-center justify-between gap-2 rounded-lg border px-4 py-3 text-lg font-semibold shadow-md backdrop-blur-lg focus:outline-none",
                     demo.id === currentDemoId
-                      ? "bg-green-300/80 hover:bg-green-400/80"
-                      : "bg-white/60 hover:bg-red-200/60",
+                      ? "border-green-300 bg-green-50/90 hover:bg-green-100/90"
+                      : "border-black/5 bg-white/90 hover:bg-secondary",
                   )}
                 >
                   <div className="flex flex-row gap-2">

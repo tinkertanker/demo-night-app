@@ -22,7 +22,7 @@ export default function AwardWinnerItem({
 
   return (
     <div className="flex flex-col font-medium">
-      <h2 className="font-kallisto text-2xl font-bold">{award.name}</h2>
+      <h2 className="text-2xl font-bold">{award.name}</h2>
       <p className="text-md pb-2 pl-[2px] text-lg font-semibold italic leading-6 text-gray-500">
         {award.description}
       </p>
@@ -30,7 +30,7 @@ export default function AwardWinnerItem({
         <Link
           href={winner.url}
           target="_blank"
-          className="group z-10 flex min-h-28 flex-col rounded-lg bg-yellow-300/50 p-4 shadow-xl backdrop-blur"
+          className="group z-10 flex min-h-28 flex-col rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-md backdrop-blur"
         >
           <div className="flex items-center gap-2">
             <h2 className="text-2xl font-bold group-hover:underline">
@@ -49,7 +49,7 @@ export default function AwardWinnerItem({
           )}
         </Link>
       ) : (
-        <div className="z-10 flex min-h-28 flex-col rounded-lg bg-yellow-300/50 p-4 shadow-xl backdrop-blur">
+        <div className="z-10 flex min-h-28 flex-col rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-md backdrop-blur">
           <h2 className="text-2xl font-bold">{winner.name}</h2>
           {winner.description && (
             <p className="italic leading-5 text-gray-700">
