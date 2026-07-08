@@ -17,7 +17,7 @@ export default function HofHeader() {
               {branding.appName}
             </h1>
             <h2 className="line-clamp-1 text-ellipsis px-1 text-sm font-bold leading-5 tracking-tight">
-              Hall of Fame 🏆
+              at Tinkercademy
             </h2>
           </div>
           <div className="flex w-[68px] items-center justify-end" />

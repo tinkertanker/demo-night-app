@@ -23,8 +23,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
     <>
       <div className="flex w-full flex-col items-center justify-center gap-2">
         <p className="mb-2 max-w-lg text-center text-base font-medium italic leading-5 text-gray-500">
-          Welcome to the Demo Night Hall of Fame! 🏆 View the winners and demos
-          from the most recent demo night or select a different one.
+          Welcome to Demo Night!
         </p>
         <button
           className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-6 py-3 text-base font-bold text-gray-700 transition hover:bg-gray-200"
@@ -68,7 +67,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
       </div>
       <div className="mt-12 flex w-full flex-col gap-2">
         <h2 className="text-2xl font-bold text-black">
-          All Demos
+          All Demo Nights
         </h2>
         <div className="flex w-full flex-col gap-4">
           {selectedEvent.demos.map((demo) => (
@@ -107,7 +106,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
       {config.partners.length > 0 && (
         <div className="mt-12 flex w-full flex-col gap-2">
           <h2 className="text-2xl font-bold text-black">
-            Hosts & Sponsors
+            Credits
           </h2>
           <div className="flex w-full flex-col gap-4">
             {config.partners.map((partner) => (
