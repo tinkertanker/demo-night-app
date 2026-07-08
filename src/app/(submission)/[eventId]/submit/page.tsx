@@ -1,7 +1,6 @@
 import { type Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { getBrandingClient } from "~/lib/branding";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { type CompleteEvent } from "~/server/api/routers/event";
 import { getServerAuthSession } from "~/server/auth";
@@ -11,7 +10,7 @@ import SubmitDemo from "./components/SubmitDemo";
 import { LinkButton } from "~/components/Button";
 import { LogoConfetti } from "~/components/Confetti";
 import EventHeader from "~/components/EventHeader";
-import Logos from "~/components/Logos";
+import Sticker from "~/components/Sticker";
 
 enum SubmissionDeadline {
   SATURDAY_BEFORE_EVENT = 1,
@@ -102,9 +101,6 @@ function SubmitDemoMessagePage({
   success: boolean;
   event: CompleteEvent;
 }) {
-  const branding = getBrandingClient(
-    (event.config as EventConfig)?.isPitchNight as boolean,
-  );
   const title = success ? "Submission successful! 🥳" : "Submissions closed 😬";
   const message = success
     ? "Your submission has been received. Expect to hear from us a few days before the event!"
@@ -112,7 +108,7 @@ function SubmitDemoMessagePage({
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center px-4 pb-16 text-center text-black">
-      <Logos size="lg" logoPath={branding.logoPath} />
+      <Sticker name={success ? "thumbsup" : "facepalm"} />
       <h1 className="pt-4 text-center text-2xl font-bold">{title}</h1>
       <p className="text-lg font-semibold italic text-gray-500">{message}</p>
       <LinkButton href={event.url}>Back to event</LinkButton>

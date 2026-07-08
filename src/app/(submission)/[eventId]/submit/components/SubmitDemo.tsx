@@ -12,6 +12,7 @@ import { api } from "~/trpc/react";
 
 import Button from "~/components/Button";
 import { LogoConfetti } from "~/components/Confetti";
+import Sticker from "~/components/Sticker";
 
 const DEMO_GUIDELINES_URL =
   "https://theaicollective.notion.site/demo-night-guidelines";
@@ -83,6 +84,7 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
       className="flex w-full flex-col items-center gap-4 font-medium"
     >
       <div>
+        <Sticker name="handraise" size={120} className="mx-auto" />
         <h1 className="text-center text-4xl font-bold tracking-tight">
           {branding.isPitchNight
             ? "Submit Your Pitch! 🚀"

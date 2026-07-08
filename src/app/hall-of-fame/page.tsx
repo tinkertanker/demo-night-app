@@ -7,7 +7,7 @@ import EventDisplay from "./components/EventDisplay";
 import HofHeader from "./components/HofHeader";
 import { LinkButton } from "~/components/Button";
 import { LogoConfetti } from "~/components/Confetti";
-import Logos from "~/components/Logos";
+import Sticker from "~/components/Sticker";
 
 import { env } from "~/env";
 
@@ -50,7 +50,8 @@ function NoEventsPage({
 }) {
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center pb-16 text-black">
-      <Logos size="lg" logoPath={branding.logoPath} />
+      <Sticker name="yay" />
+      <Sticker name="thumbsup" size={36} className="hidden" />
       <h1 className="pt-4 text-center text-2xl font-semibold">
         {branding.appName} App
       </h1>

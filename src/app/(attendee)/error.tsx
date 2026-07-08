@@ -3,7 +3,7 @@
 import { getBrandingClient } from "~/lib/branding";
 import { cn } from "~/lib/utils";
 
-import Logos from "~/components/Logos";
+import Sticker from "~/components/Sticker";
 
 import { useWorkspaceContext } from "./contexts/WorkspaceContext";
 
@@ -14,7 +14,7 @@ export default function ErrorPage() {
   );
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center pb-16 text-black">
-      <Logos size="lg" logoPath={branding.logoPath} />
+      <Sticker name="facepalm" />
       <h1 className="pt-4 text-center text-2xl font-semibold">
         Something went wrong 🥲
       </h1>
