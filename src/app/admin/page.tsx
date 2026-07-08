@@ -60,10 +60,10 @@ export default function AdminHomePage() {
         <div className="container mx-auto flex max-w-screen-lg items-center justify-between gap-1 px-4 py-2 md:px-8">
           <Logos size="sm" logoPath={branding.logoPath} />
           <div className="flex flex-col items-center justify-center">
-            <h1 className="line-clamp-1 font-marker text-xl font-bold leading-6 tracking-tight">
+            <h1 className="line-clamp-1 text-xl font-bold leading-6 tracking-tight">
               {branding.appName} App
             </h1>
-            <span className="font-marker text-sm font-bold text-muted-foreground">
+            <span className="text-sm font-bold text-muted-foreground">
               Admin Dashboard
             </span>
           </div>

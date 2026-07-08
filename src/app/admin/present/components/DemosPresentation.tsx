@@ -49,12 +49,12 @@ export default function DemosPresentation() {
             target="_blank"
             className="group flex items-center gap-3 transition-all"
           >
-            <h1 className="line-clamp-1 font-kallisto text-4xl font-bold tracking-tight group-hover:underline">
+            <h1 className="line-clamp-1 text-4xl font-bold tracking-tight group-hover:underline">
               {demo.name}
             </h1>
           </Link>
         ) : (
-          <h1 className="line-clamp-1 font-kallisto text-4xl font-bold tracking-tight">
+          <h1 className="line-clamp-1 text-4xl font-bold tracking-tight">
             {demo.name}
           </h1>
         )}

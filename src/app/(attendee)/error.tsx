@@ -13,7 +13,7 @@ export default function ErrorPage() {
     context?.currentEvent?.isPitchNight as boolean,
   );
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center pb-16 font-kallisto text-black">
+    <main className="flex min-h-screen w-full flex-col items-center justify-center pb-16 text-black">
       <Logos size="lg" logoPath={branding.logoPath} />
       <h1 className="pt-4 text-center text-2xl font-semibold">
         Something went wrong 🥲
@@ -24,7 +24,7 @@ export default function ErrorPage() {
           "mt-4 rounded-lg px-4 py-3 font-semibold text-white shadow-xl",
           branding.isPitchNight
             ? "bg-green-800/80 hover:bg-green-900/80"
-            : "bg-orange-500/80 hover:bg-orange-600/80",
+            : "bg-primary hover:bg-primary-dark",
         )}
         onClick={() => window.location.reload()}
       >

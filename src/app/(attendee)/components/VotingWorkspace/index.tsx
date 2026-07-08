@@ -42,7 +42,7 @@ export default function VotingWorkspace() {
     <div className="absolute bottom-0 max-h-[calc(100dvh-120px)] w-full max-w-xl">
       <div className="flex size-full flex-col items-center justify-center gap-4 p-4">
         <div>
-          <h1 className="text-center font-kallisto text-4xl font-bold tracking-tight">
+          <h1 className="text-center text-4xl font-bold tracking-tight">
             {isPitchNight ? "Investing Time! 💰" : "Voting Time! 🗳️"}
           </h1>
           <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">

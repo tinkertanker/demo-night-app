@@ -77,7 +77,7 @@ export default function DemosWorkspace() {
                 target="_blank"
                 className="group flex items-center gap-3 transition-all"
               >
-                <h1 className="line-clamp-1 font-kallisto text-4xl font-bold tracking-tight group-hover:underline">
+                <h1 className="line-clamp-1 text-4xl font-bold tracking-tight group-hover:underline">
                   {selectedDemo.name}
                 </h1>
                 <ArrowUpRight
@@ -87,7 +87,7 @@ export default function DemosWorkspace() {
                 />
               </Link>
             ) : (
-              <h1 className="line-clamp-1 font-kallisto text-4xl font-bold tracking-tight">
+              <h1 className="line-clamp-1 text-4xl font-bold tracking-tight">
                 {selectedDemo.name}
               </h1>
             )}

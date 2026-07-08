@@ -65,7 +65,7 @@ export default function InfoModal({
       className="flex w-full flex-col items-center gap-8 font-medium"
     >
       <div>
-        <h1 className="line-clamp-1 text-center font-kallisto text-4xl font-bold tracking-tight">
+        <h1 className="line-clamp-1 text-center text-4xl font-bold tracking-tight">
           About Actions
         </h1>
         <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">

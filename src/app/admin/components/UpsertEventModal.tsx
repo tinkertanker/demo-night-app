@@ -203,7 +203,7 @@ export function UpsertEventModal({
                 "flex-1",
                 isPitchNight
                   ? "bg-green-700/80 hover:bg-green-800/80"
-                  : "bg-orange-500/80 hover:bg-orange-600/80",
+                  : "bg-primary hover:bg-primary-dark",
               )}
             >
               {event ? "Update Event" : "Create Event"}

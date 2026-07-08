@@ -262,7 +262,7 @@ export default function SubmissionsDashboard({
                           <div className="flex flex-row items-center justify-end gap-2">
                             {submission.flagged && (
                               <FlagIcon
-                                className="h-[18px] w-[18px] fill-orange-500 text-orange-700"
+                                className="h-[18px] w-[18px] fill-primary text-primary-dark"
                                 strokeWidth={2.5}
                               />
                             )}

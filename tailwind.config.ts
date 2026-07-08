@@ -1,47 +1,5 @@
 import { type Config } from "tailwindcss";
 import { fontFamily } from "tailwindcss/defaultTheme";
-import plugin from "tailwindcss/plugin";
-
-const radialGradientPlugin = plugin(
-  function ({ matchUtilities, theme }) {
-    matchUtilities(
-      {
-        // map to bg-radient-[*]
-        "bg-radient": (value) => ({
-          "background-image": `radial-gradient(${value},var(--tw-gradient-stops))`,
-        }),
-      },
-      { values: theme("radialGradients") },
-    );
-  },
-  {
-    theme: {
-      radialGradients: _presets(),
-    },
-  },
-);
-
-function _presets() {
-  const shapes = ["circle", "ellipse"];
-  const pos = {
-    c: "center",
-    t: "top",
-    b: "bottom",
-    l: "left",
-    r: "right",
-    tl: "top left",
-    tr: "top right",
-    bl: "bottom left",
-    br: "bottom right",
-  };
-  const result: Record<string, string> = {};
-
-  for (const shape of shapes)
-    for (const [posName, posValue] of Object.entries(pos))
-      result[`${shape}-${posName}`] = `${shape} at ${posValue}`;
-
-  return result;
-}
 
 export default {
   darkMode: ["class"],
@@ -58,18 +16,7 @@ export default {
         "pulse-border": "pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
       fontFamily: {
-        sans: ["var(--font-open-sans)", ...fontFamily.sans],
-        kallisto: [
-          "var(--font-kallisto)",
-          "var(--font-open-sans)",
-          ...fontFamily.sans,
-        ],
-        marker: [
-          "var(--font-marker)",
-          "var(--font-kallisto)",
-          "var(--font-open-sans)",
-          ...fontFamily.sans,
-        ],
+        sans: ["var(--font-rubik)", ...fontFamily.sans],
       },
       screens: {
         xs: "500px",
@@ -97,6 +44,7 @@ export default {
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",
+          dark: "hsl(var(--primary-dark))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -138,5 +86,5 @@ export default {
       },
     },
   },
-  plugins: [radialGradientPlugin, require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate")],
 } satisfies Config;

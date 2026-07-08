@@ -143,7 +143,7 @@ export default function InvestmentAmountSelect({
             </p>
           </div>
           <div className="text-right">
-            <p className="font-kallisto text-2xl font-bold">
+            <p className="text-2xl font-bold">
               ${remaining / 1000}k
             </p>
           </div>
@@ -225,7 +225,7 @@ export default function InvestmentAmountSelect({
                 </div>
 
                 {/* Amount Display */}
-                <div className="flex flex-1 flex-col items-center font-kallisto">
+                <div className="flex flex-1 flex-col items-center">
                   <p className="text-2xl font-bold">
                     ${amount === 0 ? "0" : `${amount / 1000}k`}
                   </p>

@@ -83,7 +83,7 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
       className="flex w-full flex-col items-center gap-4 font-medium"
     >
       <div>
-        <h1 className="text-center font-kallisto text-4xl font-bold tracking-tight">
+        <h1 className="text-center text-4xl font-bold tracking-tight">
           {branding.isPitchNight
             ? "Submit Your Pitch! 🚀"
             : "Submit Your Demo! 🚀"}

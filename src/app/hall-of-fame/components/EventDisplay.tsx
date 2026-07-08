@@ -43,7 +43,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
           setIsOpen={setShowSelector}
         />
         <div className="mt-8 flex w-full max-w-2xl flex-col items-center">
-          <h1 className="flex items-center gap-2 text-center font-kallisto text-4xl font-extrabold text-black">
+          <h1 className="flex items-center gap-2 text-center text-4xl font-extrabold text-black">
             {selectedEvent.name}
           </h1>
           <p className="mt-1 text-lg font-bold text-gray-500">
@@ -67,7 +67,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
           ))}
       </div>
       <div className="mt-12 flex w-full flex-col gap-2">
-        <h2 className="font-kallisto text-2xl font-bold text-black">
+        <h2 className="text-2xl font-bold text-black">
           All Demos
         </h2>
         <div className="flex w-full flex-col gap-4">
@@ -106,7 +106,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
       </div>
       {config.partners.length > 0 && (
         <div className="mt-12 flex w-full flex-col gap-2">
-          <h2 className="font-kallisto text-2xl font-bold text-black">
+          <h2 className="text-2xl font-bold text-black">
             Hosts & Sponsors
           </h2>
           <div className="flex w-full flex-col gap-4">

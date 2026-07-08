@@ -111,7 +111,7 @@ export function UpdateAttendeeForm({
       className="flex w-full flex-col items-center gap-4 font-medium"
     >
       <div>
-        <h1 className="text-center font-kallisto text-4xl font-bold tracking-tight">
+        <h1 className="text-center text-4xl font-bold tracking-tight">
           {isPreDemo ? "Welcome! 😄" : "Update Profile 🧑‍💼"}
         </h1>
         <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">

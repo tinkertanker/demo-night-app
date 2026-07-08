@@ -26,12 +26,12 @@ export default function Button({
     <button
       type="submit"
       className={cn(
-        `z-30 flex h-14 w-full items-center justify-center gap-2 space-x-2 rounded-lg px-4 py-2 font-kallisto text-xl font-bold tracking-wide text-white shadow-lg backdrop-blur transition-all focus:outline-none active:scale-95 active:shadow-md`,
+        `z-30 flex h-12 w-full items-center justify-center gap-2 space-x-2 rounded-lg px-4 py-2 text-lg font-semibold text-white shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]`,
         pending
           ? "cursor-not-allowed"
           : isPitchNight
-            ? "bg-green-800/80 hover:bg-green-900/80"
-            : "bg-orange-500/80 hover:bg-orange-600/80",
+            ? "bg-green-800 hover:bg-green-900"
+            : "bg-primary hover:bg-primary-dark",
         className,
       )}
       disabled={pending}
@@ -54,7 +54,7 @@ export function LinkButton({
   return (
     <Link
       className={cn(
-        `z-10 mt-4 rounded-lg bg-orange-500/80 px-4 py-3 font-semibold tracking-wide text-white shadow-lg backdrop-blur transition-all hover:bg-orange-600/80 focus:outline-none active:scale-95 active:shadow-md`,
+        `z-10 mt-4 rounded-lg bg-primary px-4 py-3 font-semibold text-white shadow-sm transition-all hover:bg-primary-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]`,
         className,
       )}
       href={href}

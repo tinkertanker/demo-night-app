@@ -18,7 +18,7 @@ export default async function NotFoundPage({
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center px-4 pb-16 text-center font-kallisto text-black">
+    <main className="flex min-h-screen w-full flex-col items-center justify-center px-4 pb-16 text-center text-black">
       <Logos size="lg" logoPath={branding.logoPath} />
       <h1 className="pt-4 text-center text-2xl font-bold">{title}</h1>
       <p className="text-lg font-semibold italic text-gray-500">{message}</p>

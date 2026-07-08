@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Open_Sans } from "next/font/google";
-import localFont from "next/font/local";
+import { Rubik } from "next/font/google";
 import { Toaster } from "sonner";
 
 import { TRPCReactProvider } from "~/trpc/react";
@@ -102,10 +101,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className={`${kallisto.variable} ${openSans.variable} ${marker.variable} font-sans`}
-    >
+    <html lang="en" className={`${rubik.variable} font-sans`}>
       <body>
         <TRPCReactProvider>
           <Toaster position="top-center" />
@@ -116,66 +112,8 @@ export default function RootLayout({
   );
 }
 
-const openSans = Open_Sans({
+const rubik = Rubik({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-open-sans",
-});
-
-const kallisto = localFont({
-  src: [
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Thin.otf",
-      weight: "300",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Thin Italic.otf",
-      weight: "300",
-      style: "italic",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Light.otf",
-      weight: "400",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Light Italic.otf",
-      weight: "400",
-      style: "italic",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Medium.otf",
-      weight: "500",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Medium Italic.otf",
-      weight: "500",
-      style: "italic",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Bold.otf",
-      weight: "600",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Bold Italic.otf",
-      weight: "600",
-      style: "italic",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Heavy.otf",
-      weight: "700",
-    },
-    {
-      path: "../../public/fonts/Kallisto/Kallisto Heavy Italic.otf",
-      weight: "700",
-      style: "italic",
-    },
-  ],
-  display: "swap",
-  variable: "--font-kallisto",
-});
-
-const marker = localFont({
-  src: "../../public/fonts/Kallisto/EdsMarketBoldSlant.otf",
-  display: "swap",
-  variable: "--font-marker",
+  variable: "--font-rubik",
 });

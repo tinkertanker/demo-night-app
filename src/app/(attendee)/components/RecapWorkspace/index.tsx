@@ -53,7 +53,7 @@ export default function RecapWorkspace() {
   return (
     <div className="flex size-full flex-1 flex-col items-center justify-center gap-8 p-4">
       <div className="flex w-full flex-col gap-2">
-        <h1 className="text-center font-kallisto text-4xl font-bold tracking-tight">
+        <h1 className="text-center text-4xl font-bold tracking-tight">
           Event Recap 🎉
         </h1>
         {surveyUrl && (
@@ -75,7 +75,7 @@ export default function RecapWorkspace() {
         <ContributeButton />
       </div>
       <div className="flex w-full flex-col gap-2">
-        <h2 className="w-full font-kallisto text-2xl font-bold">
+        <h2 className="w-full text-2xl font-bold">
           Award Winners 🏆
         </h2>
         <div className="z-10 flex w-full flex-row">
@@ -90,7 +90,7 @@ export default function RecapWorkspace() {
       </div>
       {config.partners.length > 0 && (
         <div className="flex w-full flex-col gap-2">
-          <h2 className="w-full font-kallisto text-2xl font-bold">
+          <h2 className="w-full text-2xl font-bold">
             Hosts & Sponsors 🤝
           </h2>
           <div className="z-10 flex w-full flex-col gap-4">
@@ -102,7 +102,7 @@ export default function RecapWorkspace() {
       )}
       {feedback && Object.values(feedback).length > 0 && (
         <div className="flex w-full flex-col gap-2">
-          <h2 className="w-full font-kallisto text-2xl font-bold">
+          <h2 className="w-full text-2xl font-bold">
             Your Feedback ✍️
           </h2>
           <div className="z-10 flex w-full flex-col gap-4">
@@ -118,7 +118,7 @@ export default function RecapWorkspace() {
         </div>
       )}
       <div className="flex w-full flex-col gap-2">
-        <h2 className="w-full font-kallisto text-2xl font-bold">
+        <h2 className="w-full text-2xl font-bold">
           All {isPitchNight ? "Pitches" : "Demos"} 🧑‍💻
         </h2>
         <div className="z-10 flex w-full flex-col gap-4">
@@ -176,7 +176,7 @@ function AwardWinnerItem({
       <Link
         href={winner?.url ?? "/"}
         target="_blank"
-        className="group z-10 flex w-full flex-col gap-1 rounded-lg bg-yellow-300/50 p-4 shadow-xl backdrop-blur"
+        className="group z-10 flex w-full flex-col gap-1 rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-md backdrop-blur"
       >
         <div className="flex items-center gap-2">
           <h3 className="line-clamp-1 text-xl font-bold group-hover:underline">
@@ -226,7 +226,7 @@ function PartnerItem({
         </div>
         {email && (
           <p className="flex-shrink-0 truncate text-gray-500">
-            📬 <span className="">{email}</span>
+            📬 <span>{email}</span>
           </p>
         )}
       </div>

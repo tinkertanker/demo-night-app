@@ -31,7 +31,7 @@ export default function PrePresentation() {
         </p>
       </div>
       <div className="flex w-full flex-col gap-2">
-        <h2 className="w-full font-kallisto text-2xl font-bold">
+        <h2 className="w-full text-2xl font-bold">
           Upcoming Demos 🧑‍💻
         </h2>
         <div className="z-10 flex w-full flex-row">

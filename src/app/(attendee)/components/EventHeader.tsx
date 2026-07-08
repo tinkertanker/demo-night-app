@@ -18,7 +18,7 @@ export default function EventHeader() {
           <div className="flex w-[68px] shrink-0 items-center gap-0">
             <Logos size="sm" logoPath={branding.logoPath} />
           </div>
-          <h1 className="mt-1 line-clamp-1 text-ellipsis px-1 font-marker text-xl font-bold tracking-tight">
+          <h1 className="mt-1 line-clamp-1 text-ellipsis px-1 text-xl font-bold tracking-tight">
             {currentEvent?.name ?? ""}
           </h1>
           <div className="flex w-[68px] shrink-0 items-center justify-end">
@@ -45,11 +45,11 @@ function PhasePills({ currentPhase }: { currentPhase: EventPhase }) {
       {allPhases.map((phase) => (
         <div
           key={phase}
-          className={`flex h-3 flex-1 items-center justify-center truncate rounded-[6px] text-center font-kallisto text-[8px] font-bold tracking-wide backdrop-blur transition-all duration-500 ease-in-out ${
+          className={`flex h-3 flex-1 items-center justify-center truncate rounded-[6px] text-center text-[8px] font-bold tracking-wide backdrop-blur transition-all duration-500 ease-in-out ${
             phase === currentPhase
               ? isPitchNight
                 ? "bg-green-800/80 text-white"
-                : "bg-orange-500/80 text-white"
+                : "bg-primary text-white"
               : "bg-black/5 text-gray-500"
           }`}
         >

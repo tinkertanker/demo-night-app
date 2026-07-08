@@ -17,7 +17,7 @@ export default function PresentationHeader() {
         />
         <div className="flex w-full flex-1 flex-row items-center justify-between px-3">
           <Logos size="sm" logoPath={branding.logoPath} />
-          <h1 className="mt-1 line-clamp-1 text-ellipsis px-1 font-marker text-xl font-bold tracking-tight">
+          <h1 className="mt-1 line-clamp-1 text-ellipsis px-1 text-xl font-bold tracking-tight">
             {currentEvent?.name ?? ""}
           </h1>
           <div className="flex aspect-square w-9 items-center justify-center" />
@@ -39,11 +39,11 @@ function PhasePills({
       {allPhases.map((phase) => (
         <div
           key={phase}
-          className={`flex h-3 flex-1 items-center justify-center rounded-[6px] text-center font-kallisto text-[8px] font-bold tracking-wide backdrop-blur transition-all duration-500 ease-in-out ${
+          className={`flex h-3 flex-1 items-center justify-center rounded-[6px] text-center text-[8px] font-bold tracking-wide backdrop-blur transition-all duration-500 ease-in-out ${
             phase === currentPhase
               ? isPitchNight
                 ? "bg-green-800/80 text-white"
-                : "bg-orange-500/80 text-white"
+                : "bg-primary text-white"
               : "bg-black/5 text-gray-500"
           }`}
         >
