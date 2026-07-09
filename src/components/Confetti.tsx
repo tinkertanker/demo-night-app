@@ -149,6 +149,9 @@ export function LogoConfetti({ run = true }: { run?: boolean }) {
         drawWidth = size * aspectRatio;
       }
 
+      // Keep the floating background stickers subtle rather than distracting.
+      const previousAlpha = ctx.globalAlpha;
+      ctx.globalAlpha = 0.5;
       ctx.drawImage(
         img,
         -drawWidth / 2,
@@ -156,6 +159,7 @@ export function LogoConfetti({ run = true }: { run?: boolean }) {
         drawWidth,
         drawHeight,
       );
+      ctx.globalAlpha = previousAlpha;
     } catch (error) {
       console.error("Error drawing image:", error);
     }
