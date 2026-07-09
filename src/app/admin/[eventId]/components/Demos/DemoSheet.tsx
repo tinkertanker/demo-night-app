@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type Demo } from "@prisma/client";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -68,23 +69,37 @@ export default function DemoSheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const upsertMutation = api.demo.upsert.useMutation();
+  const demoToFormValues = (demo?: Demo): FormValues =>
+    demo
+      ? {
+          id: demo.id,
+          name: demo.name,
+          description: demo.description ?? "",
+          email: demo.email ?? "",
+          url: demo.url ?? "",
+          votable: demo.votable,
+        }
+      : {
+          name: "",
+          description: "",
+          email: "",
+          url: "",
+          votable: true,
+        };
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: demo ? {
-      id: demo.id,
-      name: demo.name,
-      description: demo.description ?? "",
-      email: demo.email ?? "",
-      url: demo.url ?? "",
-      votable: demo.votable,
-    } : {
-      name: "",
-      description: "",
-      email: "",
-      url: "",
-      votable: true,
-    },
+    defaultValues: demoToFormValues(demo),
   });
+
+  // `defaultValues` is only read on mount, but each row keeps its DemoSheet
+  // mounted and reuses it across edits. Re-sync the form to the latest demo
+  // whenever the sheet opens so stale values aren't shown on the next edit.
+  useEffect(() => {
+    if (open) {
+      form.reset(demoToFormValues(demo));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, demo]);
 
   const onFormSubmit = async (data: FormValues) => {
     try {
