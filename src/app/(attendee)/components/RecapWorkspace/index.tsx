@@ -12,6 +12,7 @@ import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
 
 import { LogoConfetti } from "~/components/Confetti";
+import Sticker from "~/components/Sticker";
 
 import { useEventFeedback } from "./hooks/useEventFeedback";
 
@@ -52,6 +53,7 @@ export default function RecapWorkspace() {
   return (
     <div className="flex size-full flex-1 flex-col items-center justify-center gap-8 p-4">
       <div className="flex w-full flex-col gap-2">
+        <Sticker name="thumbsup" size={112} className="mx-auto -mb-2" />
         <h1 className="text-center text-4xl font-bold tracking-tight">
           Event Recap 🎉
         </h1>

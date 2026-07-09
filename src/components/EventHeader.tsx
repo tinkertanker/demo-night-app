@@ -5,7 +5,7 @@ import { getBrandingClient } from "~/lib/branding";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { type CompleteEvent } from "~/server/api/routers/event";
 
-import Logos from "./Logos";
+import MascotLogo from "./MascotLogo";
 
 export default function EventHeader({
   event,
@@ -24,7 +24,7 @@ export default function EventHeader({
     <header className="fixed left-0 right-0 z-20 flex h-14 w-full select-none flex-col items-center bg-white/60 text-black backdrop-blur">
       <div className="flex w-full max-w-2xl flex-1 flex-col items-center justify-between">
         <div className="flex w-full flex-1 flex-row items-center justify-between px-3">
-          <Logos size="sm" logoPath={branding.logoPath} />
+          <MascotLogo seed={event.id} />
           <div className="flex flex-col items-center">
             <h1 className="mt-1 line-clamp-1 text-ellipsis px-1 text-xl font-bold tracking-tight">
               {demoName

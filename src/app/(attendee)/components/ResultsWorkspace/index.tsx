@@ -8,6 +8,7 @@ import { type EventConfig } from "~/lib/types/eventConfig";
 import { type PublicDemo } from "~/server/api/routers/event";
 
 import { ResultsConfetti } from "~/components/Confetti";
+import Sticker from "~/components/Sticker";
 
 export default function ResultsWorkspace() {
   const { currentEvent, event } = useWorkspaceContext();
@@ -24,6 +25,7 @@ export default function ResultsWorkspace() {
     <>
       <div className="absolute bottom-0 max-h-[calc(100dvh-120px)] w-full max-w-xl">
         <div className="flex size-full flex-col items-center justify-center gap-4 p-4">
+          <Sticker name="yay" size={112} className="-mb-2" />
           <h1 className="text-center text-4xl font-bold tracking-tight">
             {isPitchNight ? "Investment Results! 💸" : "Voting Results! 🚀"}
           </h1>

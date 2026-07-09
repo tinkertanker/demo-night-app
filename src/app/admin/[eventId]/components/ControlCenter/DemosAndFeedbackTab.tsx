@@ -19,6 +19,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "~/components/ui/resizable";
+import Sticker from "~/components/Sticker";
 import { SidebarTrigger } from "~/components/ui/sidebar";
 import {
   Table,
@@ -94,9 +95,12 @@ export default function DemosAndFeedbackTab() {
                 <TableRow>
                   <td
                     colSpan={3}
-                    className="h-24 text-center italic text-muted-foreground/50"
+                    className="py-6 text-center italic text-muted-foreground/50"
                   >
-                    No demos (yet!)
+                    <div className="flex flex-col items-center gap-1">
+                      <Sticker name="gasp" size={72} />
+                      No demos (yet!)
+                    </div>
                   </td>
                 </TableRow>
               ) : (
