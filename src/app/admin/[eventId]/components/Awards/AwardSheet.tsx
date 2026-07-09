@@ -30,7 +30,7 @@ import { Textarea } from "~/components/ui/textarea";
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   id: z.string().optional(),
-  description: z.string().min(1, "Description is required"),
+  description: z.string().optional().default(""),
   votable: z.boolean().default(true),
 });
 
@@ -137,13 +137,19 @@ export default function AwardSheet({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>
+                    Description{" "}
+                    <span className="font-normal italic text-muted-foreground">
+                      (optional)
+                    </span>
+                  </FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="The ultimate standout demo of the night!"
                       className="resize-none"
                       rows={2}
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />

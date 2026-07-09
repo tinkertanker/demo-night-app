@@ -77,7 +77,7 @@ export function AwardsTab() {
         awards: rows.map((row) => ({
           id: row.id,
           name: row.name!,
-          description: row.description!,
+          description: row.description ?? "",
           votable: !["0", "false", "FALSE"].includes(row.votable ?? ""),
         })),
       })

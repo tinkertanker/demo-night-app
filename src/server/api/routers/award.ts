@@ -24,7 +24,7 @@ export const awardRouter = createTRPCRouter({
         id: z.string().optional(),
         eventId: z.string(),
         name: z.string(),
-        description: z.string(),
+        description: z.string().optional().default(""),
         votable: z.boolean().optional(),
       }),
     )
@@ -125,7 +125,7 @@ export const awardRouter = createTRPCRouter({
           z.object({
             id: z.string().optional(),
             name: z.string(),
-            description: z.string(),
+            description: z.string().optional().default(""),
             votable: z.boolean().optional(),
           }),
         ),
