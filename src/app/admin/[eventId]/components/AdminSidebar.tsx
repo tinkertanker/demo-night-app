@@ -16,7 +16,7 @@ import {
   TrophyIcon,
   UsersIcon,
 } from "lucide-react";
-import Image from "next/image";
+import MascotLogo from "~/components/MascotLogo";
 import { useRouter } from "next/navigation";
 
 import { EventPhase } from "~/lib/types/currentEvent";
@@ -97,13 +97,7 @@ export function AdminSidebar({
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-14">
                   <div className="flex items-center gap-2">
-                    <Image
-                      src={branding.logoPath}
-                      alt="logo"
-                      width={40}
-                      height={40}
-                      className="-ml-1"
-                    />
+                    <MascotLogo seed={event.id} size={40} className="-ml-1" />
                     <div className="flex flex-col items-start">
                       <div className="flex items-center">
                         <div className="line-clamp-1 text-base font-bold leading-6">
