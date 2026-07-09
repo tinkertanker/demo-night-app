@@ -67,7 +67,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
       </div>
       <div className="mt-12 flex w-full flex-col gap-2">
         <h2 className="text-2xl font-bold text-black">
-          All Demo Nights
+          All Demos
         </h2>
         <div className="flex w-full flex-col gap-4">
           {selectedEvent.demos.map((demo) => (
