@@ -36,6 +36,12 @@ export default function Workspaces({
     }
   }, [event]);
 
+  useEffect(() => {
+    if (!currentEvent) {
+      window.location.reload();
+    }
+  }, [currentEvent]);
+
   function workspace() {
     switch (currentEvent?.phase) {
       case EventPhase.Pre:
@@ -55,6 +61,8 @@ export default function Workspaces({
         return <RecapWorkspace />;
     }
   }
+
+  if (!currentEvent) return null;
 
   return (
     <WorkspaceContext.Provider

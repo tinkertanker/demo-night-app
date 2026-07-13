@@ -86,6 +86,49 @@ export const eventRouter = createTRPCRouter({
       }
       return currentEvent;
     }),
+  getCurrentActive: publicProcedure
+    .input(z.undefined())
+    .output(
+      z
+        .object({
+          id: z.string(),
+          name: z.string(),
+          phase: z.nativeEnum(kv.EventPhase),
+          currentDemoId: z.string().nullable(),
+          currentAwardId: z.string().nullable(),
+          isPitchNight: z.boolean().optional().default(false),
+        })
+        .nullable(),
+    )
+    .query(async () => {
+      const currentEvent = await kv.getCurrentEvent();
+      if (!currentEvent) {
+        return null;
+      }
+
+      const event = await db.event.findUnique({
+        where: { id: currentEvent.id },
+        select: { date: true },
+      });
+
+      if (!event || isPastEventDay(event.date)) {
+        return null;
+      }
+
+      if (!("isPitchNight" in currentEvent)) {
+        const oldEvent = currentEvent as Omit<kv.CurrentEvent, "isPitchNight">;
+        return {
+          id: oldEvent.id,
+          name: oldEvent.name,
+          phase: oldEvent.phase,
+          currentDemoId: oldEvent.currentDemoId,
+          currentAwardId: oldEvent.currentAwardId,
+          isPitchNight: false,
+        };
+      }
+
+      return currentEvent;
+    }),
   get: publicProcedure
     .input(z.string())
     .query(async ({ input }): Promise<CompleteEvent | null> => {
@@ -499,6 +542,23 @@ export const eventRouter = createTRPCRouter({
       });
   }),
 });
+
+function isPastEventDay(eventDate: Date) {
+  return singaporeDateKey(new Date()) > utcDateKey(eventDate);
+}
+
+function singaporeDateKey(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Singapore",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function utcDateKey(date: Date) {
+  return date.toISOString().substring(0, 10);
+}
 
 const completeEventSelect: Prisma.EventSelect = {
   id: true,

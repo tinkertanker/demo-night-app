@@ -3,7 +3,7 @@ import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
 import { SurveyCTA } from "../SurveyCTA";
 import { type Award, type Feedback } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, Github } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -73,12 +73,9 @@ export default function RecapWorkspace() {
           className="z-10 mt-2 block w-full resize-none rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg font-medium backdrop-blur"
           placeholder={`What did you think? How can we make these events even better?`}
         />
-        <ContributeButton />
       </div>
       <div className="flex w-full flex-col gap-2">
-        <h2 className="w-full text-2xl font-bold">
-          Award Winners 🏆
-        </h2>
+        <h2 className="w-full text-2xl font-bold">Award Winners 🏆</h2>
         <div className="z-10 flex w-full flex-row">
           <AnimatePresence initial={false} mode="wait">
             <AwardWinnerItem
@@ -91,9 +88,7 @@ export default function RecapWorkspace() {
       </div>
       {config.partners.length > 0 && (
         <div className="flex w-full flex-col gap-2">
-          <h2 className="w-full text-2xl font-bold">
-            Hosts & Sponsors 🤝
-          </h2>
+          <h2 className="w-full text-2xl font-bold">Hosts & Sponsors 🤝</h2>
           <div className="z-10 flex w-full flex-col gap-4">
             {config.partners.map((p) => (
               <PartnerItem key={p.name} {...p} />
@@ -103,9 +98,7 @@ export default function RecapWorkspace() {
       )}
       {feedback && Object.values(feedback).length > 0 && (
         <div className="flex w-full flex-col gap-2">
-          <h2 className="w-full text-2xl font-bold">
-            Your Feedback ✍️
-          </h2>
+          <h2 className="w-full text-2xl font-bold">Your Feedback ✍️</h2>
           <div className="z-10 flex w-full flex-col gap-4">
             {Object.values(feedback).map((f) => (
               <FeedbackItem
@@ -130,29 +123,6 @@ export default function RecapWorkspace() {
       <div className="z-3 pointer-events-none fixed inset-0">
         <LogoConfetti />
       </div>
-    </div>
-  );
-}
-
-function ContributeButton() {
-  return (
-    <div className="flex w-full flex-col font-medium leading-6">
-      <Link
-        href={"https://github.com/the-ai-collective/demo-night-app"}
-        target="_blank"
-        className="group z-10 flex w-full flex-col gap-1 rounded-lg bg-blue-300/50 p-4 shadow-xl backdrop-blur"
-      >
-        <div className="flex items-center justify-between gap-2 text-blue-800">
-          <h3 className="line-clamp-1 font-medium group-hover:underline">
-            Build this open source app with us!
-          </h3>
-          <Github
-            size={24}
-            strokeWidth={2.5}
-            className="h-7 w-7 flex-none rounded-full bg-blue-300/50 p-1 group-hover:bg-blue-400/50"
-          />
-        </div>
-      </Link>
     </div>
   );
 }
