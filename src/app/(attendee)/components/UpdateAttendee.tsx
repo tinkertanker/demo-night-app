@@ -98,9 +98,9 @@ export function UpdateAttendeeForm({
         setAttendee({
           id: attendee.id,
           name: data.name,
-          email: data.email,
-          linkedin: data.linkedin,
-          type: data.type,
+          email: isPreDemo ? attendee.email : data.email,
+          linkedin: isPreDemo ? attendee.linkedin : data.linkedin,
+          type: isPreDemo ? attendee.type : data.type,
         });
         const message = isPreDemo
           ? `Profile updated! Hang tight – ${isPitchNight ? "pitches" : "demos"} starting soon 😎`
@@ -114,11 +114,6 @@ export function UpdateAttendeeForm({
         <h1 className="text-center text-4xl font-bold tracking-tight">
           {isPreDemo ? "Welcome! 😄" : "Update Profile 🧑‍💼"}
         </h1>
-        <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">
-          {isPreDemo
-            ? "We're glad you're here! Tell us more about yourself – don't worry, we'll only share your contact info with presenters you choose to connect with!"
-            : "Tell us more about yourself! Don't worry, we'll only share your contact info with presenters you choose to connect with!"}
-        </p>
       </div>
       <label className="flex w-full flex-col gap-1">
         <span className="text-lg font-semibold">Name</span>
@@ -129,48 +124,52 @@ export function UpdateAttendeeForm({
           className="z-30 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
         />
       </label>
-      <label className="flex w-full flex-col gap-1">
-        <span className="text-lg font-semibold">Email</span>
-        <input
-          type="email"
-          placeholder="ada@aicollective.com"
-          {...register("email")}
-          className="z-10 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
-        />
-      </label>
-      <label className="flex w-full flex-col gap-1">
-        <span className="text-lg font-semibold">LinkedIn</span>
-        <input
-          type="url"
-          placeholder="https://www.linkedin.com/in/ada-lovelace"
-          {...register("linkedin")}
-          className="z-10 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
-        />
-      </label>
-      <label className="flex w-full flex-col gap-1 pb-2">
-        <span className="text-lg font-semibold">I consider myself a...</span>
-        <select
-          {...register("type")}
-          className={cn(
-            "z-30 appearance-none rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur",
-            watch("type") === "" && "text-gray-400",
-          )}
-        >
-          <option value="">Select one...</option>
-          {ATTENDEE_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-        {/* {watch("type") === "Other" && (
+      {!isPreDemo && (
+        <>
+          <label className="flex w-full flex-col gap-1">
+            <span className="text-lg font-semibold">Email</span>
+            <input
+              type="email"
+              placeholder="ada@aicollective.com"
+              {...register("email")}
+              className="z-10 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
+            />
+          </label>
+          <label className="flex w-full flex-col gap-1">
+            <span className="text-lg font-semibold">LinkedIn</span>
+            <input
+              type="url"
+              placeholder="https://www.linkedin.com/in/ada-lovelace"
+              {...register("linkedin")}
+              className="z-10 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
+            />
+          </label>
+          <label className="flex w-full flex-col gap-1 pb-2">
+            <span className="text-lg font-semibold">I consider myself a...</span>
+            <select
+              {...register("type")}
+              className={cn(
+                "z-30 appearance-none rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur",
+                watch("type") === "" && "text-gray-400",
+              )}
+            >
+              <option value="">Select one...</option>
+              {ATTENDEE_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            {/* {watch("type") === "Other" && (
           <input
             type="text"
             {...register("customType")}
             className="rounded-lg border border-gray-200 p-2"
           />
         )} */}
-      </label>
+          </label>
+        </>
+      )}
       <Button isPitchNight={isPitchNight}>Update Profile</Button>
     </form>
   );
