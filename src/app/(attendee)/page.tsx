@@ -1,8 +1,9 @@
+import Link from "next/link";
+
 import { getBranding } from "~/lib/branding.server";
 import { api } from "~/trpc/server";
 
 import Workspaces from "./components/Workspaces";
-import { LinkButton } from "~/components/Button";
 import { LogoConfetti } from "~/components/Confetti";
 import Sticker from "~/components/Sticker";
 
@@ -47,9 +48,19 @@ async function HomePage() {
       <h1 className="pt-4 text-center text-2xl font-semibold">
         {branding.appName} App
       </h1>
-      <div className="flex flex-col items-center gap-2 sm:flex-row">
-        <LinkButton href={GITHUB_URL}>GitHub</LinkButton>
-        <LinkButton href={TINKERCADEMY_URL}>Tinkercademy</LinkButton>
+      <div className="mt-4 flex flex-col items-center gap-3">
+        <Link
+          href={TINKERCADEMY_URL}
+          className="z-10 rounded-lg bg-primary px-4 py-3 font-semibold text-white shadow-sm transition-all hover:bg-primary-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
+        >
+          Tinkercademy
+        </Link>
+        <Link
+          href={GITHUB_URL}
+          className="z-10 text-sm font-semibold text-gray-600 underline-offset-4 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          GitHub Repo
+        </Link>
       </div>
       <div className="z-3 pointer-events-none fixed inset-0">
         <LogoConfetti />
