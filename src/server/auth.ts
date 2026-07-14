@@ -5,7 +5,6 @@ import {
   getServerSession,
 } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
-import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
 import { db } from "./db";
@@ -44,33 +43,9 @@ export const authOptions: NextAuthOptions = {
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
     }),
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials, _) {
-        if (!credentials) return null;
-        const user = await db.user.findFirst({
-          where: { email: credentials.email },
-        });
-        if (!user) return null;
-        if (
-          env.NODE_ENV === "development" &&
-          user.email === "test@example.com"
-        ) {
-          return user;
-        }
-        return null;
-      },
-    }),
   ],
   callbacks: {
-    signIn: async ({ user, account }) => {
-      // The credentials provider is already restricted to development in
-      // its authorize() above
-      if (account?.provider === "credentials") return true;
+    signIn: async ({ user }) => {
       const email = user.email?.toLowerCase();
       if (!email) return false;
       const admin = await db.admin.findUnique({ where: { email } });
@@ -84,7 +59,10 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   },
-  theme: { logo: "/images/logo.png", colorScheme: "light" },
+  theme: {
+    logo: "/images/stickers/greetings.png",
+    colorScheme: "light",
+  },
 };
 
 /**
