@@ -7,7 +7,8 @@ import Workspaces from "./components/Workspaces";
 import { LogoConfetti } from "~/components/Confetti";
 import Sticker from "~/components/Sticker";
 
-const SOURCE_URL = "https://github.com/the-ai-collective/demo-night-app";
+const SOURCE_URL = "https://github.com/tinkertanker/demo-night-app";
+const CREDIT_URL = "https://github.com/the-ai-collective/demo-night-app";
 const TINKERCADEMY_URL = "https://www.tinkercademy.com";
 
 export async function generateMetadata() {
@@ -55,12 +56,21 @@ async function HomePage() {
         >
           Tinkercademy
         </Link>
-        <Link
-          href={SOURCE_URL}
-          className="z-10 text-sm font-semibold text-gray-600 underline-offset-4 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          Source / Credit: AI Collective
-        </Link>
+        <p className="z-10 text-sm font-semibold text-gray-600">
+          <Link
+            href={SOURCE_URL}
+            className="underline decoration-gray-300 underline-offset-4 hover:text-gray-900 hover:decoration-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            Source
+          </Link>{" "}
+          /{" "}
+          <Link
+            href={CREDIT_URL}
+            className="underline decoration-gray-300 underline-offset-4 hover:text-gray-900 hover:decoration-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            Credit: AI Collective
+          </Link>
+        </p>
       </div>
       <div className="z-3 pointer-events-none fixed inset-0">
         <LogoConfetti />
