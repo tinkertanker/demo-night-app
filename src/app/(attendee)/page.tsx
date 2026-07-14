@@ -6,7 +6,8 @@ import { LinkButton } from "~/components/Button";
 import { LogoConfetti } from "~/components/Confetti";
 import Sticker from "~/components/Sticker";
 
-import { env } from "~/env";
+const GITHUB_URL = "https://github.com/tinkertanker/demo-night-app";
+const TINKERCADEMY_URL = "https://www.tinkercademy.com";
 
 export async function generateMetadata() {
   const currentEvent = await api.event.getCurrentActive();
@@ -46,7 +47,10 @@ async function HomePage() {
       <h1 className="pt-4 text-center text-2xl font-semibold">
         {branding.appName} App
       </h1>
-      <LinkButton href={env.NEXT_PUBLIC_BASE_URL}>Learn more</LinkButton>
+      <div className="flex flex-col items-center gap-2 sm:flex-row">
+        <LinkButton href={GITHUB_URL}>GitHub</LinkButton>
+        <LinkButton href={TINKERCADEMY_URL}>Tinkercademy</LinkButton>
+      </div>
       <div className="z-3 pointer-events-none fixed inset-0">
         <LogoConfetti />
       </div>
