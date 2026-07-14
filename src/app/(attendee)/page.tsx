@@ -1,9 +1,12 @@
-import HallOfFamePage from "../hall-of-fame/page";
-
 import { getBranding } from "~/lib/branding.server";
 import { api } from "~/trpc/server";
 
 import Workspaces from "./components/Workspaces";
+import { LinkButton } from "~/components/Button";
+import { LogoConfetti } from "~/components/Confetti";
+import Sticker from "~/components/Sticker";
+
+import { env } from "~/env";
 
 export async function generateMetadata() {
   const currentEvent = await api.event.getCurrentActive();
@@ -25,10 +28,28 @@ export async function generateMetadata() {
 
 export default async function AttendeePage() {
   const currentEvent = await api.event.getCurrentActive();
-  if (!currentEvent) return <HallOfFamePage />;
+  if (!currentEvent) return <HomePage />;
   return (
     <main className="m-auto flex size-full max-w-xl flex-col text-black">
       <Workspaces currentEvent={currentEvent} />
+    </main>
+  );
+}
+
+async function HomePage() {
+  const branding = await getBranding();
+
+  return (
+    <main className="flex min-h-screen w-full flex-col items-center justify-center pb-16 text-black">
+      <Sticker name="yay" />
+      <Sticker name="thumbsup" size={36} className="hidden" />
+      <h1 className="pt-4 text-center text-2xl font-semibold">
+        {branding.appName} App
+      </h1>
+      <LinkButton href={env.NEXT_PUBLIC_BASE_URL}>Learn more</LinkButton>
+      <div className="z-3 pointer-events-none fixed inset-0">
+        <LogoConfetti />
+      </div>
     </main>
   );
 }
