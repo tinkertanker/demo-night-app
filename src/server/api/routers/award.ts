@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -123,7 +125,13 @@ export const awardRouter = createTRPCRouter({
         eventId: z.string(),
         awards: z.array(
           z.object({
-            id: z.string().optional(),
+            id: z
+              .string()
+              .optional()
+              .transform((id) => {
+                const trimmedId = id?.trim();
+                return trimmedId === "" ? undefined : trimmedId;
+              }),
             name: z.string(),
             description: z.string().optional().default(""),
             votable: z.boolean().optional(),
@@ -132,16 +140,93 @@ export const awardRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return db.$transaction(async (prisma) => {
-        await prisma.award.deleteMany({ where: { eventId: input.eventId } });
-        await prisma.award.createMany({
-          data: input.awards.map((award, index) => ({
-            ...award,
-            eventId: input.eventId,
-            index,
-          })),
-        });
-      });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          return await db.$transaction(
+            async (prisma) => {
+              const existingAwards = await prisma.award.findMany({
+                where: { eventId: input.eventId },
+                select: { id: true },
+              });
+
+              const existingIds = new Set(existingAwards.map(({ id }) => id));
+              const suppliedIds = input.awards.flatMap(({ id }) =>
+                id ? [id] : [],
+              );
+
+              if (new Set(suppliedIds).size !== suppliedIds.length) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "Each award ID can only appear once",
+                });
+              }
+
+              const unknownId = suppliedIds.find((id) => !existingIds.has(id));
+              if (unknownId) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: `Award ${unknownId} does not belong to this event`,
+                });
+              }
+
+              const suppliedIdSet = new Set(suppliedIds);
+              const idsToDelete = existingAwards
+                .map(({ id }) => id)
+                .filter((id) => !suppliedIdSet.has(id));
+
+              // Keep retained awards in place so their IDs, winners, and votes survive
+              // CSV updates. Only awards actually removed from the list are deleted.
+              if (idsToDelete.length > 0) {
+                const { count: deletedAwardCount } =
+                  await prisma.award.deleteMany({
+                    where: {
+                      eventId: input.eventId,
+                      id: { in: idsToDelete },
+                      votes: { none: {} },
+                    },
+                  });
+
+                if (deletedAwardCount !== idsToDelete.length) {
+                  throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message:
+                      "Awards with existing votes cannot be removed by CSV upload. Keep their IDs in the CSV or delete them explicitly.",
+                  });
+                }
+              }
+
+              const savedAwards = [];
+              for (const [index, { id, ...award }] of input.awards.entries()) {
+                savedAwards.push(
+                  id
+                    ? await prisma.award.update({
+                        where: { id },
+                        data: { ...award, index },
+                      })
+                    : await prisma.award.create({
+                        data: { ...award, eventId: input.eventId, index },
+                      }),
+                );
+              }
+
+              return savedAwards;
+            },
+            {
+              isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            },
+          );
+        } catch (error) {
+          const isSerializationConflict =
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2034";
+
+          if (!isSerializationConflict || attempt === 2) {
+            throw error;
+          }
+        }
+      }
+
+      throw new Error("Award update transaction retry limit exceeded");
     }),
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
     return db.$transaction(async (prisma) => {
