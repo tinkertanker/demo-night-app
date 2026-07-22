@@ -103,3 +103,4 @@ Required environment variables are defined in `.env.example` and validated in `/
 - tRPC procedures should include proper Zod validation
 - Database changes require migrations via `yarn db:migrate`
 - Test with `test@example.com` account in local development
+- Icons / mascot stickers: use assets from [tinkertanker/tkrobot-stickers](https://github.com/tinkertanker/tkrobot-stickers) (local copies live in `public/images/stickers/`). Prefer `Sticker` / `MascotLogo` over the old Pitch Night / Demo Night logos. Default chrome icon is `face`; event lists use a seeded positive pose via `MascotLogo`.

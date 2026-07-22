@@ -32,9 +32,8 @@ export async function getBranding(isPitchNight?: boolean): Promise<Branding> {
   return {
     isPitchNight: finalIsPitchNight,
     appName: finalIsPitchNight ? "Pitch Night" : "Demo Night",
-    logoPath: finalIsPitchNight
-      ? "/images/pitch.png"
-      : "/images/tinkercademy-icon.png",
+    // Canonical app chrome icon — face from tkrobot-stickers (not Pitch/Demo Night logos)
+    logoPath: "/images/stickers/face.png",
     orgName: "Tinkercademy",
   };
 }

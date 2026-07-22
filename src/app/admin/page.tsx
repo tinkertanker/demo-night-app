@@ -2,18 +2,17 @@
 
 import { type Event } from "@prisma/client";
 import { CalendarIcon, PlusIcon, Presentation, Users } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { getBrandingClient } from "~/lib/branding";
-import { type EventConfig } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 import { AdminList } from "./components/AdminList";
 import { UpsertEventModal } from "./components/UpsertEventModal";
-import Logos from "~/components/Logos";
+import MascotLogo from "~/components/MascotLogo";
+import Sticker from "~/components/Sticker";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardTitle } from "~/components/ui/card";
 
@@ -58,7 +57,7 @@ export default function AdminHomePage() {
     <main className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 border-b bg-white/60 shadow-sm backdrop-blur">
         <div className="container mx-auto flex max-w-screen-lg items-center justify-between gap-1 px-4 py-2 md:px-8">
-          <Logos size="sm" logoPath={branding.logoPath} />
+          <Sticker name="face" size={32} />
           <div className="flex flex-col items-center justify-center">
             <h1 className="line-clamp-1 text-xl font-bold leading-6 tracking-tight">
               {branding.appName} App
@@ -100,20 +99,10 @@ export default function AdminHomePage() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-4">
-                    <Image
-                      src={
-                        (event.config as EventConfig | null)?.isPitchNight
-                          ? "/images/pitch.png"
-                          : "/images/logo.png"
-                      }
-                      alt={
-                        (event.config as EventConfig | null)?.isPitchNight
-                          ? "Pitch Night"
-                          : "Demo Night"
-                      }
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 rounded-lg object-contain"
+                    <MascotLogo
+                      seed={event.id}
+                      size={48}
+                      className="h-12 w-12 shrink-0"
                     />
                     <div className="flex min-w-0 flex-1 items-center gap-4">
                       <div className="min-w-0 flex-1">

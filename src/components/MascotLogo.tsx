@@ -4,9 +4,23 @@ import { useEffect, useState } from "react";
 
 import Sticker from "./Sticker";
 
-// Friendly "hello" Krobot poses that read well at logo size. Rotating between a
-// few keeps the top-left mascot feeling alive without picking a single winner.
-const MASCOTS = ["ok", "fingerguns", "thumbsup"] as const;
+// Friendly / positive Krobot poses that read well at logo size. Seeded by event
+// id (or random when unseeded) so each event gets a stable sticker without
+// picking a single winner. Assets from github.com/tinkertanker/tkrobot-stickers.
+const MASCOTS = [
+  "face",
+  "ok",
+  "fingerguns",
+  "thumbsup",
+  "yay",
+  "happy",
+  "greetings",
+  "salute",
+  "jumping-for-joy",
+  "heart",
+  "palm-open",
+  "hands-on-hips",
+] as const;
 
 function seededIndex(seed: string, mod: number) {
   let hash = 0;

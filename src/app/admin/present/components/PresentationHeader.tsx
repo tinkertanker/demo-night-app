@@ -3,7 +3,7 @@ import { usePresentationContext } from "../contexts/PresentationContext";
 import { getBrandingClient } from "~/lib/branding";
 import { EventPhase, allPhases, displayName } from "~/lib/types/currentEvent";
 
-import Logos from "~/components/Logos";
+import MascotLogo from "~/components/MascotLogo";
 
 export default function PresentationHeader() {
   const { currentEvent } = usePresentationContext();
@@ -16,7 +16,7 @@ export default function PresentationHeader() {
           isPitchNight={branding.isPitchNight}
         />
         <div className="flex w-full flex-1 flex-row items-center justify-between px-3">
-          <Logos size="sm" logoPath={branding.logoPath} />
+          <MascotLogo seed={currentEvent?.id} size={32} />
           <h1 className="mt-1 line-clamp-1 text-ellipsis px-1 text-xl font-bold tracking-tight">
             {currentEvent?.name ?? ""}
           </h1>
