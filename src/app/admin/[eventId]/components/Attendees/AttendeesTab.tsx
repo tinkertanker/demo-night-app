@@ -234,7 +234,7 @@ export default function AttendeesTab() {
                     </TableCell>
                     <TableCell className="text-center">
                       {attendee.eventFeedback[0]?.surveyOpened ? (
-                        <span className="font-semibold text-green-600">
+                        <span className="font-semibold text-primary">
                           ✓ Opened
                         </span>
                       ) : (

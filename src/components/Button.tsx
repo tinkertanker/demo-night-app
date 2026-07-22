@@ -5,23 +5,20 @@ import Link from "next/link";
 import { cn } from "~/lib/utils";
 
 import LoadingDots from "./loading/LoadingDots";
-import { useWorkspaceContext } from "~/app/(attendee)/contexts/WorkspaceContext";
 
 export default function Button({
   children,
   onClick,
   pending = false,
   className,
-  isPitchNight: isPitchNightProp = false,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   pending?: boolean;
   className?: string;
+  /** Kept for call-site compatibility; colour is always Tinkercademy primary. */
   isPitchNight?: boolean;
 }) {
-  const context = useWorkspaceContext();
-  const isPitchNight = isPitchNightProp ?? context?.currentEvent?.isPitchNight;
   return (
     <button
       type="submit"
@@ -29,9 +26,7 @@ export default function Button({
         `z-30 flex h-12 w-full items-center justify-center gap-2 space-x-2 rounded-lg px-4 py-2 text-lg font-semibold text-white shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]`,
         pending
           ? "cursor-not-allowed"
-          : isPitchNight
-            ? "bg-green-800 hover:bg-green-900"
-            : "bg-primary hover:bg-primary-dark",
+          : "bg-primary hover:bg-primary-dark",
         className,
       )}
       disabled={pending}

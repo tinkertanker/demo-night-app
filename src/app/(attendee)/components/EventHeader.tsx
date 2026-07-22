@@ -46,9 +46,7 @@ function PhasePills({ currentPhase }: { currentPhase: EventPhase }) {
           key={phase}
           className={`flex h-3 flex-1 items-center justify-center truncate rounded-[6px] text-center text-[8px] font-bold tracking-wide backdrop-blur transition-all duration-500 ease-in-out ${
             phase === currentPhase
-              ? isPitchNight
-                ? "bg-green-800/80 text-white"
-                : "bg-primary text-white"
+              ? "bg-primary text-white"
               : "bg-black/5 text-gray-500"
           }`}
         >

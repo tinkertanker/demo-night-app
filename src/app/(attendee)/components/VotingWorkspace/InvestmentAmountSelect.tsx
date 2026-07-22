@@ -134,7 +134,7 @@ export default function InvestmentAmountSelect({
   return (
     <div className="flex w-full flex-col gap-4">
       {/* Budget Tracker */}
-      <div className="z-10 rounded-lg bg-green-800/70 p-4 text-white shadow-lg backdrop-blur">
+      <div className="z-10 rounded-lg bg-primary/80 p-4 text-white shadow-lg backdrop-blur">
         <div className="flex items-center justify-between gap-1">
           <div>
             <p className="text-xl font-bold">Your Scout Fund</p>
@@ -173,7 +173,7 @@ export default function InvestmentAmountSelect({
               className={cn(
                 "z-10 flex flex-col gap-2 rounded-lg p-4 shadow-lg backdrop-blur transition-all",
                 hasInvestment
-                  ? "bg-gray-300/50 ring-2 ring-green-800/40"
+                  ? "bg-gray-300/50 ring-2 ring-primary/40"
                   : "bg-gray-300/50 hover:bg-gray-300/60",
               )}
             >
@@ -199,7 +199,7 @@ export default function InvestmentAmountSelect({
                       "flex size-11 flex-col items-center justify-center rounded-full px-2 transition-all",
                       amount < INCREMENT_25K
                         ? "cursor-not-allowed bg-white/50 text-gray-400"
-                        : "bg-red-600/70 text-white hover:bg-red-600/90 active:scale-95",
+                        : "bg-gray-700/70 text-white hover:bg-gray-700/90 active:scale-95",
                     )}
                   >
                     <Minus size={16} strokeWidth={3.5} />
@@ -214,7 +214,7 @@ export default function InvestmentAmountSelect({
                       "flex size-11 flex-col items-center justify-center rounded-full px-2 transition-all",
                       amount < INCREMENT_5K
                         ? "cursor-not-allowed bg-white/50 text-gray-400"
-                        : "bg-red-600/70 text-white hover:bg-red-600/90 active:scale-95",
+                        : "bg-gray-700/70 text-white hover:bg-gray-700/90 active:scale-95",
                     )}
                   >
                     <Minus size={16} strokeWidth={3.5} />
@@ -245,7 +245,7 @@ export default function InvestmentAmountSelect({
                       "flex size-11 flex-col items-center justify-center rounded-full px-2 transition-all",
                       remaining < INCREMENT_5K
                         ? "cursor-not-allowed bg-white/50 text-gray-400"
-                        : "bg-green-800/70 text-white hover:bg-green-800/90 active:scale-95",
+                        : "bg-primary/80 text-white hover:bg-primary active:scale-95",
                     )}
                   >
                     <Plus size={14} strokeWidth={3.5} />
@@ -260,7 +260,7 @@ export default function InvestmentAmountSelect({
                       "flex size-11 flex-col items-center justify-center rounded-full px-2 transition-all",
                       remaining < INCREMENT_25K
                         ? "cursor-not-allowed bg-white/50 text-gray-400"
-                        : "bg-green-800/70 text-white hover:bg-green-800/90 active:scale-95",
+                        : "bg-primary/80 text-white hover:bg-primary active:scale-95",
                     )}
                   >
                     <Plus size={14} strokeWidth={3.5} />

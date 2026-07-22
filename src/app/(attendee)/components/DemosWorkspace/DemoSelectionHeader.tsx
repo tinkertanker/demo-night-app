@@ -48,8 +48,8 @@ export function DemoSelectionHeader({
           className={cn(
             "flex w-full cursor-pointer flex-row items-center justify-between rounded-lg border px-4 py-3 text-center text-lg font-semibold shadow-md backdrop-blur transition-all duration-300 ease-in-out",
             selectedDemo?.id === currentDemoId
-              ? "border-green-300 bg-green-50/90"
-              : "border-red-300 bg-red-50/90",
+              ? "border-primary/40 bg-primary/10"
+              : "border-primary/30 bg-primary/5",
             isExpanded ? "border-transparent bg-black/40 hover:bg-black/50" : "",
           )}
         >
@@ -72,7 +72,7 @@ export function DemoSelectionHeader({
                 </p>
                 <p className="line-clamp-1">
                   {selectedDemo?.name ?? ""}
-                  <span className="font-bold text-red-700">
+                  <span className="font-bold text-primary-dark">
                     {selectedDemo?.id !== currentDemoId
                       ? " (NOT current!)"
                       : ""}
@@ -113,7 +113,7 @@ export function DemoSelectionHeader({
                   className={cn(
                     "flex cursor-pointer flex-row items-center justify-between gap-2 rounded-lg border px-4 py-3 text-lg font-semibold shadow-md backdrop-blur-lg focus:outline-none",
                     demo.id === currentDemoId
-                      ? "border-green-300 bg-green-50/90 hover:bg-green-100/90"
+                      ? "border-primary/40 bg-primary/10 hover:bg-primary/15"
                       : "border-black/5 bg-white/90 hover:bg-secondary",
                   )}
                 >
@@ -121,7 +121,7 @@ export function DemoSelectionHeader({
                     <p className="w-7">{votableIndices.get(demo.id) ?? "-"}</p>
                     <p>
                       {demo.name}
-                      <span className="font-bold text-green-700">
+                      <span className="font-bold text-primary-dark">
                         {demo.id === currentDemoId ? " (current)" : ""}
                       </span>
                     </p>

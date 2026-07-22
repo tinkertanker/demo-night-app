@@ -152,7 +152,7 @@ export default function AwardsAndVotingTab() {
                   <TableCell className="p-4">
                     {award.winnerId ? (
                       <div className="flex items-center gap-2 text-sm">
-                        <CircleCheck className="h-4 w-4 text-green-500" />
+                        <CircleCheck className="h-4 w-4 text-primary" />
                         <span className="font-semibold">
                           {
                             event.demos.find(
@@ -257,7 +257,7 @@ export default function AwardsAndVotingTab() {
                         </TableCell>
                         <TableCell className="flex items-center justify-start gap-2 font-medium">
                           {selectedAward?.winnerId === demoId && (
-                            <CircleCheck className="h-4 w-4 text-green-500" />
+                            <CircleCheck className="h-4 w-4 text-primary" />
                           )}
                           <span
                             className={cn(

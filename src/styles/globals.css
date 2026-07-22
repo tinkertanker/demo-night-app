@@ -18,7 +18,7 @@ html body {
 
 @layer base {
   :root {
-    /* Tinkercademy palette: coral #f05d57, coral-dark #ca433d, text #333 */
+    /* Tinkercademy palette from tinkercademy.com: accent #f05d57, accent-dark #bd3a34, text #333 */
     --background: 0 0% 100%;
     --foreground: 0 0% 20%;
     --card: 0 0% 100%;
@@ -26,7 +26,7 @@ html body {
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 20%;
     --primary: 2 84% 64%;
-    --primary-dark: 3 57% 52%;
+    --primary-dark: 3 57% 47%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 20%;
@@ -41,10 +41,10 @@ html body {
     --ring: 2 84% 64%;
     --radius: 0.75rem;
     --chart-1: 2 84% 64%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-2: 3 57% 47%;
+    --chart-3: 0 0% 45%;
+    --chart-4: 14 90% 75%;
+    --chart-5: 0 0% 20%;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -63,7 +63,7 @@ html body {
     --popover: 0 0% 8%;
     --popover-foreground: 0 0% 96%;
     --primary: 2 84% 64%;
-    --primary-dark: 3 57% 52%;
+    --primary-dark: 3 57% 47%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 96%;
@@ -76,11 +76,11 @@ html body {
     --border: 0 0% 15%;
     --input: 0 0% 15%;
     --ring: 2 84% 64%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-1: 2 84% 64%;
+    --chart-2: 3 57% 47%;
+    --chart-3: 14 90% 75%;
+    --chart-4: 0 0% 64%;
+    --chart-5: 0 0% 96%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

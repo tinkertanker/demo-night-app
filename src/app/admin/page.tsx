@@ -111,9 +111,9 @@ export default function AdminHomePage() {
                             {event.name}
                           </span>
                           {event.id === currentEvent?.id && (
-                            <div className="flex items-center gap-2 rounded-full bg-green-100 px-2 py-1">
-                              <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-green-500" />
-                              <span className="text-xs font-semibold text-green-600">
+                            <div className="flex items-center gap-2 rounded-full bg-primary/10 px-2 py-1">
+                              <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
+                              <span className="text-xs font-semibold text-primary">
                                 LIVE
                               </span>
                             </div>

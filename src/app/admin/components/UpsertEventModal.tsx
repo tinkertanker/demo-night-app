@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { type EventConfig } from "~/lib/types/eventConfig";
-import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 import { Button } from "~/components/ui/button";
@@ -184,7 +183,7 @@ export function UpsertEventModal({
               id="isPitchNight"
               checked={isPitchNight}
               onCheckedChange={setIsPitchNight}
-              className="select-none data-[state=checked]:border-green-700 data-[state=checked]:bg-green-700"
+              className="select-none"
             />
             <div className="flex flex-col gap-1">
               <label
@@ -227,12 +226,7 @@ export function UpsertEventModal({
             <Button
               type="submit"
               disabled={upsertMutation.isPending}
-              className={cn(
-                "flex-1",
-                isPitchNight
-                  ? "bg-green-700/80 hover:bg-green-800/80"
-                  : "bg-primary hover:bg-primary-dark",
-              )}
+              className="flex-1 bg-primary hover:bg-primary-dark"
             >
               {event ? "Update Event" : "Create Event"}
             </Button>
