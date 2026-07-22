@@ -141,7 +141,7 @@ function PhaseButton({
     if (suggestedPhase === config.phase) {
       return (
         <div className="flex items-center gap-2">
-          <CircleCheck className="h-4 w-4 text-green-500" />
+          <CircleCheck className="h-4 w-4 text-primary" />
           {config.suggestedDescription}
         </div>
       );
@@ -166,7 +166,7 @@ function PhaseButton({
           className={cn(
             "relative flex w-[calc(20%-0.4rem)] min-w-0",
             config.phase === currentPhase
-              ? "bg-green-100 text-green-500 hover:bg-green-100/80"
+              ? "bg-primary/10 text-primary hover:bg-primary/15"
               : "",
             currentPhase === config.warningPhase &&
               suggestedPhase !== config.phase &&

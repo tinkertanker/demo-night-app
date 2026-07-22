@@ -69,7 +69,7 @@ export default function ResultsDashboard() {
               <div
                 className={cn(
                   "flex h-full basis-1/2 flex-col justify-start rounded-lg bg-white p-2",
-                  index <= (currentAwardIndex ?? -1) && "bg-green-200",
+                  index <= (currentAwardIndex ?? -1) && "bg-primary/20",
                 )}
               >
                 <p className="line-clamp-1 text-lg font-bold">
@@ -87,7 +87,7 @@ export default function ResultsDashboard() {
               <div
                 className={cn(
                   "flex h-full basis-1/2 flex-col justify-start rounded-lg bg-white p-2",
-                  index <= (currentAwardIndex ?? -1) && "bg-green-200",
+                  index <= (currentAwardIndex ?? -1) && "bg-primary/20",
                 )}
               >
                 <p className="line-clamp-1 text-lg font-bold">{demo.name}</p>

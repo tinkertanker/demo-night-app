@@ -51,7 +51,7 @@ export default function AwardVoteSelect({
         className={cn(
           "flex w-full cursor-pointer flex-row items-center justify-between rounded-lg border px-4 py-3 text-center text-lg font-semibold shadow-md backdrop-blur transition-all duration-300 ease-in-out",
           vote?.demoId
-            ? "border-green-300 bg-green-50/90"
+            ? "border-primary/40 bg-primary/10"
             : "border-dashed border-primary/50 bg-primary/5 text-primary-dark",
         )}
       >
@@ -114,7 +114,7 @@ export default function AwardVoteSelect({
                       voteDemoIds.includes(demo.id) &&
                         "bg-gray-100/90 text-muted-foreground",
                       vote?.demoId === demo.id &&
-                        "border-green-300 bg-green-50/90 text-foreground hover:bg-green-100/90",
+                        "border-primary/40 bg-primary/10 text-foreground hover:bg-primary/15",
                     )}
                   >
                     <div className="flex w-full flex-col leading-6">
