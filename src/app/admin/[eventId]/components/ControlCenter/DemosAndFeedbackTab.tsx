@@ -215,7 +215,7 @@ function StageControls({
           <ChevronRight className="size-6" />
         </Button>
       </div>
-      {(prevDemo || nextDemo) && (
+      {(prevDemo ?? nextDemo) && (
         <div className="mt-1.5 flex justify-between gap-2 px-1 text-[11px] text-muted-foreground">
           <span className="line-clamp-1 min-w-0 flex-1 text-left">
             {prevDemo ? prevDemo.name : ""}
