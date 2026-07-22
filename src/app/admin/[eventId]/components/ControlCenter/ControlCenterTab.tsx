@@ -9,6 +9,7 @@ import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 import { Button } from "~/components/ui/button";
+import { SidebarTrigger } from "~/components/ui/sidebar";
 import {
   Tooltip,
   TooltipContent,
@@ -93,25 +94,40 @@ export default function ControlCenterTab({
 
   if (!event) return null;
 
+  const isLive = currentEvent?.id === event.id;
+
   return (
-    <div className="flex w-full flex-col gap-4">
-      {currentEvent && currentEvent.id === event.id && (
-        <TooltipProvider>
-          <div className="flex w-full flex-row items-center justify-between gap-2">
-            {phaseConfigs.map((config) => (
-              <PhaseButton
-                key={config.phase}
-                config={config}
-                currentPhase={currentEvent.phase}
-                suggestedPhase={suggestedPhase}
-                isPitchNight={isPitchNight}
-                onPhaseSelect={() => setPhase(config.phase)}
-              />
-            ))}
-          </div>
-        </TooltipProvider>
-      )}
-      <div className="flex-1">
+    <div className="flex h-full min-h-0 w-full flex-col gap-3 md:gap-4">
+      <TooltipProvider>
+        <div
+          className={cn(
+            "sticky top-0 z-20 -mx-2 flex items-center gap-2 border-b bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80",
+            "md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none",
+            !isLive && "md:hidden",
+          )}
+        >
+          <SidebarTrigger className="size-11 shrink-0 md:hidden" />
+          {isLive && currentEvent ? (
+            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:justify-between md:overflow-visible md:pb-0">
+              {phaseConfigs.map((config) => (
+                <PhaseButton
+                  key={config.phase}
+                  config={config}
+                  currentPhase={currentEvent.phase}
+                  suggestedPhase={suggestedPhase}
+                  isPitchNight={isPitchNight}
+                  onPhaseSelect={() => setPhase(config.phase)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground md:hidden">
+              Start the live event from the menu to control phases
+            </p>
+          )}
+        </div>
+      </TooltipProvider>
+      <div className="min-h-0 flex-1">
         {selectedTab === AdminTab.DemosAndFeedback ? (
           <DemosAndFeedbackTab />
         ) : selectedTab === AdminTab.AwardsAndVoting ? (
@@ -137,6 +153,7 @@ function PhaseButton({
   isPitchNight,
   onPhaseSelect,
 }: PhaseButtonProps) {
+  const label = displayName(config.phase, isPitchNight);
   const tooltipContent = useMemo(() => {
     if (suggestedPhase === config.phase) {
       return (
@@ -163,8 +180,10 @@ function PhaseButton({
         <Button
           variant="secondary"
           onClick={onPhaseSelect}
+          aria-label={label}
+          aria-pressed={config.phase === currentPhase}
           className={cn(
-            "relative flex w-[calc(20%-0.4rem)] min-w-0",
+            "relative h-11 shrink-0 px-3 md:h-10 md:w-[calc(20%-0.4rem)] md:min-w-0 md:flex-none",
             config.phase === currentPhase
               ? "bg-primary/10 text-primary hover:bg-primary/15"
               : "",
@@ -174,13 +193,31 @@ function PhaseButton({
             suggestedPhase === config.phase && "animate-pulse-border border-2",
           )}
         >
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
             <config.icon className="size-4 shrink-0" />
-            <span className="truncate">{displayName(config.phase, isPitchNight)}</span>
+            <span className="hidden truncate sm:inline">{label}</span>
+            <span className="truncate text-xs sm:hidden">
+              {shortPhaseLabel(config.phase, isPitchNight)}
+            </span>
           </div>
         </Button>
       </TooltipTrigger>
       {tooltipContent && <TooltipContent>{tooltipContent}</TooltipContent>}
     </Tooltip>
   );
+}
+
+function shortPhaseLabel(phase: EventPhase, isPitchNight: boolean): string {
+  switch (phase) {
+    case EventPhase.Pre:
+      return "Pre";
+    case EventPhase.Demos:
+      return isPitchNight ? "Pitch" : "Demo";
+    case EventPhase.Voting:
+      return isPitchNight ? "Invest" : "Vote";
+    case EventPhase.Results:
+      return "Results";
+    case EventPhase.Recap:
+      return "Recap";
+  }
 }

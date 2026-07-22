@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import MascotLogo from "~/components/MascotLogo";
 import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
@@ -47,6 +48,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "~/components/ui/sidebar";
 
 import { LiveIndicator } from "./LiveIndicator";
@@ -77,6 +79,7 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   const branding = getBrandingClient(config?.isPitchNight);
   const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
   const { data: events } = api.event.allAdmin.useQuery();
   const { data: currentEvent, refetch: refetchEvent } =
     api.event.getCurrent.useQuery();
@@ -87,6 +90,14 @@ export function AdminSidebar({
   const { data: submissionCount } = api.submission.count.useQuery({
     eventId: event.id,
   });
+
+  const selectTab = useCallback(
+    (tab: AdminTab) => {
+      setSelectedTab(tab);
+      if (isMobile) setOpenMobile(false);
+    },
+    [isMobile, setOpenMobile, setSelectedTab],
+  );
 
   return (
     <Sidebar>
@@ -199,7 +210,7 @@ export function AdminSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => {
-                    setSelectedTab(AdminTab.Submissions);
+                    selectTab(AdminTab.Submissions);
                   }}
                   className={
                     selectedTab === AdminTab.Submissions ? "bg-accent" : ""
@@ -216,7 +227,7 @@ export function AdminSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setSelectedTab(AdminTab.Demos)}
+                  onClick={() => selectTab(AdminTab.Demos)}
                   className={selectedTab === AdminTab.Demos ? "bg-accent" : ""}
                 >
                   <div className="flex items-center gap-2">
@@ -228,7 +239,7 @@ export function AdminSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setSelectedTab(AdminTab.Awards)}
+                  onClick={() => selectTab(AdminTab.Awards)}
                   className={selectedTab === AdminTab.Awards ? "bg-accent" : ""}
                 >
                   <div className="flex items-center gap-2">
@@ -240,7 +251,7 @@ export function AdminSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setSelectedTab(AdminTab.Configuration)}
+                  onClick={() => selectTab(AdminTab.Configuration)}
                   className={
                     selectedTab === AdminTab.Configuration ? "bg-accent" : ""
                   }
@@ -264,7 +275,7 @@ export function AdminSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() =>
-                    setSelectedTab(
+                    selectTab(
                       selectedTab === AdminTab.DemosAndFeedback
                         ? AdminTab.AwardsAndVoting
                         : AdminTab.DemosAndFeedback,
@@ -279,7 +290,7 @@ export function AdminSidebar({
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton
-                      onClick={() => setSelectedTab(AdminTab.DemosAndFeedback)}
+                      onClick={() => selectTab(AdminTab.DemosAndFeedback)}
                       className={
                         selectedTab === AdminTab.DemosAndFeedback
                           ? "bg-accent"
@@ -297,7 +308,7 @@ export function AdminSidebar({
                   </SidebarMenuSubItem>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton
-                      onClick={() => setSelectedTab(AdminTab.AwardsAndVoting)}
+                      onClick={() => selectTab(AdminTab.AwardsAndVoting)}
                       className={
                         selectedTab === AdminTab.AwardsAndVoting
                           ? "bg-accent"
@@ -320,7 +331,7 @@ export function AdminSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setSelectedTab(AdminTab.Attendees)}
+                  onClick={() => selectTab(AdminTab.Attendees)}
                   className={
                     selectedTab === AdminTab.Attendees ? "bg-accent" : ""
                   }
@@ -334,7 +345,7 @@ export function AdminSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setSelectedTab(AdminTab.EventFeedback)}
+                  onClick={() => selectTab(AdminTab.EventFeedback)}
                   className={
                     selectedTab === AdminTab.EventFeedback ? "bg-accent" : ""
                   }

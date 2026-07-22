@@ -93,7 +93,9 @@ export function ClientEventDashboard({
             selectedTab={selectedTab}
             setSelectedTab={setSelectedTab}
           />
-          <SidebarInset className="flex-1 p-4">{dashboard()}</SidebarInset>
+          <SidebarInset className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 pb-6 md:p-4">
+            {dashboard()}
+          </SidebarInset>
         </div>
       </SidebarProvider>
     </DashboardContext.Provider>
