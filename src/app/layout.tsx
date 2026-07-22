@@ -85,7 +85,11 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: [
       {
         rel: "icon",
-        url: branding.isPitchNight ? "/favicon-pitch.ico" : "/favicon.ico",
+        url: "/favicon.ico",
+      },
+      {
+        rel: "apple-touch-icon",
+        url: "/apple-touch-icon.png",
       },
     ],
   };

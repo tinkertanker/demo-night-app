@@ -2,7 +2,6 @@ import { type Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { EventPhase } from "~/lib/types/currentEvent";
-import { type EventConfig } from "~/lib/types/eventConfig";
 import { api } from "~/trpc/server";
 
 import DemoRecap from "./components/DemoRecap";
@@ -32,15 +31,12 @@ export async function generateMetadata({
       };
     }
 
-    const isPitchNight =
-      (event.config as EventConfig | null)?.isPitchNight ?? false;
-
     return {
       title: `${demo.name} - ${event.name}`,
       icons: [
         {
           rel: "icon",
-          url: isPitchNight ? "/favicon-pitch.ico" : "/favicon.ico",
+          url: "/favicon.ico",
         },
       ],
     };

@@ -23,7 +23,7 @@ export async function generateMetadata() {
     icons: [
       {
         rel: "icon",
-        url: branding.isPitchNight ? "/favicon-pitch.ico" : "/favicon.ico",
+        url: "/favicon.ico",
       },
     ],
   };
