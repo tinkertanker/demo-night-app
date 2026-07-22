@@ -27,38 +27,50 @@ export default function FeedbackOverview({
     return agg;
   }, [feedback]);
 
+  const cells = [
+    {
+      label: "Total",
+      value: String(feedback.length),
+      boldLabel: true,
+    },
+    {
+      label: "#️⃣",
+      value:
+        agg.numRatings > 0 ? (agg.rating / agg.numRatings).toFixed(1) : "-",
+    },
+    {
+      label: "👏",
+      value: agg.claps.toLocaleString(),
+    },
+    {
+      label: "🥳",
+      value: agg.cheers.toLocaleString(),
+    },
+    {
+      label: "🎉",
+      value: agg.confetti.toLocaleString(),
+    },
+  ];
+
   return (
-    <div className="flex w-full flex-row gap-2">
-      <Card className="flex basis-1/5 flex-col items-center justify-center py-2">
-        <p className="line-clamp-1 h-5 text-sm font-bold text-muted-foreground">
-          Total
-        </p>
-        <p className="line-clamp-1 text-lg font-bold">{feedback.length}</p>
-      </Card>
-      <Card className="flex basis-1/5 flex-col items-center justify-center py-2">
-        <p className="line-clamp-1 h-5 text-sm text-muted-foreground">#️⃣</p>
-        <p className="line-clamp-1 text-lg font-bold">
-          {agg.numRatings > 0 ? (agg.rating / agg.numRatings).toFixed(1) : "-"}
-        </p>
-      </Card>
-      <Card className="flex basis-1/5 flex-col items-center justify-center py-2">
-        <p className="line-clamp-1 h-5 text-sm text-muted-foreground">👏</p>
-        <p className="line-clamp-1 text-lg font-bold">
-          {agg.claps.toLocaleString()}
-        </p>
-      </Card>
-      <Card className="flex basis-1/5 flex-col items-center justify-center py-2">
-        <p className="line-clamp-1 h-5 text-sm text-muted-foreground">🥳</p>
-        <p className="line-clamp-1 text-lg font-bold">
-          {agg.cheers.toLocaleString()}
-        </p>
-      </Card>
-      <Card className="flex basis-1/5 flex-col items-center justify-center py-2">
-        <p className="line-clamp-1 h-5 text-sm text-muted-foreground">🎉</p>
-        <p className="line-clamp-1 text-lg font-bold">
-          {agg.confetti.toLocaleString()}
-        </p>
-      </Card>
+    <div className="grid w-full grid-cols-5 gap-1.5 sm:gap-2">
+      {cells.map((cell) => (
+        <Card
+          key={cell.label}
+          className="flex flex-col items-center justify-center px-1 py-1.5 sm:py-2"
+        >
+          <p
+            className={`line-clamp-1 h-4 text-xs text-muted-foreground sm:h-5 sm:text-sm ${
+              cell.boldLabel ? "font-bold" : ""
+            }`}
+          >
+            {cell.label}
+          </p>
+          <p className="line-clamp-1 text-base font-bold sm:text-lg">
+            {cell.value}
+          </p>
+        </Card>
+      ))}
     </div>
   );
 }

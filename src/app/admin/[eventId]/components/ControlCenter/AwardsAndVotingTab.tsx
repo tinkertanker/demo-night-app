@@ -19,12 +19,6 @@ import { type EventConfig } from "~/lib/types/eventConfig";
 
 import { Button } from "~/components/ui/button";
 import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "~/components/ui/resizable";
-import { SidebarTrigger } from "~/components/ui/sidebar";
-import {
   Table,
   TableBody,
   TableCell,
@@ -101,185 +95,204 @@ export default function AwardsAndVotingTab() {
     (a) => a.id === currentEvent?.currentAwardId,
   );
 
-  return (
-    <ResizablePanelGroup direction="horizontal" className="size-full">
-      <ResizablePanel defaultSize={50} minSize={10} className="space-y-2">
-        <div className="flex items-center justify-start gap-2">
-          <SidebarTrigger className="md:hidden" />
-          <h2 className="text-2xl font-semibold">Awards</h2>
-        </div>
-        <div className="max-h-[calc(100vh-122px)] overflow-y-auto rounded-lg border">
-          <Table>
-            <TableHeader className="sticky top-0">
-              <TableRow>
-                <TableHead className="h-12 w-1/2 px-4">Name</TableHead>
-                <TableHead className="h-12 w-1/2 px-4">Winner</TableHead>
-                {isResultsPhase && (
-                  <TableHead className="h-12 px-4">Reveal</TableHead>
+  const awardsPanel = (
+    <div className="space-y-2">
+      <h2 className="text-xl font-semibold md:text-2xl">Awards</h2>
+      <div className="max-h-[min(45vh,400px)] overflow-y-auto rounded-lg border md:max-h-[calc(100vh-180px)]">
+        <Table>
+          <TableHeader className="sticky top-0 z-[1] bg-background">
+            <TableRow>
+              <TableHead className="h-11 px-3 md:h-12 md:w-1/2 md:px-4">
+                Name
+              </TableHead>
+              <TableHead className="h-11 px-3 md:h-12 md:w-1/2 md:px-4">
+                Winner
+              </TableHead>
+              {isResultsPhase && (
+                <TableHead className="h-11 px-3 md:h-12 md:px-4">
+                  Reveal
+                </TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {event.awards.map((award, index) => (
+              <TableRow
+                key={award.id}
+                className={cn(
+                  "cursor-pointer",
+                  selectedAwardId === award.id && "bg-accent",
                 )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {event.awards.map((award, index) => (
-                <TableRow
-                  key={award.id}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedAwardId === award.id && "bg-accent",
-                  )}
-                  onClick={() => setSelectedAwardId(award.id)}
-                >
-                  <TableCell className="p-4">
-                    <div className="flex flex-col gap-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-semibold">
-                          {award.name}
-                        </span>
-                        {!award.votable && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <TrophyIcon className="h-4 w-4 shrink-0 text-destructive" />
-                            </TooltipTrigger>
-                            <TooltipContent>Not votable</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                      <span className="italic text-muted-foreground">
-                        {award.description}
+                onClick={() => setSelectedAwardId(award.id)}
+              >
+                <TableCell className="p-3 md:p-4">
+                  <div className="flex flex-col gap-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-semibold md:text-lg">
+                        {award.name}
+                      </span>
+                      {!award.votable && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <TrophyIcon className="h-4 w-4 shrink-0 text-destructive" />
+                          </TooltipTrigger>
+                          <TooltipContent>Not votable</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <span className="line-clamp-2 text-sm italic text-muted-foreground">
+                      {award.description}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="p-3 md:p-4">
+                  {award.winnerId ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <CircleCheck className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="line-clamp-2 font-semibold">
+                        {
+                          event.demos.find(
+                            (demo) => demo.id === award.winnerId,
+                          )?.name
+                        }
                       </span>
                     </div>
-                  </TableCell>
-                  <TableCell className="p-4">
-                    {award.winnerId ? (
-                      <div className="flex items-center gap-2 text-sm">
-                        <CircleCheck className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">
-                          {
-                            event.demos.find(
-                              (demo) => demo.id === award.winnerId,
-                            )?.name
-                          }
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm">
-                        <TriangleAlert className="h-4 w-4 text-yellow-500" />
-                        <span className="italic text-muted-foreground">
-                          None selected
-                        </span>
-                      </div>
-                    )}
-                  </TableCell>
-                  {isResultsPhase && (
-                    <TableCell className="p-4">
-                      <RevealButton
-                        state={determineRevealState(
-                          index,
-                          currentAwardIndex,
-                          event.awards.length,
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const shouldHide =
-                            currentEvent?.currentAwardId === award.id;
-                          updateCurrentStateMutation
-                            .mutateAsync({
-                              currentAwardId: shouldHide
-                                ? event.awards[index + 1]?.id ?? null
-                                : award.id,
-                            })
-                            .then(refetchEvent);
-                        }}
-                      />
-                    </TableCell>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <TriangleAlert className="h-4 w-4 shrink-0 text-yellow-500" />
+                      <span className="italic text-muted-foreground">
+                        None selected
+                      </span>
+                    </div>
                   )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                </TableCell>
+                {isResultsPhase && (
+                  <TableCell className="p-3 md:p-4">
+                    <RevealButton
+                      state={determineRevealState(
+                        index,
+                        currentAwardIndex,
+                        event.awards.length,
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const shouldHide =
+                          currentEvent?.currentAwardId === award.id;
+                        updateCurrentStateMutation
+                          .mutateAsync({
+                            currentAwardId: shouldHide
+                              ? event.awards[index + 1]?.id ?? null
+                              : award.id,
+                          })
+                          .then(refetchEvent);
+                      }}
+                    />
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+
+  const votesPanel = (
+    <div className="flex min-w-0 flex-col gap-2 md:min-w-[300px]">
+      <div className="flex flex-col items-start gap-1">
+        <div className="flex w-full items-center justify-between gap-2">
+          <h2 className="line-clamp-2 text-xl font-semibold md:line-clamp-1 md:text-2xl">
+            {selectedAward?.name
+              ? `${isPitchNight ? "Investments" : "Votes"} for ${selectedAward.name}`
+              : isPitchNight
+                ? "Investments"
+                : "Votes"}
+            <span> ({votes?.length ?? 0} total)</span>
+          </h2>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-10 shrink-0 md:size-8"
+                onClick={() => handleSelectWinner(null)}
+                disabled={!selectedAward?.winnerId}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Deselect winner</TooltipContent>
+          </Tooltip>
         </div>
-      </ResizablePanel>
-      <ResizableHandle className="bg-transparent pl-2" />
-      <ResizablePanel minSize={10} className="pl-2">
-        <div className="flex min-w-[300px] flex-col gap-2">
-          <div className="flex flex-col items-start gap-1">
-            <div className="flex w-full items-center justify-between gap-2">
-              <h2 className="line-clamp-1 text-2xl font-semibold">
-                {selectedAward?.name
-                  ? `${isPitchNight ? "Investments" : "Votes"} for ${selectedAward.name}`
-                  : isPitchNight ? "Investments" : "Votes"}
-                <span> ({votes?.length ?? 0} total)</span>
-              </h2>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8"
-                    onClick={() => handleSelectWinner(null)}
-                    disabled={!selectedAward?.winnerId}
+      </div>
+      <div className="max-h-[min(55vh,520px)] overflow-y-auto rounded-lg border md:max-h-[calc(100vh-180px)]">
+        <Table>
+          <TableHeader className="sticky top-0 z-[1] bg-background">
+            <TableRow>
+              <TableHead className="w-[56px] text-right">
+                {isPitchNight ? "$" : "#"}
+              </TableHead>
+              <TableHead>{isPitchNight ? "Pitch" : "Demo"}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <AnimatePresence mode="popLayout">
+              {Array.from(votesByDemoId.entries())
+                .sort((a, b) => b[1] - a[1])
+                .map(([demoId, voteCount]) => (
+                  <motion.tr
+                    key={demoId}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className={cn(
+                      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+                      "cursor-pointer",
+                      selectedAward?.winnerId === demoId && "bg-accent",
+                    )}
+                    onClick={() => handleSelectWinner(demoId)}
                   >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Deselect winner</TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-          <div className="h-full max-h-[calc(100vh-122px)] overflow-y-auto rounded-lg border">
-            <Table>
-              <TableHeader className="sticky top-0">
-                <TableRow>
-                  <TableHead className="w-[50px] text-right">#</TableHead>
-                  <TableHead>Demo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <AnimatePresence mode="popLayout">
-                  {Array.from(votesByDemoId.entries())
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([demoId, voteCount]) => (
-                      <motion.tr
-                        key={demoId}
-                        layout
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
+                    <TableCell className="py-3 text-right font-medium md:py-2">
+                      {isPitchNight
+                        ? `$${(voteCount / 1000).toFixed(0)}k`
+                        : voteCount}
+                    </TableCell>
+                    <TableCell className="flex items-center justify-start gap-2 py-3 font-medium md:py-2">
+                      {selectedAward?.winnerId === demoId && (
+                        <CircleCheck className="h-4 w-4 text-primary" />
+                      )}
+                      <span
                         className={cn(
-                          "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-                          "cursor-pointer",
-                          selectedAward?.winnerId === demoId && "bg-accent",
+                          selectedAward?.winnerId === demoId &&
+                            "font-semibold",
                         )}
-                        onClick={() => handleSelectWinner(demoId)}
                       >
-                        <TableCell className="text-right font-medium">
-                          {isPitchNight ? `$${(voteCount / 1000).toFixed(0)}k` : voteCount}
-                        </TableCell>
-                        <TableCell className="flex items-center justify-start gap-2 font-medium">
-                          {selectedAward?.winnerId === demoId && (
-                            <CircleCheck className="h-4 w-4 text-primary" />
-                          )}
-                          <span
-                            className={cn(
-                              selectedAward?.winnerId === demoId &&
-                                "font-semibold",
-                            )}
-                          >
-                            {
-                              event.demos.find((demo) => demo.id === demoId)
-                                ?.name
-                            }
-                          </span>
-                        </TableCell>
-                      </motion.tr>
-                    ))}
-                </AnimatePresence>
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+                        {
+                          event.demos.find((demo) => demo.id === demoId)
+                            ?.name
+                        }
+                      </span>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+            </AnimatePresence>
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row md:gap-0">
+      <div className="min-h-0 md:w-1/2 md:overflow-hidden md:pr-2">
+        {awardsPanel}
+      </div>
+      <div className="hidden w-px shrink-0 bg-border md:block" />
+      <div className="min-h-0 md:w-1/2 md:overflow-hidden md:pl-2">
+        {votesPanel}
+      </div>
+    </div>
   );
 }
 
