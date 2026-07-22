@@ -25,6 +25,33 @@ const generateRandomId = () => {
   return Math.random().toString(36).substring(2, 5).toUpperCase();
 };
 
+const formatDateDDMMYYYY = (date: Date) => {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear());
+  return `${day}/${month}/${year}`;
+};
+
+const parseDateDDMMYYYY = (value: string) => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
 export function UpsertEventModal({
   event,
   onSubmit,
@@ -40,7 +67,9 @@ export function UpsertEventModal({
 }) {
   const [defaultId] = useState(() => generateRandomId());
   const [isPitchNight, setIsPitchNight] = useState(
-    (event?.config as EventConfig)?.isPitchNight ?? false,
+    event
+      ? ((event.config as EventConfig)?.isPitchNight ?? false)
+      : true,
   );
   const [useTestData, setUseTestData] = useState(false);
   const upsertMutation = api.event.upsert.useMutation();
@@ -52,7 +81,7 @@ export function UpsertEventModal({
     values: {
       name: event?.name ?? "",
       id: event?.id ?? defaultId,
-      date: (event?.date ?? new Date()).toISOString().substring(0, 10),
+      date: formatDateDDMMYYYY(event?.date ?? new Date()),
       url: event?.url ?? "",
     },
   });
@@ -65,6 +94,12 @@ export function UpsertEventModal({
         </DialogHeader>
         <form
           onSubmit={handleSubmit((data) => {
+            const parsedDate = parseDateDDMMYYYY(data.date);
+            if (!parsedDate) {
+              toast.error("Date must be in dd/mm/yyyy format");
+              return;
+            }
+
             const config: EventConfig = {
               ...(event?.config as EventConfig),
               isPitchNight,
@@ -74,7 +109,7 @@ export function UpsertEventModal({
                 originalId: event?.id,
                 id: data.id,
                 name: data.name,
-                date: new Date(data.date),
+                date: parsedDate,
                 url: data.url,
                 config,
               })
@@ -120,22 +155,16 @@ export function UpsertEventModal({
               autoFocus
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="font-semibold">ID</span>
-            <input
-              type="text"
-              {...register("id")}
-              className="rounded-md border border-gray-200 p-2 font-mono"
-              autoComplete="off"
-              required
-            />
-          </label>
+          <input type="hidden" {...register("id")} required />
           <label className="flex flex-col gap-1">
             <span className="font-semibold">Date</span>
             <input
-              type="date"
-              {...register("date", { valueAsDate: true })}
+              type="text"
+              {...register("date", { required: true })}
               className="rounded-md border border-gray-200 p-2"
+              placeholder="dd/mm/yyyy"
+              inputMode="numeric"
+              autoComplete="off"
               required
             />
           </label>
@@ -166,8 +195,7 @@ export function UpsertEventModal({
               </label>
               <p className="text-sm text-gray-500">
                 Enable investing mode where attendees allocate $100k across
-                companies. Awards will be &quot;Crowd Favorite&quot; and
-                &quot;Judges&apos; Favorite&quot;.
+                companies.
               </p>
             </div>
           </div>
