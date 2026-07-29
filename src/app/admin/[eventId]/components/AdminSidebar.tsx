@@ -173,14 +173,16 @@ export function AdminSidebar({
       </SidebarHeader>
 
       <div className="flex flex-col gap-2 px-4 py-2">
-        <Button
-          onClick={() => window.open(event.url, "_blank")}
-          variant="outline"
-          className="w-full"
-        >
-          <ExternalLink className="size-4" />
-          View event
-        </Button>
+        {event.url && (
+          <Button
+            onClick={() => window.open(event.url, "_blank")}
+            variant="outline"
+            className="w-full"
+          >
+            <ExternalLink className="size-4" />
+            View event
+          </Button>
+        )}
         <Button
           onClick={async () => {
             await updateCurrentMutation.mutateAsync(

@@ -282,7 +282,7 @@ export default function SubmissionsDashboard({
         <ResizablePanel minSize={30} className="pl-2">
           <div className="flex max-h-[calc(100%-48px)] w-full items-center justify-end gap-2 overflow-y-scroll pb-2">
             <div className="flex items-center gap-2">
-              {!isAdmin && (
+              {!isAdmin && initialEvent.url && (
                 <HoverCard openDelay={100}>
                   <HoverCardTrigger asChild>
                     <Button asChild variant="secondary">

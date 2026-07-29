@@ -168,14 +168,13 @@ export function UpsertEventModal({
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="font-semibold">URL</span>
+            <span className="font-semibold">URL (Optional)</span>
             <input
               type="url"
               {...register("url")}
               className="rounded-md border border-gray-200 p-2"
               autoComplete="off"
               placeholder="https://lu.ma/demo-night"
-              required
             />
           </label>
           <div className="flex items-start gap-3 rounded-md border border-gray-200 p-3">

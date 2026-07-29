@@ -92,15 +92,20 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
         </h1>
         <p className="text-md max-w-xl pt-2 text-center font-medium leading-5 text-gray-500">
           We are so excited to see what you&apos;ve been building! Submissions
-          close the Saturday before the event at 11:59pm. For more info, see our{" "}
-          <a
-            href={event.url}
-            className="text-blue-500 underline"
-            target="_blank"
-          >
-            event page
-          </a>
-          !{" "}
+          close the Saturday before the event at 11:59pm.{" "}
+          {event.url && (
+            <>
+              For more info, see our{" "}
+              <a
+                href={event.url}
+                className="text-blue-500 underline"
+                target="_blank"
+              >
+                event page
+              </a>
+              !{" "}
+            </>
+          )}
           {branding.isPitchNight
             ? "Pitches will be timed at five minutes."
             : "Demos will be timed at three minutes."}{" "}

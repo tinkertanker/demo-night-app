@@ -144,7 +144,7 @@ export const eventRouter = createTRPCRouter({
         id: z.string().optional(),
         name: z.string().optional(),
         date: z.date().optional(),
-        url: z.string().url().optional(),
+        url: z.string().url().optional().or(z.literal("")),
         config: eventConfigSchema.optional(),
       }),
     )
@@ -187,7 +187,7 @@ export const eventRouter = createTRPCRouter({
             id: data.id!,
             name: data.name!,
             date: data.date!,
-            url: data.url!,
+            url: data.url ?? "",
             config: eventConfig,
             demos: {
               create: DEFAULT_DEMOS,

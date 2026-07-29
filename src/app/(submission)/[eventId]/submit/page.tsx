@@ -111,7 +111,7 @@ function SubmitDemoMessagePage({
       <Sticker name={success ? "thumbsup" : "facepalm"} />
       <h1 className="pt-4 text-center text-2xl font-bold">{title}</h1>
       <p className="text-lg font-semibold italic text-gray-500">{message}</p>
-      <LinkButton href={event.url}>Back to event</LinkButton>
+      {event.url && <LinkButton href={event.url}>Back to event</LinkButton>}
       <div className="z-3 pointer-events-none fixed inset-0">
         <LogoConfetti />
       </div>
