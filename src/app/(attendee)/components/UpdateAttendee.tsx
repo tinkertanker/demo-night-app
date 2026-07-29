@@ -7,8 +7,6 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { getBrandingClient } from "~/lib/branding";
-import { ATTENDEE_TYPES, type AttendeeType } from "~/lib/types/attendeeTypes";
-import { cn } from "~/lib/utils";
 
 import Button from "~/components/Button";
 import { useModal } from "~/components/modal/provider";
@@ -76,15 +74,9 @@ export function UpdateAttendeeForm({
   isPreDemo?: boolean;
   isPitchNight: boolean;
 }) {
-  const { register, handleSubmit, watch } = useForm({
+  const { register, handleSubmit } = useForm({
     values: {
       name: attendee?.name ?? "",
-      email: attendee?.email ?? "",
-      linkedin: attendee?.linkedin ?? "",
-      type: selectedType(attendee),
-      // customType: attendeePreselectTypes.includes(attendee?.type ?? "")
-      //   ? ""
-      //   : attendee?.type ?? "",
     },
   });
 
@@ -98,9 +90,9 @@ export function UpdateAttendeeForm({
         setAttendee({
           id: attendee.id,
           name: data.name,
-          email: isPreDemo ? attendee.email : data.email,
-          linkedin: isPreDemo ? attendee.linkedin : data.linkedin,
-          type: isPreDemo ? attendee.type : data.type,
+          email: attendee.email,
+          linkedin: attendee.linkedin,
+          type: attendee.type,
         });
         const message = isPreDemo
           ? `Profile updated! Hang tight – ${isPitchNight ? "pitches" : "demos"} starting soon 😎`
@@ -124,60 +116,7 @@ export function UpdateAttendeeForm({
           className="z-30 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
         />
       </label>
-      {!isPreDemo && (
-        <>
-          <label className="flex w-full flex-col gap-1">
-            <span className="text-lg font-semibold">Email</span>
-            <input
-              type="email"
-              placeholder="ada@aicollective.com"
-              {...register("email")}
-              className="z-10 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
-            />
-          </label>
-          <label className="flex w-full flex-col gap-1">
-            <span className="text-lg font-semibold">LinkedIn</span>
-            <input
-              type="url"
-              placeholder="https://www.linkedin.com/in/ada-lovelace"
-              {...register("linkedin")}
-              className="z-10 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
-            />
-          </label>
-          <label className="flex w-full flex-col gap-1 pb-2">
-            <span className="text-lg font-semibold">I consider myself a...</span>
-            <select
-              {...register("type")}
-              className={cn(
-                "z-30 appearance-none rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur",
-                watch("type") === "" && "text-gray-400",
-              )}
-            >
-              <option value="">Select one...</option>
-              {ATTENDEE_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-            {/* {watch("type") === "Other" && (
-          <input
-            type="text"
-            {...register("customType")}
-            className="rounded-lg border border-gray-200 p-2"
-          />
-        )} */}
-          </label>
-        </>
-      )}
       <Button isPitchNight={isPitchNight}>Update Profile</Button>
     </form>
   );
-}
-
-function selectedType(attendee: Attendee | null) {
-  if (!attendee?.type) return "";
-  return ATTENDEE_TYPES.includes(attendee.type as AttendeeType)
-    ? attendee.type
-    : "Other";
 }
