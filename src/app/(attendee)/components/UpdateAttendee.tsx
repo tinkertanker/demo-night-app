@@ -104,7 +104,7 @@ export function UpdateAttendeeForm({
     >
       <div>
         <h1 className="text-center text-4xl font-bold tracking-tight">
-          {isPreDemo ? "Welcome! 😄" : "Update Profile 🧑‍💼"}
+          {isPreDemo ? "Enter your name" : "Update Profile 🧑‍💼"}
         </h1>
       </div>
       <label className="flex w-full flex-col gap-1">
@@ -116,7 +116,7 @@ export function UpdateAttendeeForm({
           className="z-30 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
         />
       </label>
-      <Button isPitchNight={isPitchNight}>Update Profile</Button>
+      <Button isPitchNight={isPitchNight}>Submit</Button>
     </form>
   );
 }

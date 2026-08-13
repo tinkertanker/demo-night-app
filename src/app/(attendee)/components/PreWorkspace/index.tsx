@@ -9,12 +9,11 @@ export default function PreWorkspace() {
   const isPitchNight = currentEvent?.isPitchNight ?? false;
   return (
     <>
-      <div className="pointer-events-none flex w-full justify-center pt-4">
-        <Sticker name="fingerguns" size={128} />
-      </div>
-
-      <div className="absolute bottom-0 max-h-[calc(100dvh-120px)] w-full max-w-xl">
-        <div className="size-full p-4">
+      <div className="flex w-full flex-col items-center px-4 pt-8">
+        <div className="pointer-events-none flex w-full justify-center">
+          <Sticker name="fingerguns" size={128} />
+        </div>
+        <div className="mt-6 w-full max-w-xl">
           <UpdateAttendeeForm
             attendee={attendee}
             setAttendee={setAttendee}
