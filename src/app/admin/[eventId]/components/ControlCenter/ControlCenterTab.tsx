@@ -97,18 +97,18 @@ export default function ControlCenterTab({
   const isLive = currentEvent?.id === event.id;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col gap-3 md:gap-4">
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden md:gap-4">
       <TooltipProvider>
         <div
           className={cn(
-            "sticky top-0 z-20 -mx-2 flex items-center gap-2 border-b bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80",
+            "sticky top-0 z-20 -mx-2 flex shrink-0 items-center gap-2 border-b bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80",
             "md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none",
             !isLive && "md:hidden",
           )}
         >
           <SidebarTrigger className="size-11 shrink-0 md:hidden" />
           {isLive && currentEvent ? (
-            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:justify-between md:overflow-visible md:pb-0">
+            <div className="flex min-w-0 flex-1 gap-1 md:justify-between md:gap-1.5">
               {phaseConfigs.map((config) => (
                 <PhaseButton
                   key={config.phase}
@@ -127,7 +127,7 @@ export default function ControlCenterTab({
           )}
         </div>
       </TooltipProvider>
-      <div className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {selectedTab === AdminTab.DemosAndFeedback ? (
           <DemosAndFeedbackTab />
         ) : selectedTab === AdminTab.AwardsAndVoting ? (
@@ -183,7 +183,7 @@ function PhaseButton({
           aria-label={label}
           aria-pressed={config.phase === currentPhase}
           className={cn(
-            "relative h-11 shrink-0 px-3 md:h-10 md:w-[calc(20%-0.4rem)] md:min-w-0 md:flex-none",
+            "relative h-12 min-w-0 flex-1 px-1 md:h-10 md:w-[calc(20%-0.4rem)] md:flex-none md:px-3",
             config.phase === currentPhase
               ? "bg-primary/10 text-primary hover:bg-primary/15"
               : "",
@@ -193,10 +193,10 @@ function PhaseButton({
             suggestedPhase === config.phase && "animate-pulse-border border-2",
           )}
         >
-          <div className="flex min-w-0 items-center gap-1.5">
+          <div className="flex min-w-0 flex-col items-center gap-0.5 md:flex-row md:gap-1.5">
             <config.icon className="size-4 shrink-0" />
-            <span className="hidden truncate sm:inline">{label}</span>
-            <span className="truncate text-xs sm:hidden">
+            <span className="hidden truncate md:inline">{label}</span>
+            <span className="max-w-full truncate text-[10px] leading-none md:hidden">
               {shortPhaseLabel(config.phase, isPitchNight)}
             </span>
           </div>

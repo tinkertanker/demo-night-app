@@ -86,14 +86,14 @@ export function ClientEventDashboard({
       }}
     >
       <SidebarProvider defaultOpen>
-        <div className="flex h-screen w-full">
+        <div className="flex h-dvh w-full">
           <AdminSidebar
             event={event}
             config={config}
             selectedTab={selectedTab}
             setSelectedTab={setSelectedTab}
           />
-          <SidebarInset className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 pb-6 md:p-4">
+          <SidebarInset className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:p-4">
             {dashboard()}
           </SidebarInset>
         </div>
