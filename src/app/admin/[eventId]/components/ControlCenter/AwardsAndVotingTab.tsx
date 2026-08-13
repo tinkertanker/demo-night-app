@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 
+import { type MobilePanel, SplitPanels } from "./SplitPanels";
 import { env } from "~/env";
 
 const REFRESH_INTERVAL =
@@ -47,6 +48,7 @@ export default function AwardsAndVotingTab() {
   const [selectedAwardId, setSelectedAwardId] = useState<string | undefined>(
     event?.awards[0]?.id,
   );
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("left");
   const { data: votes, refetch: refetchVotes } = api.award.getVotes.useQuery(
     selectedAwardId ?? "",
     {
@@ -96,9 +98,11 @@ export default function AwardsAndVotingTab() {
   );
 
   const awardsPanel = (
-    <div className="space-y-2">
-      <h2 className="text-xl font-semibold md:text-2xl">Awards</h2>
-      <div className="max-h-[min(45vh,400px)] overflow-y-auto rounded-lg border md:max-h-[calc(100vh-180px)]">
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <h2 className="hidden shrink-0 text-xl font-semibold md:block md:text-2xl">
+        Awards
+      </h2>
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border">
         <Table>
           <TableHeader className="sticky top-0 z-[1] bg-background">
             <TableRow>
@@ -123,7 +127,10 @@ export default function AwardsAndVotingTab() {
                   "cursor-pointer",
                   selectedAwardId === award.id && "bg-accent",
                 )}
-                onClick={() => setSelectedAwardId(award.id)}
+                onClick={() => {
+                  setSelectedAwardId(award.id);
+                  setMobilePanel("right");
+                }}
               >
                 <TableCell className="p-3 md:p-4">
                   <div className="flex flex-col gap-0">
@@ -197,16 +204,15 @@ export default function AwardsAndVotingTab() {
     </div>
   );
 
+  const votesLabel = isPitchNight ? "Investments" : "Votes";
   const votesPanel = (
-    <div className="flex min-w-0 flex-col gap-2 md:min-w-[300px]">
-      <div className="flex flex-col items-start gap-1">
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 bg-background md:min-w-[300px]">
+      <div className="flex shrink-0 flex-col items-start gap-1">
         <div className="flex w-full items-center justify-between gap-2">
           <h2 className="line-clamp-2 text-xl font-semibold md:line-clamp-1 md:text-2xl">
             {selectedAward?.name
-              ? `${isPitchNight ? "Investments" : "Votes"} for ${selectedAward.name}`
-              : isPitchNight
-                ? "Investments"
-                : "Votes"}
+              ? `${votesLabel} for ${selectedAward.name}`
+              : votesLabel}
             <span> ({votes?.length ?? 0} total)</span>
           </h2>
           <Tooltip>
@@ -225,7 +231,7 @@ export default function AwardsAndVotingTab() {
           </Tooltip>
         </div>
       </div>
-      <div className="max-h-[min(55vh,520px)] overflow-y-auto rounded-lg border md:max-h-[calc(100vh-180px)]">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border">
         <Table>
           <TableHeader className="sticky top-0 z-[1] bg-background">
             <TableRow>
@@ -258,21 +264,24 @@ export default function AwardsAndVotingTab() {
                         ? `$${(voteCount / 1000).toFixed(0)}k`
                         : voteCount}
                     </TableCell>
-                    <TableCell className="flex items-center justify-start gap-2 py-3 font-medium md:py-2">
-                      {selectedAward?.winnerId === demoId && (
-                        <CircleCheck className="h-4 w-4 text-primary" />
-                      )}
-                      <span
-                        className={cn(
-                          selectedAward?.winnerId === demoId &&
-                            "font-semibold",
+                    <TableCell className="py-3 font-medium md:py-2">
+                      <div className="flex items-center justify-start gap-2">
+                        {selectedAward?.winnerId === demoId && (
+                          <CircleCheck className="h-4 w-4 shrink-0 text-primary" />
                         )}
-                      >
-                        {
-                          event.demos.find((demo) => demo.id === demoId)
-                            ?.name
-                        }
-                      </span>
+                        <span
+                          className={cn(
+                            "line-clamp-2",
+                            selectedAward?.winnerId === demoId &&
+                              "font-semibold",
+                          )}
+                        >
+                          {
+                            event.demos.find((demo) => demo.id === demoId)
+                              ?.name
+                          }
+                        </span>
+                      </div>
                     </TableCell>
                   </motion.tr>
                 ))}
@@ -284,15 +293,14 @@ export default function AwardsAndVotingTab() {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row md:gap-0">
-      <div className="min-h-0 md:w-1/2 md:overflow-hidden md:pr-2">
-        {awardsPanel}
-      </div>
-      <div className="hidden w-px shrink-0 bg-border md:block" />
-      <div className="min-h-0 md:w-1/2 md:overflow-hidden md:pl-2">
-        {votesPanel}
-      </div>
-    </div>
+    <SplitPanels
+      left={awardsPanel}
+      right={votesPanel}
+      leftLabel="Awards"
+      rightLabel={votesLabel}
+      mobilePanel={mobilePanel}
+      onMobilePanelChange={setMobilePanel}
+    />
   );
 }
 

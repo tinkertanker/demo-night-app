@@ -37,6 +37,7 @@ import {
 } from "~/components/ui/tooltip";
 
 import FeedbackOverview from "./FeedbackOverview";
+import { type MobilePanel, SplitPanels } from "./SplitPanels";
 import { env } from "~/env";
 
 const REFRESH_INTERVAL =
@@ -53,6 +54,7 @@ export default function DemosAndFeedbackTab() {
   const [selectedDemo, setSelectedDemo] = useState<Demo | undefined>(
     event?.demos.find((demo) => demo.id === currentEvent?.currentDemoId),
   );
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("left");
 
   const votableIndices = useMemo(() => {
     if (!event) return new Map<string, number>();
@@ -111,7 +113,10 @@ export default function DemosAndFeedbackTab() {
       isDemoPhase={isDemoPhase}
       listLabel={listLabel}
       onSelect={(demo) => goLive(demo)}
-      onPeek={(demo) => setSelectedDemo(demo)}
+      onPeek={(demo) => {
+        setSelectedDemo(demo);
+        setMobilePanel("right");
+      }}
     />
   );
 
@@ -147,15 +152,14 @@ export default function DemosAndFeedbackTab() {
         />
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row md:gap-0">
-        <div className="min-h-0 md:w-1/2 md:overflow-hidden md:pr-2">
-          {demoList}
-        </div>
-        <div className="hidden w-px shrink-0 bg-border md:block" />
-        <div className="min-h-0 md:w-1/2 md:overflow-hidden md:pl-2">
-          {feedbackPanel}
-        </div>
-      </div>
+      <SplitPanels
+        left={demoList}
+        right={feedbackPanel}
+        leftLabel={listLabel}
+        rightLabel="Feedback"
+        mobilePanel={mobilePanel}
+        onMobilePanelChange={setMobilePanel}
+      />
     </div>
   );
 }
@@ -180,7 +184,7 @@ function StageControls({
   isPending: boolean;
 }) {
   return (
-    <div className="sticky top-[3.75rem] z-10 rounded-xl border bg-background p-2 shadow-sm md:static md:top-auto">
+    <div className="sticky top-[3.75rem] z-10 shrink-0 rounded-xl border bg-background p-2 shadow-sm md:static md:top-auto">
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
@@ -249,9 +253,11 @@ function DemoList({
   onPeek: (demo: Demo) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <h2 className="text-xl font-semibold md:text-2xl">{listLabel}</h2>
-      <div className="max-h-[min(50vh,420px)] overflow-y-auto rounded-lg border md:max-h-[calc(100vh-180px)]">
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <h2 className="hidden shrink-0 text-xl font-semibold md:block md:text-2xl">
+        {listLabel}
+      </h2>
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border">
         <Table>
           <TableHeader className="sticky top-0 z-[1] bg-background">
             <TableRow>
@@ -287,11 +293,13 @@ function DemoList({
                   <TableCell className="py-3 font-medium md:py-2">
                     {demo.votable ? votableIndices.get(demo.id) : "-"}
                   </TableCell>
-                  <TableCell className="flex items-center gap-2 py-3 md:py-2">
-                    <span className="line-clamp-2 font-semibold md:line-clamp-1">
-                      {demo.name}
-                    </span>
-                    {liveDemoId === demo.id && <LiveIndicator />}
+                  <TableCell className="py-3 md:py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="line-clamp-2 font-semibold md:line-clamp-1">
+                        {demo.name}
+                      </span>
+                      {liveDemoId === demo.id && <LiveIndicator />}
+                    </div>
                   </TableCell>
                   <TableCell className="py-0">
                     {isDemoPhase && selectedDemoId !== demo.id && (
@@ -337,16 +345,16 @@ function FeedbackPanel({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-2 md:min-w-[300px]">
-      <div className="flex flex-col items-start gap-2">
-        <h2 className="text-xl font-semibold md:text-2xl">
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 bg-background md:min-w-[300px]">
+      <div className="flex shrink-0 flex-col items-start gap-2">
+        <h2 className="line-clamp-2 text-xl font-semibold md:text-2xl">
           {selectedDemo?.name
             ? `Feedback for ${selectedDemo.name}`
             : "Feedback"}
         </h2>
         <FeedbackOverview feedback={feedback} />
       </div>
-      <div className="max-h-[min(55vh,520px)] space-y-2 overflow-y-auto md:max-h-[calc(100vh-180px)]">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
         <AnimatePresence mode="popLayout">
           {feedback.length > 0 ? (
             scoredFeedback.map((item) => (
@@ -370,6 +378,7 @@ function FeedbackItem({
   item: FeedbackAndAttendee;
   onDelete: (id: string) => void;
 }) {
+  const hasName = (item.attendee.name?.length ?? 0) > 0;
   const summaryString = useMemo(() => {
     const summary: string[] = [];
     if (item.rating) {
@@ -397,27 +406,27 @@ function FeedbackItem({
       exit={{ opacity: 0, scale: 0.9 }}
     >
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4">
-          <div className="flex min-w-0 flex-wrap items-center gap-1">
-            <span
-              className={cn(
-                "line-clamp-1 font-semibold",
-                item.attendee.name?.length ?? 0 > 0
-                  ? "text-black"
-                  : "italic text-muted-foreground",
-              )}
-            >
-              {item.attendee.name?.length ?? 0 > 0
-                ? item.attendee.name
-                : "Anonymous"}
-            </span>
-            <AttendeeTypeBadge type={item.attendee.type} />
-            <p
-              className="shrink-0 font-semibold text-muted-foreground"
-              dangerouslySetInnerHTML={{
-                __html: `${summaryString ? `• ${summaryString}` : ""}`,
-              }}
-            />
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 p-3 md:items-center md:p-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex min-w-0 items-center gap-1">
+              <span
+                className={cn(
+                  "line-clamp-1 font-semibold",
+                  hasName ? "text-black" : "italic text-muted-foreground",
+                )}
+              >
+                {hasName ? item.attendee.name : "Anonymous"}
+              </span>
+              <AttendeeTypeBadge type={item.attendee.type} />
+            </div>
+            {summaryString && (
+              <p
+                className="font-semibold text-muted-foreground sm:shrink-0"
+                dangerouslySetInnerHTML={{
+                  __html: `<span class="hidden sm:inline">• </span>${summaryString}`,
+                }}
+              />
+            )}
           </div>
           <Button
             variant="ghost"

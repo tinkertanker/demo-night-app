@@ -53,11 +53,11 @@ export default function FeedbackOverview({
   ];
 
   return (
-    <div className="grid w-full grid-cols-5 gap-1.5 sm:gap-2">
+    <div className="grid w-full grid-cols-5 gap-1 sm:gap-2">
       {cells.map((cell) => (
         <Card
           key={cell.label}
-          className="flex flex-col items-center justify-center px-1 py-1.5 sm:py-2"
+          className="flex min-w-0 flex-col items-center justify-center px-0.5 py-1.5 sm:px-1 sm:py-2"
         >
           <p
             className={`line-clamp-1 h-4 text-xs text-muted-foreground sm:h-5 sm:text-sm ${
