@@ -1,5 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import {
+  AUTH_SESSION_COOKIES,
+  LEGACY_AUTH_SESSION_COOKIES,
+} from "~/lib/auth-cookies";
+
+function hasCookie(req: NextRequest, names: readonly string[]) {
+  return names.some((name) => req.cookies.get(name)?.value);
+}
+
+function expireLegacySessionCookies(res: NextResponse) {
+  for (const name of LEGACY_AUTH_SESSION_COOKIES) {
+    res.cookies.set(name, "", {
+      path: "/",
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: name.startsWith("__Secure-"),
+    });
+  }
+}
+
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
@@ -8,17 +29,19 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // NextAuth prefixes the cookie with __Secure- on any https deployment
-  const session = !!(
-    req.cookies.get("__Secure-next-auth.session-token") ??
-    req.cookies.get("next-auth.session-token")
-  );
-  if (!session) {
-    return NextResponse.redirect(
-      new URL(`/api/auth/signin?callbackUrl=${path}`, req.url),
-    );
+  if (hasCookie(req, AUTH_SESSION_COOKIES)) {
+    return NextResponse.next();
   }
-  return NextResponse.next();
+
+  const signInUrl = new URL(
+    `/api/auth/signin?callbackUrl=${path}`,
+    req.url,
+  );
+  const res = NextResponse.redirect(signInUrl);
+  if (hasCookie(req, LEGACY_AUTH_SESSION_COOKIES)) {
+    expireLegacySessionCookies(res);
+  }
+  return res;
 }
 
 export const config = {

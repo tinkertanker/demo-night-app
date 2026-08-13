@@ -9,6 +9,7 @@ import GoogleProvider from "next-auth/providers/google";
 
 import { db } from "./db";
 import { env } from "~/env";
+import { AUTH_SESSION_COOKIE } from "~/lib/auth-cookies";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -36,6 +37,10 @@ declare module "next-auth" {
  *
  * @see https://next-auth.js.org/configuration/options
  */
+const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith(
+  "https://",
+);
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as Adapter,
   providers: [
@@ -44,6 +49,17 @@ export const authOptions: NextAuthOptions = {
       clientSecret: env.GOOGLE_CLIENT_SECRET,
     }),
   ],
+  cookies: {
+    sessionToken: {
+      name: `${useSecureCookies ? "__Secure-" : ""}${AUTH_SESSION_COOKIE}`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+      },
+    },
+  },
   callbacks: {
     signIn: async ({ user }) => {
       const email = user.email?.toLowerCase();

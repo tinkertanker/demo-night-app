@@ -11,8 +11,39 @@ import superjson from "superjson";
 import { type OpenApiMeta } from "trpc-to-openapi";
 import { ZodError } from "zod";
 
+import { type Session } from "next-auth";
+
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
+
+async function sessionFromCookieHeader(
+  headers: Headers,
+): Promise<Session | null> {
+  const cookie = headers.get("cookie") ?? "";
+  const match =
+    /(?:^|;\s*)__Secure-next-auth\.session-token\.v2=([^;]+)/.exec(cookie) ??
+    /(?:^|;\s*)next-auth\.session-token\.v2=([^;]+)/.exec(cookie);
+  const sessionToken = match?.[1]
+    ? decodeURIComponent(match[1])
+    : undefined;
+  if (!sessionToken) return null;
+
+  const dbSession = await db.session.findUnique({
+    where: { sessionToken },
+    include: { user: true },
+  });
+  if (!dbSession || dbSession.expires < new Date()) return null;
+
+  return {
+    user: {
+      id: dbSession.user.id,
+      name: dbSession.user.name,
+      email: dbSession.user.email,
+      image: dbSession.user.image,
+    },
+    expires: dbSession.expires.toISOString(),
+  };
+}
 
 /**
  * 1. CONTEXT
@@ -27,11 +58,13 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  // const session = await getServerAuthSession();
+  const session =
+    (await getServerAuthSession()) ??
+    (await sessionFromCookieHeader(opts.headers));
 
   return {
     db,
-    // session,
+    session,
     ...opts,
   };
 };
@@ -98,8 +131,11 @@ export const publicProcedure = t.procedure;
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(async ({ next }) => {
-  const session = await getServerAuthSession();
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+  const session =
+    ctx.session ??
+    (await getServerAuthSession()) ??
+    (await sessionFromCookieHeader(ctx.headers));
   if (!session || !session.user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
