@@ -112,7 +112,10 @@ export default function DemosAndFeedbackTab() {
       votableIndices={votableIndices}
       isDemoPhase={isDemoPhase}
       listLabel={listLabel}
-      onSelect={(demo) => goLive(demo)}
+      onSelect={(demo) => {
+        goLive(demo);
+        setMobilePanel("right");
+      }}
       onPeek={(demo) => {
         setSelectedDemo(demo);
         setMobilePanel("right");
@@ -134,7 +137,7 @@ export default function DemosAndFeedbackTab() {
   );
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col gap-3">
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       {isDemoPhase && (
         <StageControls
           itemLabel={itemLabel}
@@ -184,7 +187,7 @@ function StageControls({
   isPending: boolean;
 }) {
   return (
-    <div className="sticky top-[3.75rem] z-10 shrink-0 rounded-xl border bg-background p-2 shadow-sm md:static md:top-auto">
+    <div className="shrink-0 rounded-xl border bg-background p-2 shadow-sm">
       <div className="flex items-center gap-2">
         <Button
           variant="outline"

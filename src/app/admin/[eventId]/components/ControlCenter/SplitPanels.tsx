@@ -21,6 +21,7 @@ function PanelTab({
       onClick={onClick}
       className={cn(
         "h-10 rounded-md px-2 text-sm font-medium transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         selected
           ? "bg-background text-foreground shadow-sm"
           : "text-muted-foreground",
@@ -68,22 +69,22 @@ export function SplitPanels({
       </div>
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <div
+          role="tabpanel"
+          aria-label={leftLabel}
           className={cn(
-            "min-h-0 bg-background md:w-1/2 md:overflow-hidden md:pr-2",
-            mobilePanel === "left"
-              ? "flex flex-1 flex-col"
-              : "hidden md:flex md:flex-col",
+            "min-h-0 bg-background md:flex md:w-1/2 md:flex-1 md:flex-col md:overflow-hidden md:pr-2",
+            mobilePanel === "left" ? "flex flex-1 flex-col" : "hidden",
           )}
         >
           {left}
         </div>
         <div className="hidden w-px shrink-0 bg-border md:block" />
         <div
+          role="tabpanel"
+          aria-label={rightLabel}
           className={cn(
-            "min-h-0 bg-background md:w-1/2 md:overflow-hidden md:pl-2",
-            mobilePanel === "right"
-              ? "flex flex-1 flex-col"
-              : "hidden md:flex md:flex-col",
+            "min-h-0 bg-background md:flex md:w-1/2 md:flex-1 md:flex-col md:overflow-hidden md:pl-2",
+            mobilePanel === "right" ? "flex flex-1 flex-col" : "hidden",
           )}
         >
           {right}
