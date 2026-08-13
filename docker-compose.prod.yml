@@ -64,6 +64,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-demo_night}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
+      # Bind mount so `docker compose down -v` / volume prune cannot wipe event data.
       - ./data/postgres:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
@@ -81,7 +82,8 @@ services:
     container_name: demo-night-redis
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
     volumes:
-      - redis-data:/data
+      # Bind mount so `docker compose down -v` / volume prune cannot wipe KV state.
+      - ./data/redis:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -100,10 +102,6 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-
-volumes:
-  redis-data:
-    name: demo-night-redis-data
 
 networks:
   devtksg:
