@@ -59,6 +59,9 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   },
+  pages: {
+    error: "/auth/error",
+  },
   theme: {
     logo: "/images/stickers/greetings.png",
     colorScheme: "light",
