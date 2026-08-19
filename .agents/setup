@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+run_step() {
+  local label="$1"
+  shift
+  local started_at=$SECONDS
+
+  printf '\n==> %s\n' "$label"
+  "$@"
+  printf '<== %s (%ss)\n' "$label" "$((SECONDS - started_at))"
+}
+
+install_tooling() {
+  local expected_yarn="1.22.21"
+
+  if ! command -v node >/dev/null 2>&1; then
+    echo "Node.js is required but is not installed in this orb." >&2
+    return 1
+  fi
+
+  if ! command -v yarn >/dev/null 2>&1 || [[ "$(yarn --version)" != "$expected_yarn" ]]; then
+    sudo npm install --global "yarn@$expected_yarn"
+  fi
+
+  if ! command -v docker >/dev/null 2>&1; then
+    if ! command -v curl >/dev/null 2>&1; then
+      sudo apt-get update
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl
+    fi
+
+    sudo install -m 0755 -d /etc/apt/keyrings
+    sudo curl -fsSL https://download.docker.com/linux/debian/gpg \
+      -o /etc/apt/keyrings/docker.asc
+    sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+    local architecture codename
+    architecture="$(dpkg --print-architecture)"
+    codename="$(. /etc/os-release && printf '%s' "$VERSION_CODENAME")"
+    echo "deb [arch=$architecture signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $codename stable" \
+      | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+    sudo apt-get update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      docker-ce \
+      docker-ce-cli \
+      containerd.io \
+      docker-buildx-plugin \
+      docker-compose-plugin
+
+    # Amp supervises dockerd through .amp/services.yaml instead of relying on
+    # an init process that may not survive an orb pause or executor restart.
+    sudo service docker stop >/dev/null 2>&1 || true
+  fi
+
+  sudo usermod -aG docker "${USER:-user}"
+}
+
+prepare_environment() {
+  [[ -f .env ]] || cp -- .env.example .env
+  [[ -f .env.development.local ]] || cp -- .env.example .env.development.local
+
+  local env_file variable value
+  for env_file in .env .env.development.local; do
+    while read -r variable value; do
+      if ! grep -Eq "^${variable}=([^[:space:]\"']|\"[^\"]+\"|'[^']+')" "$env_file"; then
+        printf '\n%s=%s\n' "$variable" "$value" >> "$env_file"
+      fi
+    done <<'EOF'
+NEXTAUTH_SECRET orb-local-nextauth-secret
+GOOGLE_CLIENT_ID orb-local-google-client
+GOOGLE_CLIENT_SECRET orb-local-google-secret
+EOF
+  done
+}
+
+install_dependencies() {
+  yarn install --frozen-lockfile --non-interactive
+}
+
+start_backing_services() {
+  amp orb services ensure
+
+  local attempt
+  for attempt in {1..60}; do
+    if sudo docker info >/dev/null 2>&1; then
+      sudo docker compose up -d
+      return
+    fi
+    sleep 1
+  done
+
+  echo "Docker did not become ready within 60 seconds." >&2
+  amp orb service logs docker-daemon >&2 || true
+  return 1
+}
+
+backing_services_ready() {
+  sudo docker compose exec -T demo-night-app-postgres \
+    pg_isready -U postgres -d demo-night-app >/dev/null 2>&1 \
+    && curl -fsS --max-time 1 \
+      -H 'Authorization: Bearer localhost_test_token' \
+      -H 'Content-Type: application/json' \
+      --data '["PING"]' \
+      http://127.0.0.1:8079/ >/dev/null
+}
+
+wait_for_backing_services() {
+  local attempt
+  for attempt in {1..60}; do
+    if backing_services_ready; then
+      return
+    fi
+    sleep 1
+  done
+
+  echo "PostgreSQL and Redis did not become ready within 60 seconds." >&2
+  sudo docker compose ps >&2 || true
+  return 1
+}
+
+prepare_database() {
+  wait_for_backing_services
+  yarn db:push
+  yarn db:seed
+
+  sudo docker compose exec -T demo-night-app-postgres \
+    psql -U postgres -d demo-night-app -tAc \
+      'SELECT 1 FROM "User" WHERE email = '\''test@example.com'\'';' \
+    | grep -qx 1
+}
+
+run_step "Install required tooling" install_tooling
+run_step "Create local environment files" prepare_environment
+run_step "Install JavaScript dependencies" install_dependencies
+run_step "Start supervised services" start_backing_services
+run_step "Prepare and seed the database" prepare_database
+
+printf '\nOrb setup complete.\n'

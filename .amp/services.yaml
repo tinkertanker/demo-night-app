@@ -1,0 +1,11 @@
+services:
+  docker-daemon:
+    command: sudo dockerd
+
+  web:
+    command: >-
+      NEXTAUTH_URL="$PUBLIC_URL" NEXT_PUBLIC_URL="$PUBLIC_URL"
+      yarn dev --hostname 0.0.0.0 --port "$PORT"
+    portal:
+      title: Demo Night App
+      description: Use the seeded test@example.com account for local development.
