@@ -543,8 +543,14 @@ export const eventRouter = createTRPCRouter({
   }),
 });
 
+const CURRENT_EVENT_ACTIVE_DAYS = 2;
+
 function isPastEventDay(eventDate: Date) {
-  return singaporeDateKey(new Date()) > utcDateKey(eventDate);
+  const lastActiveDate = new Date(eventDate);
+  lastActiveDate.setUTCDate(
+    lastActiveDate.getUTCDate() + (CURRENT_EVENT_ACTIVE_DAYS - 1),
+  );
+  return singaporeDateKey(new Date()) > utcDateKey(lastActiveDate);
 }
 
 function singaporeDateKey(date: Date) {
