@@ -2,6 +2,7 @@ import { type Award } from "@prisma/client";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
+import { getAwardWinner } from "~/lib/awardWinner";
 import { type PublicDemo } from "~/server/api/routers/event";
 
 export default function AwardWinnerItem({
@@ -11,7 +12,7 @@ export default function AwardWinnerItem({
   award: Award;
   demos: PublicDemo[];
 }) {
-  const winner = demos.find((demo) => demo.id === award.winnerId);
+  const winner = getAwardWinner(award, demos);
 
   if (!winner)
     return (

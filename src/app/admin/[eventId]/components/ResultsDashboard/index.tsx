@@ -2,6 +2,7 @@ import { useDashboardContext } from "../../contexts/DashboardContext";
 import InfoButton from "../InfoButton";
 import { ChevronRight } from "lucide-react";
 
+import { awardHasWinner, getAwardWinner } from "~/lib/awardWinner";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -13,7 +14,7 @@ export default function ResultsDashboard() {
     return null;
   }
 
-  if (event.awards.some((a) => a.winnerId === null)) {
+  if (event.awards.some((a) => !awardHasWinner(a))) {
     return (
       <div className="flex size-full flex-1 flex-col items-center justify-center gap-2 rounded-lg bg-gray-100 p-4">
         <h2 className="text-2xl font-bold">Awards</h2>
@@ -54,7 +55,7 @@ export default function ResultsDashboard() {
       </div>
       <ul className="flex flex-col gap-2 overflow-auto">
         {awards.map((award, index) => {
-          const demo = event.demos.find((demo) => demo.id === award.winnerId)!;
+          const winner = getAwardWinner(award, event.demos);
           return (
             <li
               key={award.id}
@@ -90,9 +91,9 @@ export default function ResultsDashboard() {
                   index <= (currentAwardIndex ?? -1) && "bg-primary/20",
                 )}
               >
-                <p className="line-clamp-1 text-lg font-bold">{demo.name}</p>
+                <p className="line-clamp-1 text-lg font-bold">{winner?.name}</p>
                 <p className="italic leading-5 text-gray-700">
-                  {demo.description}
+                  {winner?.description}
                 </p>
               </div>
             </li>

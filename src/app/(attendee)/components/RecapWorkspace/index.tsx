@@ -8,6 +8,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  getAwardWinner,
+  type AwardWinnerDisplay,
+} from "~/lib/awardWinner";
 import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
 
@@ -81,7 +85,7 @@ export default function RecapWorkspace() {
             <AwardWinnerItem
               key={award.id}
               award={award}
-              winner={event.demos.find((d) => d.id === award.winnerId)}
+              winner={getAwardWinner(award, event.demos)}
             />
           </AnimatePresence>
         </div>
@@ -132,8 +136,31 @@ function AwardWinnerItem({
   winner,
 }: {
   award: Award;
-  winner: PublicDemo | undefined;
+  winner: AwardWinnerDisplay | null;
 }) {
+  const cardClassName =
+    "group z-10 flex w-full flex-col gap-1 rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-md backdrop-blur";
+  const heading = (
+    <div className="flex items-center gap-2">
+      <h3
+        className={
+          winner?.url
+            ? "line-clamp-1 text-xl font-bold group-hover:underline"
+            : "line-clamp-1 text-xl font-bold"
+        }
+      >
+        {award.name}: {winner?.name}
+      </h3>
+      {winner?.url && (
+        <ArrowUpRight
+          size={24}
+          strokeWidth={3}
+          className="h-5 w-5 flex-none rounded-md bg-yellow-400/50 p-[2px] text-yellow-600 group-hover:bg-yellow-500/50 group-hover:text-yellow-700"
+        />
+      )}
+    </div>
+  );
+
   return (
     <motion.div
       key={award.id}
@@ -143,25 +170,23 @@ function AwardWinnerItem({
       transition={{ duration: 0.5, type: "spring" }}
       className="flex w-full flex-col font-medium leading-6"
     >
-      <Link
-        href={winner?.url ?? "/"}
-        target="_blank"
-        className="group z-10 flex w-full flex-col gap-1 rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-md backdrop-blur"
-      >
-        <div className="flex items-center gap-2">
-          <h3 className="line-clamp-1 text-xl font-bold group-hover:underline">
-            {award.name}: {winner?.name}
-          </h3>
-          <ArrowUpRight
-            size={24}
-            strokeWidth={3}
-            className="h-5 w-5 flex-none rounded-md bg-yellow-400/50 p-[2px] text-yellow-600 group-hover:bg-yellow-500/50 group-hover:text-yellow-700"
-          />
+      {winner?.url ? (
+        <Link href={winner.url} target="_blank" className={cardClassName}>
+          {heading}
+          <p className="min-h-10 italic leading-5 text-gray-700">
+            {winner.description}
+          </p>
+        </Link>
+      ) : (
+        <div className={cardClassName}>
+          {heading}
+          {winner?.description && (
+            <p className="min-h-10 italic leading-5 text-gray-700">
+              {winner.description}
+            </p>
+          )}
         </div>
-        <p className="min-h-10 italic leading-5 text-gray-700">
-          {winner?.description}
-        </p>
-      </Link>
+      )}
     </motion.div>
   );
 }

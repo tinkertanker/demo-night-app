@@ -4,6 +4,7 @@ import { ArrowUpDown, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { awardHasWinner } from "~/lib/awardWinner";
 import { formatSingaporeDate } from "~/lib/singaporeDate";
 import { eventConfigSchema } from "~/lib/types/eventConfig";
 import type { CompleteEvent } from "~/server/api/routers/event";
@@ -57,7 +58,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
       </div>
       <div className="flex w-full flex-col gap-8 pt-4">
         {selectedEvent.awards
-          .filter((award) => award.winnerId)
+          .filter((award) => awardHasWinner(award))
           .map((award) => (
             <AwardWinnerItem
               key={award.id}

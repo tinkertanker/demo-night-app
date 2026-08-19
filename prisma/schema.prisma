@@ -156,8 +156,9 @@ model Award {
   event    Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId  String
   index    Int
-  winner   Demo?   @relation(fields: [winnerId], references: [id], onDelete: SetNull)
-  winnerId String?
+  winner     Demo?   @relation(fields: [winnerId], references: [id], onDelete: SetNull)
+  winnerId   String?
+  winnerName String?
 
   name        String
   description String

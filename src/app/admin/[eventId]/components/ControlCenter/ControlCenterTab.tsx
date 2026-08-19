@@ -3,6 +3,7 @@ import { AdminTab } from "../AdminSidebar";
 import { AlertTriangle, CircleCheck } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { awardHasWinner } from "~/lib/awardWinner";
 import { EventPhase, displayName } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
@@ -75,7 +76,7 @@ export default function ControlCenterTab({
         }
         break;
       case EventPhase.Voting:
-        if (event?.awards.every((award) => award.winnerId)) {
+        if (event?.awards.every((award) => awardHasWinner(award))) {
           setSuggestedPhase(EventPhase.Results);
           return;
         }

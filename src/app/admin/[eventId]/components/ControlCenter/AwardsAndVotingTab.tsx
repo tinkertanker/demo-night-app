@@ -10,14 +10,16 @@ import {
   TriangleAlert,
   TrophyIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { awardHasWinner, getAwardWinner } from "~/lib/awardWinner";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import { type EventConfig } from "~/lib/types/eventConfig";
 
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import {
   Table,
   TableBody,
@@ -59,11 +61,18 @@ export default function AwardsAndVotingTab() {
   );
   const updateWinnerMutation = api.award.updateWinner.useMutation();
   const updateCurrentStateMutation = api.event.updateCurrentState.useMutation();
+  const [customWinnerName, setCustomWinnerName] = useState("");
 
   const selectedAward = useMemo(() => {
     if (!event) return undefined;
     return event.awards.find((award) => award.id === selectedAwardId);
   }, [event, selectedAwardId]);
+
+  useEffect(() => {
+    setCustomWinnerName(
+      selectedAward?.winnerId ? "" : (selectedAward?.winnerName ?? ""),
+    );
+  }, [selectedAward?.id, selectedAward?.winnerId, selectedAward?.winnerName]);
 
   const votesByDemoId = useMemo(() => {
     if (!event || !votes) return new Map();
@@ -86,7 +95,27 @@ export default function AwardsAndVotingTab() {
   const handleSelectWinner = (demoId: string | null) => {
     if (!selectedAwardId) return;
     updateWinnerMutation
-      .mutateAsync({ id: selectedAwardId, winnerId: demoId })
+      .mutateAsync({
+        id: selectedAwardId,
+        winnerId: demoId,
+        winnerName: null,
+      })
+      .then(() => {
+        refetchEvent();
+        refetchVotes();
+      });
+  };
+
+  const handleSetCustomWinner = () => {
+    if (!selectedAwardId) return;
+    const winnerName = customWinnerName.trim();
+    if (!winnerName) return;
+    updateWinnerMutation
+      .mutateAsync({
+        id: selectedAwardId,
+        winnerId: null,
+        winnerName,
+      })
       .then(() => {
         refetchEvent();
         refetchVotes();
@@ -153,15 +182,11 @@ export default function AwardsAndVotingTab() {
                   </div>
                 </TableCell>
                 <TableCell className="p-3 md:p-4">
-                  {award.winnerId ? (
+                  {awardHasWinner(award) ? (
                     <div className="flex items-center gap-2 text-sm">
                       <CircleCheck className="h-4 w-4 shrink-0 text-primary" />
                       <span className="line-clamp-2 font-semibold">
-                        {
-                          event.demos.find(
-                            (demo) => demo.id === award.winnerId,
-                          )?.name
-                        }
+                        {getAwardWinner(award, event.demos)?.name}
                       </span>
                     </div>
                   ) : (
@@ -222,7 +247,7 @@ export default function AwardsAndVotingTab() {
                 size="icon"
                 className="size-10 shrink-0 md:size-8"
                 onClick={() => handleSelectWinner(null)}
-                disabled={!selectedAward?.winnerId}
+                disabled={!selectedAward || !awardHasWinner(selectedAward)}
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -230,6 +255,30 @@ export default function AwardsAndVotingTab() {
             <TooltipContent>Deselect winner</TooltipContent>
           </Tooltip>
         </div>
+        <form
+          className="flex w-full items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSetCustomWinner();
+          }}
+        >
+          <Input
+            value={customWinnerName}
+            onChange={(e) => setCustomWinnerName(e.target.value)}
+            placeholder="Or type a winner name…"
+            autoComplete="off"
+            className="h-9"
+          />
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            disabled={!customWinnerName.trim() || updateWinnerMutation.isPending}
+          >
+            Set
+          </Button>
+        </form>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border">
         <Table>

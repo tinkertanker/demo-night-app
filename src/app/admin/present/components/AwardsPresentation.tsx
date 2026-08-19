@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import ConfettiExplosion from "react-dom-confetti";
 
+import { getAwardWinner } from "~/lib/awardWinner";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { type PublicDemo } from "~/server/api/routers/event";
@@ -75,18 +76,21 @@ function AwardWinnerItem({
   demos: PublicDemo[];
   show: boolean;
 }) {
-  const winner = show ? demos.find((demo) => demo.id === award.winnerId) : null;
+  const winner = show ? getAwardWinner(award, demos) : null;
+  const winnerKey = winner?.demoId ?? winner?.name ?? null;
   const [isExploding, setIsExploding] = useState(false);
 
   useEffect(() => {
-    if (winner !== null) {
-      setTimeout(() => {
-        setIsExploding(true);
-      }, 2000);
-    } else {
+    if (winnerKey === null) {
       setIsExploding(false);
+      return;
     }
-  }, [winner]);
+
+    const timeout = setTimeout(() => {
+      setIsExploding(true);
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [winnerKey]);
 
   return (
     <div className="flex flex-col font-medium">
@@ -107,7 +111,7 @@ function AwardWinnerItem({
       <AnimatePresence initial={false} mode="popLayout">
         {winner ? (
           <motion.div
-            key={winner.id}
+            key={winner.demoId ?? winner.name}
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{
               opacity: 1,

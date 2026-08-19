@@ -56,11 +56,21 @@ export const awardRouter = createTRPCRouter({
       }
     }),
   updateWinner: protectedProcedure
-    .input(z.object({ id: z.string(), winnerId: z.string().nullable() }))
+    .input(
+      z.object({
+        id: z.string(),
+        winnerId: z.string().nullable(),
+        winnerName: z.string().nullable().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
+      const trimmedName = input.winnerName?.trim() ?? "";
+      const winnerName = trimmedName.length > 0 ? trimmedName : null;
       return db.award.update({
         where: { id: input.id },
-        data: { winnerId: input.winnerId },
+        data: input.winnerId
+          ? { winnerId: input.winnerId, winnerName: null }
+          : { winnerId: null, winnerName },
       });
     }),
   updateIndex: protectedProcedure
