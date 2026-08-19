@@ -4,6 +4,7 @@ import { ArrowUpDown, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { formatSingaporeDate } from "~/lib/singaporeDate";
 import { eventConfigSchema } from "~/lib/types/eventConfig";
 import type { CompleteEvent } from "~/server/api/routers/event";
 
@@ -46,7 +47,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
             {selectedEvent.name}
           </h1>
           <p className="mt-1 text-lg font-bold text-gray-500">
-            {new Date(selectedEvent.date).toLocaleDateString(undefined, {
+            {formatSingaporeDate(new Date(selectedEvent.date), {
               year: "numeric",
               month: "long",
               day: "numeric",
@@ -66,9 +67,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
           ))}
       </div>
       <div className="mt-12 flex w-full flex-col gap-2">
-        <h2 className="text-2xl font-bold text-black">
-          All Demos
-        </h2>
+        <h2 className="text-2xl font-bold text-black">All Demos</h2>
         <div className="flex w-full flex-col gap-4">
           {selectedEvent.demos.map((demo) => (
             <Link
@@ -105,9 +104,7 @@ export default function EventDisplay({ events }: EventDisplayProps) {
       </div>
       {config.partners.length > 0 && (
         <div className="mt-12 flex w-full flex-col gap-2">
-          <h2 className="text-2xl font-bold text-black">
-            Credits
-          </h2>
+          <h2 className="text-2xl font-bold text-black">Credits</h2>
           <div className="flex w-full flex-col gap-4">
             {config.partners.map((partner) => (
               <Link

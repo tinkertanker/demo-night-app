@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { isPastEventDay } from "~/lib/singaporeDate";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { api } from "~/trpc/server";
 
@@ -70,9 +71,7 @@ export default async function DemoistPage({
 
   // Only show the recap page if the demo has already happened
   if (!currentEvent) {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    if (date <= event.date) {
+    if (!isPastEventDay(event.date)) {
       showRecap = false;
     }
   } else if (currentEvent.phase === EventPhase.Pre) {

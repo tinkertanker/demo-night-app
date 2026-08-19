@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { getBrandingClient } from "~/lib/branding";
+import { formatEventDate, getDaysAgoLabel } from "~/lib/singaporeDate";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -15,19 +16,6 @@ import MascotLogo from "~/components/MascotLogo";
 import Sticker from "~/components/Sticker";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardTitle } from "~/components/ui/card";
-
-function getDaysAgo(date: Date): string {
-  const now = new Date();
-  const eventDate = new Date(date);
-  const diffTime = now.getTime() - eventDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "today";
-  if (diffDays === 1) return "1 day ago";
-  if (diffDays === -1) return "in 1 day";
-  if (diffDays < 0) return `in ${Math.abs(diffDays)} days`;
-  return `${diffDays} days ago`;
-}
 
 export default function AdminHomePage() {
   const branding = getBrandingClient();
@@ -122,18 +110,10 @@ export default function AdminHomePage() {
                         <div className="mt-1 flex items-center gap-1 text-sm font-medium">
                           <CalendarIcon className="h-4 w-4 shrink-0" />
                           <span className="shrink-0 truncate first-letter:capitalize">
-                            {getDaysAgo(event.date)}
+                            {getDaysAgoLabel(event.date)}
                           </span>
                           <span className="truncate text-muted-foreground">
-                            (
-                            {event.date.toLocaleDateString("en-US", {
-                              timeZone: "UTC",
-                              weekday: "short",
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                            )
+                            ({formatEventDate(event.date)})
                           </span>
                         </div>
                       </div>

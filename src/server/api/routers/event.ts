@@ -7,6 +7,10 @@ import {
 } from "@prisma/client";
 import { z } from "zod";
 
+import {
+  singaporeCalendarDaysBetween,
+  toSingaporeMidnight,
+} from "~/lib/singaporeDate";
 import { DEFAULT_AWARDS, PITCH_NIGHT_AWARDS } from "~/lib/types/award";
 import * as kv from "~/lib/types/currentEvent";
 import { DEFAULT_DEMOS } from "~/lib/types/demo";
@@ -111,7 +115,7 @@ export const eventRouter = createTRPCRouter({
         select: { date: true },
       });
 
-      if (!event || isPastEventDay(event.date)) {
+      if (!event || isBeyondCurrentEventWindow(event.date)) {
         return null;
       }
 
@@ -152,7 +156,7 @@ export const eventRouter = createTRPCRouter({
       const data = {
         id: input.id,
         name: input.name,
-        date: input.date,
+        date: input.date ? toSingaporeMidnight(input.date) : input.date,
         url: input.url,
         config: input.config,
       };
@@ -545,25 +549,11 @@ export const eventRouter = createTRPCRouter({
 
 const CURRENT_EVENT_ACTIVE_DAYS = 2;
 
-function isPastEventDay(eventDate: Date) {
-  const lastActiveDate = new Date(eventDate);
-  lastActiveDate.setUTCDate(
-    lastActiveDate.getUTCDate() + (CURRENT_EVENT_ACTIVE_DAYS - 1),
+function isBeyondCurrentEventWindow(eventDate: Date) {
+  return (
+    singaporeCalendarDaysBetween(eventDate, new Date()) >=
+    CURRENT_EVENT_ACTIVE_DAYS
   );
-  return singaporeDateKey(new Date()) > utcDateKey(lastActiveDate);
-}
-
-function singaporeDateKey(date: Date) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Singapore",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
-
-function utcDateKey(date: Date) {
-  return date.toISOString().substring(0, 10);
 }
 
 const completeEventSelect: Prisma.EventSelect = {

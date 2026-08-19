@@ -16,15 +16,16 @@ import {
   TrophyIcon,
   UsersIcon,
 } from "lucide-react";
-import MascotLogo from "~/components/MascotLogo";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 
+import { getBrandingClient } from "~/lib/branding";
+import { formatEventDate } from "~/lib/singaporeDate";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { api } from "~/trpc/react";
-import { getBrandingClient } from "~/lib/branding";
 
+import MascotLogo from "~/components/MascotLogo";
 import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
@@ -117,15 +118,7 @@ export function AdminSidebar({
                       </div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <CalendarIcon className="h-3 w-3" />
-                        <time>
-                          {event.date.toLocaleDateString("en-US", {
-                            timeZone: "UTC",
-                            weekday: "short",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </time>
+                        <time>{formatEventDate(event.date)}</time>
                       </div>
                     </div>
                   </div>
@@ -152,15 +145,7 @@ export function AdminSidebar({
                         </div>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <CalendarIcon className="h-3 w-3" />
-                          <time>
-                            {e.date.toLocaleDateString("en-US", {
-                              timeZone: "UTC",
-                              weekday: "short",
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </time>
+                          <time>{formatEventDate(e.date)}</time>
                         </div>
                       </div>
                     </DropdownMenuItem>
@@ -263,9 +248,7 @@ export function AdminSidebar({
                     <span>Configuration</span>
                   </div>
                 </SidebarMenuButton>
-                <SidebarMenuBadge>
-                  {config.partners.length}
-                </SidebarMenuBadge>
+                <SidebarMenuBadge>{config.partners.length}</SidebarMenuBadge>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
@@ -302,7 +285,9 @@ export function AdminSidebar({
                       <div className="flex items-center gap-2">
                         <PresentationIcon className="h-4 w-4 shrink-0" />
                         <span className="line-clamp-1">
-                          {branding.isPitchNight ? "Pitches & Feedback" : "Demos & Feedback"}
+                          {branding.isPitchNight
+                            ? "Pitches & Feedback"
+                            : "Demos & Feedback"}
                         </span>
                         {currentPhase === EventPhase.Demos && <LiveIndicator />}
                       </div>
@@ -320,7 +305,9 @@ export function AdminSidebar({
                       <div className="flex items-center gap-2">
                         <TrophyIcon className="h-4 w-4 shrink-0" />
                         <span className="line-clamp-1">
-                          {branding.isPitchNight ? "Awards & Investing" : "Awards & Voting"}
+                          {branding.isPitchNight
+                            ? "Awards & Investing"
+                            : "Awards & Voting"}
                         </span>
                         {currentPhase === EventPhase.Voting ||
                         currentPhase === EventPhase.Results ? (

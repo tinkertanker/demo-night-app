@@ -1,13 +1,14 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { formatSingaporeDate } from "./singaporeDate";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function formatDate(inputDate: string | number | Date) {
-  const date = new Date(inputDate);
-  return date.toLocaleDateString("en-US", {
+  return formatSingaporeDate(new Date(inputDate), {
     year: "numeric",
     month: "long",
     day: "numeric",

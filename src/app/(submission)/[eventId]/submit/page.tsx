@@ -1,6 +1,12 @@
 import { type Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import {
+  addSingaporeDays,
+  endOfSingaporeDay,
+  singaporeWeekday,
+  toSingaporeMidnight,
+} from "~/lib/singaporeDate";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { type CompleteEvent } from "~/server/api/routers/event";
 import { getServerAuthSession } from "~/server/auth";
@@ -71,17 +77,17 @@ export default async function SubmitDemoPage({
     return <SubmitDemoMessagePage success={true} event={event} />;
   }
 
-  const eventDate = new Date(event.date);
   if (DEADLINE === SubmissionDeadline.SATURDAY_BEFORE_EVENT) {
-    const saturdayBeforeEvent = new Date(eventDate);
-    saturdayBeforeEvent.setDate(eventDate.getDate() - eventDate.getDay() - 1); // Get the previous Saturday
-    saturdayBeforeEvent.setHours(23, 59, 59, 999); // Set to 11:59:59 PM
+    const saturdayBeforeEvent = addSingaporeDays(
+      event.date,
+      -(singaporeWeekday(event.date) + 1),
+    );
 
-    if (new Date() > saturdayBeforeEvent) {
+    if (new Date() > endOfSingaporeDay(saturdayBeforeEvent)) {
       return <SubmitDemoMessagePage success={false} event={event} />;
     }
   } else if (DEADLINE === SubmissionDeadline.DAY_OF_EVENT) {
-    if (new Date() > eventDate) {
+    if (new Date() > toSingaporeMidnight(event.date)) {
       return <SubmitDemoMessagePage success={false} event={event} />;
     }
   }

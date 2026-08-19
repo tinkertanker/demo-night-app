@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Expand } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { formatSingaporeDate } from "~/lib/singaporeDate";
 import { cn } from "~/lib/utils";
 import type { CompleteEvent } from "~/server/api/routers/event";
 
@@ -113,7 +114,11 @@ export default function EventSelector({
                     <div className="flex w-full flex-col leading-6">
                       <p>{event.name}</p>
                       <p className="text-sm font-semibold italic leading-5 text-gray-700">
-                        {new Date(event.date).toLocaleDateString()}
+                        {formatSingaporeDate(new Date(event.date), {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
                       </p>
                     </div>
                   </motion.div>

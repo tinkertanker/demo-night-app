@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 import { getBrandingClient } from "~/lib/branding";
 import { escapeCsvField } from "~/lib/csvUtils";
+import { formatEventDate } from "~/lib/singaporeDate";
 import { statusScore } from "~/lib/types/submissionStatus";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -308,15 +309,7 @@ export default function SubmissionsDashboard({
                       </div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <CalendarIcon className="h-3 w-3" />
-                        <time>
-                          {initialEvent.date.toLocaleDateString("en-US", {
-                            timeZone: "UTC",
-                            weekday: "short",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </time>
+                        <time>{formatEventDate(initialEvent.date)}</time>
                       </div>
                     </div>
                   </HoverCardContent>
