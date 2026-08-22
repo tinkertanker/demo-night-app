@@ -10,10 +10,12 @@ export default function Sticker({
   name,
   size = 160,
   className,
+  priority = true,
 }: {
   name: string;
   size?: number;
   className?: string;
+  priority?: boolean;
 }) {
   return (
     <Image
@@ -22,7 +24,7 @@ export default function Sticker({
       width={size}
       height={size}
       className={cn("logo select-none", className)}
-      priority
+      priority={priority}
     />
   );
 }

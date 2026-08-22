@@ -1,10 +1,4 @@
-import {
-  type Attendee,
-  type Award,
-  type Demo,
-  type Event,
-  type EventFeedback,
-} from "@prisma/client";
+import { type Award, type Demo, type Event } from "@prisma/client";
 import { createContext, useContext } from "react";
 
 import { type CurrentEvent } from "~/lib/types/currentEvent";
@@ -12,9 +6,11 @@ import { type EventConfig } from "~/lib/types/eventConfig";
 
 export type AdminEvent = Event & {
   demos: Demo[];
-  attendees: Attendee[];
   awards: Award[];
-  eventFeedback: EventFeedback[];
+  _count: {
+    attendees: number;
+    eventFeedback: number;
+  };
 };
 
 export type IDashboardContext = {

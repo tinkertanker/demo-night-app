@@ -29,6 +29,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -37,6 +38,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User {
@@ -82,6 +85,8 @@ model Event {
   feedback      Feedback[]
   votes         Vote[]
   eventFeedback EventFeedback[]
+
+  @@index([date])
 }
 
 enum SubmissionStatus {
@@ -189,6 +194,7 @@ model Feedback {
 
   @@unique([eventId, attendeeId, demoId])
   @@index([eventId, attendeeId])
+  @@index([demoId])
 }
 
 model Vote {
@@ -208,6 +214,7 @@ model Vote {
 
   @@unique([eventId, attendeeId, awardId, demoId])
   @@index(awardId)
+  @@index([demoId])
 }
 
 // ############# Event Feedback #############

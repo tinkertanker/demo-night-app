@@ -5,8 +5,10 @@ import {
   type EventFeedback,
   type Prisma,
 } from "@prisma/client";
+import { cache } from "react";
 import { z } from "zod";
 
+import { storedCurrentEventDate } from "~/lib/currentEventDate";
 import {
   singaporeCalendarDaysBetween,
   toSingaporeMidnight,
@@ -74,7 +76,7 @@ export const eventRouter = createTRPCRouter({
         .nullable(),
     )
     .query(async () => {
-      const currentEvent = await kv.getCurrentEvent();
+      const currentEvent = await readCurrentEvent();
       // Handle migration: add isPitchNight if missing from old data
       if (currentEvent && !("isPitchNight" in currentEvent)) {
         const oldEvent = currentEvent as Omit<kv.CurrentEvent, "isPitchNight">;
@@ -105,17 +107,13 @@ export const eventRouter = createTRPCRouter({
         .nullable(),
     )
     .query(async () => {
-      const currentEvent = await kv.getCurrentEvent();
+      const currentEvent = await readCurrentEvent();
       if (!currentEvent) {
         return null;
       }
 
-      const event = await db.event.findUnique({
-        where: { id: currentEvent.id },
-        select: { date: true },
-      });
-
-      if (!event || isBeyondCurrentEventWindow(event.date)) {
+      const eventDate = await resolveCurrentEventDate(currentEvent);
+      if (!eventDate || isBeyondCurrentEventWindow(eventDate)) {
         return null;
       }
 
@@ -136,10 +134,7 @@ export const eventRouter = createTRPCRouter({
   get: publicProcedure
     .input(z.string())
     .query(async ({ input }): Promise<CompleteEvent | null> => {
-      return db.event.findUnique({
-        where: { id: input },
-        select: completeEventSelect,
-      });
+      return readCompleteEvent(input);
     }),
   upsert: protectedProcedure
     .input(
@@ -171,10 +166,11 @@ export const eventRouter = createTRPCRouter({
             .then(async (res: Event) => {
               const currentEvent = await kv.getCurrentEvent();
               if (currentEvent?.id === input.originalId) {
-                kv.updateCurrentEvent({
+                await kv.updateCurrentEvent({
                   id: res.id,
                   name: res.name,
                   config: res.config,
+                  date: res.date,
                 });
               }
               return res;
@@ -235,9 +231,13 @@ export const eventRouter = createTRPCRouter({
         where: { id: input },
         include: {
           demos: { orderBy: { index: "asc" } },
-          attendees: { orderBy: { name: "asc" } },
           awards: { orderBy: { index: "asc" } },
-          eventFeedback: { orderBy: { createdAt: "desc" } },
+          _count: {
+            select: {
+              attendees: true,
+              eventFeedback: true,
+            },
+          },
         },
       });
     }),
@@ -249,7 +249,7 @@ export const eventRouter = createTRPCRouter({
       }
       const event = await db.event.findUnique({
         where: { id: input },
-        select: { id: true, name: true, config: true },
+        select: { id: true, name: true, config: true, date: true },
       });
       if (!event) {
         throw new Error("Event not found");
@@ -576,3 +576,32 @@ const completeEventSelect: Prisma.EventSelect = {
   },
   awards: { orderBy: { index: "asc" } },
 };
+
+const readCurrentEvent = cache(kv.getCurrentEvent);
+const readCurrentEventDate = cache(kv.getCurrentEventDateRecord);
+
+const readCompleteEvent = cache(async (id: string) =>
+  db.event.findUnique({
+    where: { id },
+    select: completeEventSelect,
+  }),
+);
+
+async function resolveCurrentEventDate(
+  currentEvent: kv.CurrentEvent,
+): Promise<Date | null> {
+  const dateRecord = await readCurrentEventDate();
+  if (dateRecord?.eventId === currentEvent.id) {
+    const storedDate = storedCurrentEventDate(dateRecord);
+    if (storedDate) return storedDate;
+  }
+
+  const legacyDate = storedCurrentEventDate(currentEvent);
+  if (legacyDate) return legacyDate;
+
+  const event = await db.event.findUnique({
+    where: { id: currentEvent.id },
+    select: { date: true },
+  });
+  return event?.date ?? null;
+}

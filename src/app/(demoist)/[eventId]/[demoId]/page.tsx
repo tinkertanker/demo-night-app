@@ -23,8 +23,10 @@ export async function generateMetadata({
   }
 
   try {
-    const event = await api.event.get(eventId);
-    const demo = await api.demo.get({ id: demoId, secret });
+    const [event, demo] = await Promise.all([
+      api.event.get(eventId),
+      api.demo.get({ id: demoId, secret }),
+    ]);
 
     if (!event || !demo) {
       return {
@@ -59,9 +61,11 @@ export default async function DemoistPage({
     redirect("/404?type=invalid-secret");
   }
 
-  const currentEvent = await api.event.getCurrent();
-  const event = await api.event.get(eventId);
-  const demo = await api.demo.get({ id: demoId, secret });
+  const [currentEvent, event, demo] = await Promise.all([
+    api.event.getCurrent(),
+    api.event.get(eventId),
+    api.demo.get({ id: demoId, secret }),
+  ]);
 
   if (!event || !demo) {
     redirect("/404");

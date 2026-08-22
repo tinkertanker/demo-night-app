@@ -35,10 +35,7 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 
-import { env } from "~/env";
-
-const REFRESH_INTERVAL =
-  env.NEXT_PUBLIC_NODE_ENV === "development" ? 1_000 : 5_000;
+import { liveQueryOptions } from "~/lib/liveQuery";
 
 function copyCommentToClipboard(comment: string | null) {
   if (!comment) {
@@ -67,8 +64,7 @@ export default function EventFeedbackTab() {
     event?.id ?? "",
     {
       enabled: !!event?.id,
-      refetchInterval:
-        currentEvent?.id === event?.id ? REFRESH_INTERVAL : false,
+      ...liveQueryOptions(currentEvent?.id === event?.id),
     },
   );
 

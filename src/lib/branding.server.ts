@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { cache } from "react";
 
 import { type Branding } from "./branding";
 
@@ -13,7 +14,9 @@ import { type Branding } from "./branding";
  * 2. Otherwise, detect from host header (pitches.aicollective.com or pitches.localhost)
  * 3. Default to Demo Night
  */
-export async function getBranding(isPitchNight?: boolean): Promise<Branding> {
+export const getBranding = cache(async function getBranding(
+  isPitchNight?: boolean,
+): Promise<Branding> {
   // If explicitly provided from event config, use it
   let finalIsPitchNight: boolean;
 
@@ -36,4 +39,4 @@ export async function getBranding(isPitchNight?: boolean): Promise<Branding> {
     logoPath: "/images/stickers/face.png",
     orgName: "Tinkercademy",
   };
-}
+});

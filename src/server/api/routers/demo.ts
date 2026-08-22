@@ -1,4 +1,5 @@
 import { type Demo, type Feedback } from "@prisma/client";
+import { cache } from "react";
 import { z } from "zod";
 
 import {
@@ -49,16 +50,7 @@ export const demoRouter = createTRPCRouter({
   get: publicProcedure
     .input(z.object({ id: z.string(), secret: z.string() }))
     .query(async ({ input }) => {
-      const demo = await db.demo.findUnique({
-        where: { id: input.id, secret: input.secret },
-        include: {
-          feedback: {
-            include: {
-              attendee: true,
-            },
-          },
-        },
-      });
+      const demo = await readDemoWithFeedback(input.id, input.secret);
       if (!demo) {
         throw new Error("Demo not found");
       }
@@ -281,45 +273,59 @@ export const demoRouter = createTRPCRouter({
     .query(async ({ input }): Promise<DemoStats> => {
       const demo = await db.demo.findUnique({
         where: { id: input.id, secret: input.secret },
-        include: {
-          feedback: true,
-          votes: true,
-        },
+        select: { id: true },
       });
 
       if (!demo) {
         throw new Error("Demo not found");
       }
 
-      // Calculate aggregate stats
-      const totalFeedback = demo.feedback.length;
-      const ratingsOnly = demo.feedback
-        .filter((f) => f.rating !== null)
-        .map((f) => f.rating!);
-      const averageRating =
-        ratingsOnly.length > 0
-          ? ratingsOnly.reduce((sum, r) => sum + r, 0) / ratingsOnly.length
-          : null;
-      const totalClaps = demo.feedback.reduce((sum, f) => sum + f.claps, 0);
-      const totalCheers = demo.feedback.reduce((sum, f) => sum + f.cheers, 0);
-      const totalConfetti = demo.feedback.reduce(
-        (sum, f) => sum + f.confetti,
-        0,
-      );
-
-      // Calculate total money raised (in cents)
-      const totalMoneyRaised = demo.votes.reduce(
-        (sum, v) => sum + (v.amount ?? 0),
-        0,
-      );
+      const [feedbackAgg, voteAgg] = await Promise.all([
+        db.feedback.aggregate({
+          where: { demoId: demo.id },
+          _count: { _all: true },
+          _avg: { rating: true },
+          _sum: { claps: true, cheers: true, confetti: true },
+        }),
+        db.vote.aggregate({
+          where: { demoId: demo.id },
+          _sum: { amount: true },
+        }),
+      ]);
 
       return {
-        totalFeedback,
-        averageRating,
-        totalClaps,
-        totalCheers,
-        totalConfetti,
-        totalMoneyRaised,
+        totalFeedback: feedbackAgg._count._all,
+        averageRating: feedbackAgg._avg.rating,
+        totalClaps: feedbackAgg._sum.claps ?? 0,
+        totalCheers: feedbackAgg._sum.cheers ?? 0,
+        totalConfetti: feedbackAgg._sum.confetti ?? 0,
+        totalMoneyRaised: voteAgg._sum.amount ?? 0,
       };
     }),
+});
+
+const readDemoWithFeedback = cache(async (id: string, secret: string) => {
+  return db.demo.findUnique({
+    where: { id, secret },
+    include: {
+      feedback: {
+        select: {
+          id: true,
+          rating: true,
+          claps: true,
+          cheers: true,
+          confetti: true,
+          comment: true,
+          attendee: {
+            select: {
+              name: true,
+              email: true,
+              linkedin: true,
+              type: true,
+            },
+          },
+        },
+      },
+    },
+  });
 });

@@ -38,10 +38,7 @@ import {
 
 import FeedbackOverview from "./FeedbackOverview";
 import { type MobilePanel, SplitPanels } from "./SplitPanels";
-import { env } from "~/env";
-
-const REFRESH_INTERVAL =
-  env.NEXT_PUBLIC_NODE_ENV === "development" ? 1_000 : 5_000;
+import { liveQueryOptions } from "~/lib/liveQuery";
 
 export default function DemosAndFeedbackTab() {
   const { currentEvent, event, refetchEvent } = useDashboardContext();
@@ -65,8 +62,7 @@ export default function DemosAndFeedbackTab() {
   const { data: feedback, refetch: refetchFeedback } =
     api.demo.getFeedback.useQuery(selectedDemo?.id ?? "", {
       enabled: !!selectedDemo,
-      refetchInterval:
-        currentEvent?.id === event?.id ? REFRESH_INTERVAL : false,
+      ...liveQueryOptions(currentEvent?.id === event?.id),
     });
 
   const scoredFeedback = useMemo(() => {
