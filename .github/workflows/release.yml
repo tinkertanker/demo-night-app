@@ -1,0 +1,144 @@
+# Production ships when a version tag is pushed, not when main is merged
+# and not by running ./deploy.sh from a laptop.
+#
+# Tag names: vYYYY.MM.DD (add .1, .2, … if you ship more than once that day).
+# Required secret: SSH_PRIVATE_KEY (key trusted by tinkertanker@dev.tk.sg).
+# Optional secrets: SSH_HOST, SSH_USER, DEPLOY_PATH.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to deploy (e.g. v2026.08.19)"
+        required: true
+        type: string
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+jobs:
+  merge-to-main:
+    name: Merge tag into main
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Fast-forward or merge the tagged commit into main
+        env:
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main
+          git checkout -B main origin/main
+
+          if git merge-base --is-ancestor "${GITHUB_SHA}" HEAD; then
+            echo "Tag ${TAG} (${GITHUB_SHA}) is already on main."
+          elif git merge-base --is-ancestor HEAD "${GITHUB_SHA}"; then
+            echo "Fast-forwarding main to ${TAG}."
+            git merge --ff-only "${GITHUB_SHA}"
+            git push origin main
+          else
+            echo "Merging ${TAG} into main (histories have diverged)."
+            git merge --no-ff -m "Merge tag '${TAG}' into main" "${GITHUB_SHA}"
+            git push origin main
+          fi
+
+  point-production:
+    name: Point production at tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+
+      - name: Update production branch
+        env:
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          git push --force origin "HEAD:refs/heads/production"
+          echo "Pointed production at ${TAG} ($(git rev-parse HEAD))."
+
+  deploy:
+    name: Deploy tag to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Require SSH deploy key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "${SSH_PRIVATE_KEY}" ]; then
+            echo "::error::Add repository secret SSH_PRIVATE_KEY (a key that can SSH to tinkertanker@dev.tk.sg). Optional overrides: SSH_HOST, SSH_USER, DEPLOY_PATH."
+            exit 1
+          fi
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          TAG: ${{ env.RELEASE_TAG }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        with:
+          host: ${{ secrets.SSH_HOST || 'dev.tk.sg' }}
+          username: ${{ secrets.SSH_USER || 'tinkertanker' }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 30m
+          script_stop: true
+          envs: TAG,DEPLOY_PATH
+          script: |
+            set -euo pipefail
+
+            REMOTE_DIR="${DEPLOY_PATH:-Docker/demo-night-app}"
+            REPO_URL="git@github.com:tinkertanker/demo-night-app.git"
+            COMPOSE_FILE="docker-compose.prod.yml"
+            ENV_FILE=".env.production"
+
+            if [ -z "${TAG:-}" ]; then
+              echo "No release tag provided."
+              exit 1
+            fi
+
+            mkdir -p "$(dirname "$REMOTE_DIR")"
+
+            if [ -d "$REMOTE_DIR/.git" ]; then
+              cd "$REMOTE_DIR"
+              git fetch origin --tags --force --prune
+            else
+              git clone "$REPO_URL" "$REMOTE_DIR"
+              cd "$REMOTE_DIR"
+              git fetch origin --tags --force
+            fi
+
+            git checkout -f "refs/tags/${TAG}"
+
+            if [ ! -f "$ENV_FILE" ]; then
+              echo "Missing ${ENV_FILE} in ${REMOTE_DIR}."
+              echo "Create it from .env.production.example before deploying."
+              exit 1
+            fi
+
+            docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build
+            docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+            docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
