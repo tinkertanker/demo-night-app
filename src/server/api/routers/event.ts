@@ -578,6 +578,7 @@ const completeEventSelect: Prisma.EventSelect = {
 };
 
 const readCurrentEvent = cache(kv.getCurrentEvent);
+const readCurrentEventDate = cache(kv.getCurrentEventDateRecord);
 
 const readCompleteEvent = cache(async (id: string) =>
   db.event.findUnique({
@@ -589,8 +590,14 @@ const readCompleteEvent = cache(async (id: string) =>
 async function resolveCurrentEventDate(
   currentEvent: kv.CurrentEvent,
 ): Promise<Date | null> {
-  const storedDate = storedCurrentEventDate(currentEvent);
-  if (storedDate) return storedDate;
+  const dateRecord = await readCurrentEventDate();
+  if (dateRecord?.eventId === currentEvent.id) {
+    const storedDate = storedCurrentEventDate(dateRecord);
+    if (storedDate) return storedDate;
+  }
+
+  const legacyDate = storedCurrentEventDate(currentEvent);
+  if (legacyDate) return legacyDate;
 
   const event = await db.event.findUnique({
     where: { id: currentEvent.id },

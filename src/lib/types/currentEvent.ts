@@ -42,43 +42,63 @@ export type CurrentEvent = {
   isPitchNight: boolean;
 };
 
-type StoredCurrentEvent = CurrentEvent & {
-  date?: string;
+export type CurrentEventDateRecord = {
+  eventId: string;
+  date: string;
 };
 
+const CURRENT_EVENT_KEY = "currentEvent";
+const CURRENT_EVENT_DATE_KEY = "currentEventDate";
+
 export async function getCurrentEvent(): Promise<CurrentEvent | null> {
-  return await kv.get("currentEvent");
+  return await kv.get(CURRENT_EVENT_KEY);
+}
+
+export async function getCurrentEventDateRecord(): Promise<CurrentEventDateRecord | null> {
+  return await kv.get(CURRENT_EVENT_DATE_KEY);
+}
+
+async function setCurrentEventDate(eventId: string, date: Date) {
+  return kv.set(CURRENT_EVENT_DATE_KEY, {
+    eventId,
+    date: date.toISOString(),
+  } satisfies CurrentEventDateRecord);
 }
 
 export async function updateCurrentEvent(
   event: { id: string; name: string; config?: any; date?: Date } | null,
 ) {
   if (!event) {
-    return kv.set("currentEvent", null);
-  }
-  let currentEvent = (await getCurrentEvent()) as StoredCurrentEvent | null;
-  if (currentEvent && currentEvent.id === event.id) {
-    if (!event.date) return;
-    const nextDate = event.date.toISOString();
-    if (currentEvent.date === nextDate) return;
-    currentEvent.date = nextDate;
-    return kv.set("currentEvent", currentEvent);
+    await kv.set(CURRENT_EVENT_KEY, null);
+    await kv.del(CURRENT_EVENT_DATE_KEY);
+    return;
   }
 
-  // Parse config to get isPitchNight
+  const currentEvent = await getCurrentEvent();
+  if (currentEvent && currentEvent.id === event.id) {
+    if (event.date) {
+      await setCurrentEventDate(event.id, event.date);
+    }
+    return;
+  }
+
   const config = event.config as EventConfig | undefined;
   const isPitchNight = config?.isPitchNight ?? false;
 
-  currentEvent = {
+  await kv.set(CURRENT_EVENT_KEY, {
     id: event.id,
     name: event.name,
     phase: EventPhase.Pre,
     currentDemoId: null,
     currentAwardId: null,
     isPitchNight,
-    ...(event.date ? { date: event.date.toISOString() } : {}),
-  };
-  return kv.set("currentEvent", currentEvent);
+  } satisfies CurrentEvent);
+
+  if (event.date) {
+    await setCurrentEventDate(event.id, event.date);
+  } else {
+    await kv.del(CURRENT_EVENT_DATE_KEY);
+  }
 }
 
 export async function updateCurrentEventState({
@@ -103,5 +123,5 @@ export async function updateCurrentEventState({
   if (currentAwardId !== undefined) {
     currentEvent.currentAwardId = currentAwardId;
   }
-  return kv.set("currentEvent", currentEvent);
+  return kv.set(CURRENT_EVENT_KEY, currentEvent);
 }
