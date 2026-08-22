@@ -14,8 +14,9 @@ export const awardRouter = createTRPCRouter({
       }
       return db.vote.findMany({
         where: { awardId: input },
-        include: {
-          attendee: { select: { name: true, type: true } },
+        select: {
+          demoId: true,
+          amount: true,
         },
       });
     }),

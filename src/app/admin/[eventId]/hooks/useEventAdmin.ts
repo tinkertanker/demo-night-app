@@ -1,12 +1,8 @@
 import { type AdminEvent } from "../contexts/DashboardContext";
 
+import { liveQueryOptions } from "~/lib/liveQuery";
 import { type CurrentEvent } from "~/lib/types/currentEvent";
 import { api } from "~/trpc/react";
-
-import { env } from "~/env";
-
-const REFRESH_INTERVAL =
-  env.NEXT_PUBLIC_NODE_ENV === "development" ? 1_000 : 5_000;
 
 export function useEventAdmin({
   initialEvent,
@@ -23,8 +19,7 @@ export function useEventAdmin({
     initialEvent?.id ?? "",
     {
       enabled: !!initialEvent?.id,
-      refetchInterval:
-        currentEvent?.id === initialEvent?.id ? REFRESH_INTERVAL : false,
+      ...liveQueryOptions(currentEvent?.id === initialEvent?.id),
       initialData: initialEvent,
     },
   );

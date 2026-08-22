@@ -1,5 +1,9 @@
+import { storedCurrentEventDate } from "../currentEventDate";
 import { kv } from "@vercel/kv";
+
 import { type EventConfig } from "./eventConfig";
+
+export { storedCurrentEventDate };
 
 export enum EventPhase {
   Pre,
@@ -41,18 +45,26 @@ export type CurrentEvent = {
   isPitchNight: boolean;
 };
 
+type StoredCurrentEvent = CurrentEvent & {
+  date?: string;
+};
+
 export async function getCurrentEvent(): Promise<CurrentEvent | null> {
   return await kv.get("currentEvent");
 }
 
 export async function updateCurrentEvent(
-  event: { id: string; name: string; config?: any } | null,
+  event: { id: string; name: string; config?: any; date?: Date } | null,
 ) {
   if (!event) {
     return kv.set("currentEvent", null);
   }
-  let currentEvent = await getCurrentEvent();
+  let currentEvent = (await getCurrentEvent()) as StoredCurrentEvent | null;
   if (currentEvent && currentEvent.id === event.id) {
+    if (!currentEvent.date && event.date) {
+      currentEvent.date = event.date.toISOString();
+      return kv.set("currentEvent", currentEvent);
+    }
     return;
   }
 
@@ -67,7 +79,17 @@ export async function updateCurrentEvent(
     currentDemoId: null,
     currentAwardId: null,
     isPitchNight,
+    ...(event.date ? { date: event.date.toISOString() } : {}),
   };
+  return kv.set("currentEvent", currentEvent);
+}
+
+export async function rememberCurrentEventDate(eventId: string, date: Date) {
+  const currentEvent = (await getCurrentEvent()) as StoredCurrentEvent | null;
+  if (!currentEvent || currentEvent.id !== eventId || currentEvent.date) {
+    return;
+  }
+  currentEvent.date = date.toISOString();
   return kv.set("currentEvent", currentEvent);
 }
 

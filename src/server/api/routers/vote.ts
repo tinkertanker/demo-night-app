@@ -40,7 +40,7 @@ export const voteRouter = createTRPCRouter({
           }
 
           // Check total allocated doesn't exceed $100k for this award
-          const existingVotes = await db.vote.findMany({
+          const allocated = await db.vote.aggregate({
             where: {
               eventId: input.eventId,
               attendeeId: input.attendeeId,
@@ -49,12 +49,10 @@ export const voteRouter = createTRPCRouter({
                 demoId: input.demoId, // Exclude current demo to avoid double-counting on update
               },
             },
+            _sum: { amount: true },
           });
 
-          const totalAllocated = existingVotes.reduce(
-            (sum, v) => sum + (v.amount ?? 0),
-            0,
-          );
+          const totalAllocated = allocated._sum.amount ?? 0;
 
           if (totalAllocated + input.amount > 100000) {
             const remaining = 100000 - totalAllocated;
@@ -111,8 +109,9 @@ export const voteRouter = createTRPCRouter({
           eventId: input.eventId,
           awardId: input.awardId,
         },
-        include: {
-          demo: true,
+        select: {
+          demoId: true,
+          amount: true,
         },
       });
 

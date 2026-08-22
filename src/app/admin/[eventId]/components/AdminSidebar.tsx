@@ -330,7 +330,7 @@ export function AdminSidebar({
                     <span>Attendees</span>
                   </div>
                 </SidebarMenuButton>
-                <SidebarMenuBadge>{event.attendees.length}</SidebarMenuBadge>
+                <SidebarMenuBadge>{event._count.attendees}</SidebarMenuBadge>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -345,7 +345,7 @@ export function AdminSidebar({
                   </div>
                 </SidebarMenuButton>
                 <SidebarMenuBadge>
-                  {event.eventFeedback.length}
+                  {event._count.eventFeedback}
                 </SidebarMenuBadge>
               </SidebarMenuItem>
             </SidebarMenu>

@@ -15,6 +15,7 @@
     "start": "next start",
     "start:dev": "next start --env-file .env.development.local",
     "lint": "next lint",
+    "test": "tsx --test src/lib/*.test.ts",
     "test:dates": "tsx --test src/lib/singaporeDate.test.ts"
   },
   "prisma": {

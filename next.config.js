@@ -7,6 +7,9 @@ await import("./src/env.js");
 /** @type {import("next").NextConfig} */
 const config = {
   output: "standalone",
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
   redirects: async () => {
     const cities = ["sf", "nyc", "boston"];
     return cities.map((city) => ({

@@ -12,10 +12,7 @@ import AttendeeTypeBadge from "~/components/AttendeeTypeBadge";
 import { LogoConfetti } from "~/components/Confetti";
 import LoadingScreen from "~/components/loading/LoadingScreen";
 
-import { env } from "~/env";
-
-const REFRESH_INTERVAL =
-  env.NEXT_PUBLIC_NODE_ENV === "development" ? 1_000 : 5_000;
+import { liveQueryOptions } from "~/lib/liveQuery";
 
 export type FeedbackAndAttendee = Feedback & {
   attendee: { name: string | null; type: string | null };
@@ -27,7 +24,7 @@ export default function DemosPresentation() {
     currentEvent?.currentDemoId ?? "",
     {
       enabled: !!currentEvent?.currentDemoId,
-      refetchInterval: REFRESH_INTERVAL,
+      ...liveQueryOptions(),
     },
   );
   // const { feedback, refetch: refetchFeedback } = useMockFeedback();

@@ -35,10 +35,7 @@ import {
 } from "~/components/ui/tooltip";
 
 import { type MobilePanel, SplitPanels } from "./SplitPanels";
-import { env } from "~/env";
-
-const REFRESH_INTERVAL =
-  env.NEXT_PUBLIC_NODE_ENV === "development" ? 1_000 : 5_000;
+import { liveQueryOptions } from "~/lib/liveQuery";
 
 export default function AwardsAndVotingTab() {
   const { event, currentEvent, refetchEvent } = useDashboardContext();
@@ -55,8 +52,7 @@ export default function AwardsAndVotingTab() {
     selectedAwardId ?? "",
     {
       enabled: !!selectedAwardId,
-      refetchInterval:
-        currentEvent?.id === event?.id ? REFRESH_INTERVAL : false,
+      ...liveQueryOptions(currentEvent?.id === event?.id),
     },
   );
   const updateWinnerMutation = api.award.updateWinner.useMutation();

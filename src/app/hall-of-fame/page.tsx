@@ -51,7 +51,7 @@ function NoEventsPage({
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center pb-16 text-black">
       <Sticker name="yay" />
-      <Sticker name="thumbsup" size={36} className="hidden" />
+      <Sticker name="thumbsup" size={36} className="hidden" priority={false} />
       <h1 className="pt-4 text-center text-2xl font-semibold">
         {branding.appName} App
       </h1>
