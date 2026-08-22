@@ -8,6 +8,7 @@ import {
 import { cache } from "react";
 import { z } from "zod";
 
+import { storedCurrentEventDate } from "~/lib/currentEventDate";
 import {
   singaporeCalendarDaysBetween,
   toSingaporeMidnight,
@@ -165,7 +166,7 @@ export const eventRouter = createTRPCRouter({
             .then(async (res: Event) => {
               const currentEvent = await kv.getCurrentEvent();
               if (currentEvent?.id === input.originalId) {
-                kv.updateCurrentEvent({
+                await kv.updateCurrentEvent({
                   id: res.id,
                   name: res.name,
                   config: res.config,
@@ -547,8 +548,6 @@ export const eventRouter = createTRPCRouter({
 });
 
 const CURRENT_EVENT_ACTIVE_DAYS = 2;
-const EVENT_DATE_CACHE_MS = 60_000;
-const eventDateCache = new Map<string, { date: Date; expiresAt: number }>();
 
 function isBeyondCurrentEventWindow(eventDate: Date) {
   return (
@@ -590,25 +589,12 @@ const readCompleteEvent = cache(async (id: string) =>
 async function resolveCurrentEventDate(
   currentEvent: kv.CurrentEvent,
 ): Promise<Date | null> {
-  const storedDate = kv.storedCurrentEventDate(currentEvent);
+  const storedDate = storedCurrentEventDate(currentEvent);
   if (storedDate) return storedDate;
-
-  const cached = eventDateCache.get(currentEvent.id);
-  const now = Date.now();
-  if (cached && cached.expiresAt > now) {
-    return cached.date;
-  }
 
   const event = await db.event.findUnique({
     where: { id: currentEvent.id },
     select: { date: true },
   });
-  if (!event) return null;
-
-  eventDateCache.set(currentEvent.id, {
-    date: event.date,
-    expiresAt: now + EVENT_DATE_CACHE_MS,
-  });
-  void kv.rememberCurrentEventDate(currentEvent.id, event.date);
-  return event.date;
+  return event?.date ?? null;
 }

@@ -1,9 +1,6 @@
-import { storedCurrentEventDate } from "../currentEventDate";
 import { kv } from "@vercel/kv";
 
 import { type EventConfig } from "./eventConfig";
-
-export { storedCurrentEventDate };
 
 export enum EventPhase {
   Pre,
@@ -61,11 +58,11 @@ export async function updateCurrentEvent(
   }
   let currentEvent = (await getCurrentEvent()) as StoredCurrentEvent | null;
   if (currentEvent && currentEvent.id === event.id) {
-    if (!currentEvent.date && event.date) {
-      currentEvent.date = event.date.toISOString();
-      return kv.set("currentEvent", currentEvent);
-    }
-    return;
+    if (!event.date) return;
+    const nextDate = event.date.toISOString();
+    if (currentEvent.date === nextDate) return;
+    currentEvent.date = nextDate;
+    return kv.set("currentEvent", currentEvent);
   }
 
   // Parse config to get isPitchNight
@@ -81,15 +78,6 @@ export async function updateCurrentEvent(
     isPitchNight,
     ...(event.date ? { date: event.date.toISOString() } : {}),
   };
-  return kv.set("currentEvent", currentEvent);
-}
-
-export async function rememberCurrentEventDate(eventId: string, date: Date) {
-  const currentEvent = (await getCurrentEvent()) as StoredCurrentEvent | null;
-  if (!currentEvent || currentEvent.id !== eventId || currentEvent.date) {
-    return;
-  }
-  currentEvent.date = date.toISOString();
   return kv.set("currentEvent", currentEvent);
 }
 
