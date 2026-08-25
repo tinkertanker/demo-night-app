@@ -9,14 +9,17 @@ import {
   RotateCcw,
   TriangleAlert,
   TrophyIcon,
+  Volume2Icon,
+  VolumeXIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { awardHasWinner, getAwardWinner } from "~/lib/awardWinner";
+import { liveQueryOptions } from "~/lib/liveQuery";
 import { EventPhase } from "~/lib/types/currentEvent";
+import { type EventConfig } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import { type EventConfig } from "~/lib/types/eventConfig";
 
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -35,7 +38,11 @@ import {
 } from "~/components/ui/tooltip";
 
 import { type MobilePanel, SplitPanels } from "./SplitPanels";
-import { liveQueryOptions } from "~/lib/liveQuery";
+
+const DRUM_ROLL_PATH = "/sounds/drumroll.mp3";
+// Leaves room for the presentation's 2-second winner animation delay and its
+// production polling interval while keeping the reveal within the 10s audio.
+const DRUM_ROLL_REVEAL_DELAY_MS = 2_000;
 
 export default function AwardsAndVotingTab() {
   const { event, currentEvent, refetchEvent } = useDashboardContext();
@@ -58,6 +65,22 @@ export default function AwardsAndVotingTab() {
   const updateWinnerMutation = api.award.updateWinner.useMutation();
   const updateCurrentStateMutation = api.event.updateCurrentState.useMutation();
   const [customWinnerName, setCustomWinnerName] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [pendingRevealAwardId, setPendingRevealAwardId] = useState<
+    string | null
+  >(null);
+  const drumRollRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const drumRoll = new Audio(DRUM_ROLL_PATH);
+    drumRoll.preload = "auto";
+    drumRollRef.current = drumRoll;
+
+    return () => {
+      drumRoll.pause();
+      drumRollRef.current = null;
+    };
+  }, []);
 
   const selectedAward = useMemo(() => {
     if (!event) return undefined;
@@ -66,7 +89,7 @@ export default function AwardsAndVotingTab() {
 
   useEffect(() => {
     setCustomWinnerName(
-      selectedAward?.winnerId ? "" : (selectedAward?.winnerName ?? ""),
+      selectedAward?.winnerId ? "" : selectedAward?.winnerName ?? "",
     );
   }, [selectedAward?.id, selectedAward?.winnerId, selectedAward?.winnerName]);
 
@@ -118,6 +141,31 @@ export default function AwardsAndVotingTab() {
       });
   };
 
+  const revealAward = async (awardId: string) => {
+    const updateCurrentAward = () =>
+      updateCurrentStateMutation
+        .mutateAsync({ currentAwardId: awardId })
+        .then(refetchEvent)
+        .finally(() => setPendingRevealAwardId(null));
+
+    if (!soundEnabled || !drumRollRef.current) {
+      return updateCurrentAward();
+    }
+
+    setPendingRevealAwardId(awardId);
+    drumRollRef.current.currentTime = 0;
+
+    try {
+      await drumRollRef.current.play();
+    } catch {
+      return updateCurrentAward();
+    }
+
+    window.setTimeout(() => {
+      void updateCurrentAward();
+    }, DRUM_ROLL_REVEAL_DELAY_MS);
+  };
+
   const currentAwardIndex = event.awards.findIndex(
     (a) => a.id === currentEvent?.currentAwardId,
   );
@@ -139,7 +187,36 @@ export default function AwardsAndVotingTab() {
               </TableHead>
               {isResultsPhase && (
                 <TableHead className="h-11 px-3 md:h-12 md:px-4">
-                  Reveal
+                  <div className="flex items-center gap-2">
+                    <span>Reveal</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          aria-label={
+                            soundEnabled
+                              ? "Turn off reveal sound"
+                              : "Turn on reveal sound"
+                          }
+                          disabled={pendingRevealAwardId !== null}
+                          onClick={() => setSoundEnabled((enabled) => !enabled)}
+                        >
+                          {soundEnabled ? (
+                            <Volume2Icon className="h-4 w-4" />
+                          ) : (
+                            <VolumeXIcon className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {soundEnabled
+                          ? "Drum roll on. Click to turn off"
+                          : "Drum roll off. Click to turn on"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </TableHead>
               )}
             </TableRow>
@@ -202,17 +279,21 @@ export default function AwardsAndVotingTab() {
                         currentAwardIndex,
                         event.awards.length,
                       )}
+                      disabled={pendingRevealAwardId !== null}
                       onClick={(e) => {
                         e.stopPropagation();
                         const shouldHide =
                           currentEvent?.currentAwardId === award.id;
-                        updateCurrentStateMutation
-                          .mutateAsync({
-                            currentAwardId: shouldHide
-                              ? event.awards[index + 1]?.id ?? null
-                              : award.id,
-                          })
-                          .then(refetchEvent);
+                        if (shouldHide) {
+                          updateCurrentStateMutation
+                            .mutateAsync({
+                              currentAwardId:
+                                event.awards[index + 1]?.id ?? null,
+                            })
+                            .then(refetchEvent);
+                          return;
+                        }
+                        void revealAward(award.id);
                       }}
                     />
                   </TableCell>
@@ -270,7 +351,9 @@ export default function AwardsAndVotingTab() {
             variant="outline"
             size="sm"
             className="shrink-0"
-            disabled={!customWinnerName.trim() || updateWinnerMutation.isPending}
+            disabled={
+              !customWinnerName.trim() || updateWinnerMutation.isPending
+            }
           >
             Set
           </Button>
@@ -321,10 +404,7 @@ export default function AwardsAndVotingTab() {
                               "font-semibold",
                           )}
                         >
-                          {
-                            event.demos.find((demo) => demo.id === demoId)
-                              ?.name
-                          }
+                          {event.demos.find((demo) => demo.id === demoId)?.name}
                         </span>
                       </div>
                     </TableCell>
@@ -388,10 +468,11 @@ const config: Record<
 
 interface RevealButtonProps {
   state: RevealButtonAction;
+  disabled: boolean;
   onClick: (e: React.MouseEvent) => void;
 }
 
-function RevealButton({ state, onClick }: RevealButtonProps) {
+function RevealButton({ state, disabled, onClick }: RevealButtonProps) {
   const { icon: Icon, tooltip, allowClick } = config[state];
 
   return (
@@ -405,9 +486,10 @@ function RevealButton({ state, onClick }: RevealButtonProps) {
             state === RevealButtonAction.Reveal &&
               "animate-pulse-border border-2",
           )}
+          disabled={disabled}
           onClick={(e) => {
             e.stopPropagation();
-            if (!allowClick) return;
+            if (!allowClick || disabled) return;
             onClick(e);
           }}
         >
