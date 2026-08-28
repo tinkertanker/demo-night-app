@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { lockVotingEvent } from "~/server/votingLock";
 
 export const awardRouter = createTRPCRouter({
   getVotes: protectedProcedure
@@ -67,11 +68,18 @@ export const awardRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const trimmedName = input.winnerName?.trim() ?? "";
       const winnerName = trimmedName.length > 0 ? trimmedName : null;
-      return db.award.update({
-        where: { id: input.id },
-        data: input.winnerId
-          ? { winnerId: input.winnerId, winnerName: null }
-          : { winnerId: null, winnerName },
+      return db.$transaction(async (prisma) => {
+        const award = await prisma.award.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { eventId: true },
+        });
+        await lockVotingEvent(prisma, award.eventId);
+        return prisma.award.update({
+          where: { id: input.id },
+          data: input.winnerId
+            ? { winnerId: input.winnerId, winnerName: null }
+            : { winnerId: null, winnerName },
+        });
       });
     }),
   updateIndex: protectedProcedure

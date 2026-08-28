@@ -72,11 +72,12 @@ model Admin {
 model Event {
   id String @id @default(cuid())
 
-  name   String
-  date   DateTime
-  url    String
-  config Json     @default("{}")
-  secret String   @default(cuid())
+  name      String
+  date      DateTime
+  url       String
+  config    Json     @default("{}")
+  secret    String   @default(cuid())
+  livePhase Int?
 
   submissions   Submission[]
   demos         Demo[]
@@ -157,13 +158,14 @@ model Attendee {
 }
 
 model Award {
-  id       String  @id @default(cuid())
-  event    Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId  String
-  index    Int
+  id         String  @id @default(cuid())
+  event      Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId    String
+  index      Int
   winner     Demo?   @relation(fields: [winnerId], references: [id], onDelete: SetNull)
   winnerId   String?
   winnerName String?
+  winnerRank Int?
 
   name        String
   description String
@@ -171,6 +173,7 @@ model Award {
 
   votes Vote[]
 
+  @@unique([eventId, winnerRank])
   @@index([eventId])
 }
 

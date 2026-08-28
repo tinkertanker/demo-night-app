@@ -67,6 +67,7 @@ async function setCurrentEventDate(eventId: string, date: Date) {
 
 export async function updateCurrentEvent(
   event: { id: string; name: string; config?: any; date?: Date } | null,
+  phase?: EventPhase,
 ) {
   if (!event) {
     await kv.set(CURRENT_EVENT_KEY, null);
@@ -79,6 +80,10 @@ export async function updateCurrentEvent(
     if (event.date) {
       await setCurrentEventDate(event.id, event.date);
     }
+    if (phase !== undefined && currentEvent.phase !== phase) {
+      currentEvent.phase = phase;
+      await kv.set(CURRENT_EVENT_KEY, currentEvent);
+    }
     return;
   }
 
@@ -88,7 +93,7 @@ export async function updateCurrentEvent(
   await kv.set(CURRENT_EVENT_KEY, {
     id: event.id,
     name: event.name,
-    phase: EventPhase.Pre,
+    phase: phase ?? EventPhase.Pre,
     currentDemoId: null,
     currentAwardId: null,
     isPitchNight,

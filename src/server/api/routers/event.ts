@@ -8,6 +8,7 @@ import {
 import { cache } from "react";
 import { z } from "zod";
 
+import { rankAutomaticAwardWinners } from "~/lib/automaticAwardWinners";
 import { storedCurrentEventDate } from "~/lib/currentEventDate";
 import {
   singaporeCalendarDaysBetween,
@@ -18,6 +19,7 @@ import * as kv from "~/lib/types/currentEvent";
 import { DEFAULT_DEMOS } from "~/lib/types/demo";
 import {
   DEFAULT_EVENT_CONFIG,
+  type EventConfig,
   eventConfigSchema,
 } from "~/lib/types/eventConfig";
 import {
@@ -26,6 +28,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { lockCurrentEventState, lockVotingEvent } from "~/server/votingLock";
 
 import { type AdminEvent } from "~/app/admin/[eventId]/contexts/DashboardContext";
 import { env } from "~/env";
@@ -76,7 +79,10 @@ export const eventRouter = createTRPCRouter({
         .nullable(),
     )
     .query(async () => {
-      const currentEvent = await readCurrentEvent();
+      const storedCurrentEvent = await readCurrentEvent();
+      const currentEvent = storedCurrentEvent
+        ? await withDurablePhase(storedCurrentEvent)
+        : null;
       // Handle migration: add isPitchNight if missing from old data
       if (currentEvent && !("isPitchNight" in currentEvent)) {
         const oldEvent = currentEvent as Omit<kv.CurrentEvent, "isPitchNight">;
@@ -107,10 +113,11 @@ export const eventRouter = createTRPCRouter({
         .nullable(),
     )
     .query(async () => {
-      const currentEvent = await readCurrentEvent();
-      if (!currentEvent) {
+      const storedCurrentEvent = await readCurrentEvent();
+      if (!storedCurrentEvent) {
         return null;
       }
+      const currentEvent = await withDurablePhase(storedCurrentEvent);
 
       const eventDate = await resolveCurrentEventDate(currentEvent);
       if (!eventDate || isBeyondCurrentEventWindow(eventDate)) {
@@ -164,15 +171,33 @@ export const eventRouter = createTRPCRouter({
               data,
             })
             .then(async (res: Event) => {
-              const currentEvent = await kv.getCurrentEvent();
-              if (currentEvent?.id === input.originalId) {
-                await kv.updateCurrentEvent({
-                  id: res.id,
-                  name: res.name,
-                  config: res.config,
-                  date: res.date,
+              await db.$transaction(async (prisma) => {
+                await lockCurrentEventState(prisma);
+                const currentEvent = await kv.getCurrentEvent();
+                if (!currentEvent || currentEvent.id !== input.originalId) return;
+
+                await lockVotingEvent(prisma, res.id);
+                const event = await prisma.event.findUniqueOrThrow({
+                  where: { id: res.id },
+                  select: { livePhase: true },
                 });
-              }
+                const livePhase = event.livePhase ?? currentEvent.phase;
+                if (event.livePhase === null) {
+                  await prisma.event.update({
+                    where: { id: res.id },
+                    data: { livePhase },
+                  });
+                }
+                await kv.updateCurrentEvent(
+                  {
+                    id: res.id,
+                    name: res.name,
+                    config: res.config,
+                    date: res.date,
+                  },
+                  livePhase as kv.EventPhase,
+                );
+              });
               return res;
             });
         }
@@ -215,6 +240,7 @@ export const eventRouter = createTRPCRouter({
         url: true,
         config: true,
         secret: true,
+        livePhase: true,
         _count: {
           select: {
             demos: true,
@@ -245,7 +271,10 @@ export const eventRouter = createTRPCRouter({
     .input(z.string().nullable())
     .mutation(async ({ input }) => {
       if (!input) {
-        return kv.updateCurrentEvent(null);
+        return db.$transaction(async (prisma) => {
+          await lockCurrentEventState(prisma);
+          return kv.updateCurrentEvent(null);
+        });
       }
       const event = await db.event.findUnique({
         where: { id: input },
@@ -254,7 +283,27 @@ export const eventRouter = createTRPCRouter({
       if (!event) {
         throw new Error("Event not found");
       }
-      return kv.updateCurrentEvent(event);
+      return db.$transaction(async (prisma) => {
+        await lockCurrentEventState(prisma);
+        await lockVotingEvent(prisma, event.id);
+        const currentEvent = await kv.getCurrentEvent();
+        const durableEvent = await prisma.event.findUniqueOrThrow({
+          where: { id: event.id },
+          select: { livePhase: true },
+        });
+        const livePhase =
+          durableEvent.livePhase ??
+          (currentEvent?.id === event.id
+            ? currentEvent.phase
+            : kv.EventPhase.Pre);
+        if (durableEvent.livePhase === null) {
+          await prisma.event.update({
+            where: { id: event.id },
+            data: { livePhase },
+          });
+        }
+        return kv.updateCurrentEvent(event, livePhase as kv.EventPhase);
+      });
     }),
   updateCurrentState: protectedProcedure
     .input(
@@ -265,7 +314,41 @@ export const eventRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return kv.updateCurrentEventState(input);
+      const currentEvent = await kv.getCurrentEvent();
+      if (!currentEvent) {
+        return kv.updateCurrentEventState(input);
+      }
+
+      if (input.phase !== undefined) {
+        await db.$transaction(async (prisma) => {
+          await lockCurrentEventState(prisma);
+          const lockedCurrentEvent = await kv.getCurrentEvent();
+          if (lockedCurrentEvent?.id !== currentEvent.id) {
+            throw new Error("Current event changed during phase update");
+          }
+
+          await lockVotingEvent(prisma, currentEvent.id);
+          const event = await prisma.event.findUniqueOrThrow({
+            where: { id: currentEvent.id },
+            select: { livePhase: true },
+          });
+          const previousPhase = event.livePhase ?? lockedCurrentEvent.phase;
+
+          if (
+            previousPhase === kv.EventPhase.Voting &&
+            input.phase === kv.EventPhase.Results
+          ) {
+            await assignAutomaticAwardWinners(prisma, currentEvent.id);
+          }
+
+          await prisma.event.update({
+            where: { id: currentEvent.id },
+            data: { livePhase: input.phase },
+          });
+        });
+      }
+
+      return projectCurrentEventState(currentEvent.id, input);
     }),
   populateTestData: protectedProcedure
     .input(
@@ -541,11 +624,109 @@ export const eventRouter = createTRPCRouter({
       .then(async () => {
         const currentEvent = await kv.getCurrentEvent();
         if (input === currentEvent?.id) {
-          return kv.updateCurrentEvent(null);
+          return db.$transaction(async (prisma) => {
+            await lockCurrentEventState(prisma);
+            const lockedCurrentEvent = await kv.getCurrentEvent();
+            if (input === lockedCurrentEvent?.id) {
+              return kv.updateCurrentEvent(null);
+            }
+          });
         }
       });
   }),
 });
+
+async function assignAutomaticAwardWinners(
+  prisma: Prisma.TransactionClient,
+  eventId: string,
+) {
+  const rankingAward = await prisma.award.findFirst({
+    where: { eventId, winnerRank: 1 },
+    select: {
+      event: {
+        select: {
+          config: true,
+          demos: {
+            select: { id: true, index: true, votable: true },
+          },
+        },
+      },
+      votes: {
+        select: { demoId: true, amount: true },
+      },
+    },
+  });
+
+  if (!rankingAward) return;
+
+  const config = rankingAward.event.config as EventConfig;
+  const rankedDemoIds = rankAutomaticAwardWinners(
+    rankingAward.event.demos,
+    rankingAward.votes,
+    config.isPitchNight ?? false,
+  );
+  const automaticAwards = await prisma.award.findMany({
+    where: { eventId, winnerRank: { not: null } },
+    select: { id: true, winnerRank: true },
+  });
+
+  for (const award of automaticAwards) {
+    const winnerId = rankedDemoIds[(award.winnerRank ?? 0) - 1] ?? null;
+    await prisma.award.update({
+      where: { id: award.id },
+      data: { winnerId, winnerName: null },
+    });
+  }
+}
+
+async function projectCurrentEventState(
+  eventId: string,
+  input: {
+    phase?: kv.EventPhase;
+    currentDemoId?: string | null;
+    currentAwardId?: string | null;
+  },
+) {
+  return db.$transaction(async (prisma) => {
+    await lockCurrentEventState(prisma);
+    await lockVotingEvent(prisma, eventId);
+    const [currentEvent, event] = await Promise.all([
+      kv.getCurrentEvent(),
+      prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { livePhase: true },
+      }),
+    ]);
+
+    if (currentEvent?.id !== eventId) {
+      throw new Error("Current event changed during state update");
+    }
+    if (input.phase !== undefined && event.livePhase !== input.phase) {
+      return;
+    }
+
+    return kv.updateCurrentEventState(input);
+  });
+}
+
+async function withDurablePhase(
+  currentEvent: kv.CurrentEvent,
+): Promise<kv.CurrentEvent> {
+  const event = await db.event.findUnique({
+    where: { id: currentEvent.id },
+    select: { livePhase: true },
+  });
+  const livePhase = event?.livePhase;
+  if (
+    livePhase === null ||
+    livePhase === undefined ||
+    !kv.allPhases.includes(livePhase as kv.EventPhase)
+  ) {
+    return currentEvent;
+  }
+
+  return { ...currentEvent, phase: livePhase as kv.EventPhase };
+}
 
 const CURRENT_EVENT_ACTIVE_DAYS = 2;
 

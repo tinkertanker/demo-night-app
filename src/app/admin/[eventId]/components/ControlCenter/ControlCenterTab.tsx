@@ -76,7 +76,11 @@ export default function ControlCenterTab({
         }
         break;
       case EventPhase.Voting:
-        if (event?.awards.every((award) => awardHasWinner(award))) {
+        if (
+          event?.awards.every(
+            (award) => award.winnerRank !== null || awardHasWinner(award),
+          )
+        ) {
           setSuggestedPhase(EventPhase.Results);
           return;
         }
