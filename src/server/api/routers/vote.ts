@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { EventPhase, getCurrentEvent } from "~/lib/types/currentEvent";
+import { EventPhase, getLiveEvent } from "~/lib/types/currentEvent";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import {
@@ -161,24 +161,26 @@ async function assertVotingIsOpen(
   prisma: Parameters<typeof lockVotingEvent>[0],
   eventId: string,
 ) {
-  const event = await prisma.event.findUniqueOrThrow({
-    where: { id: eventId },
-    select: { livePhase: true },
-  });
+  const [event, liveEvent] = await Promise.all([
+    prisma.event.findUniqueOrThrow({
+      where: { id: eventId },
+      select: { livePhase: true },
+    }),
+    getLiveEvent(eventId),
+  ]);
   let livePhase = event.livePhase;
 
-  if (livePhase === null) {
-    const currentEvent = await getCurrentEvent();
-    if (currentEvent?.id === eventId) {
-      livePhase = currentEvent.phase;
-      await prisma.event.update({
-        where: { id: eventId },
-        data: { livePhase },
-      });
-    }
+  if (livePhase === null && liveEvent) {
+    livePhase = liveEvent.phase;
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { livePhase },
+    });
   }
 
-  if (livePhase !== EventPhase.Voting) {
+  // livePhase is kept when an event is stopped (so restarting resumes it), so
+  // also require the event to still be live.
+  if (!liveEvent || livePhase !== EventPhase.Voting) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Voting is closed",

@@ -210,6 +210,7 @@ async function main() {
       name: "SF Demo Night 🚀",
       date: new Date(Date.now() + 14 * 86_400_000).toISOString(),
       url: "https://lu.ma/demo-night",
+      joinCode: "DEMO",
       submissions: { create: submissions },
       demos: { create: demos },
       awards: { create: awards },

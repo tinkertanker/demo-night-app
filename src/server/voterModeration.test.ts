@@ -83,9 +83,14 @@ beforeEach(async () => {
       attendees: { create: { id: attendeeId, name: "   " } },
     },
   });
+  // Voting also requires the event to be live.
+  await admin.event.setLive.mutate({ eventId, live: true });
 });
 
 afterEach(async () => {
+  for (const id of [eventId, otherEventId]) {
+    await admin.event.setLive.mutate({ eventId: id, live: false });
+  }
   await db.event.deleteMany({ where: { id: { in: [eventId, otherEventId] } } });
   await db.attendee.deleteMany({
     where: { id: { in: [attendeeId, secondAttendeeId] } },
@@ -293,6 +298,7 @@ describe("investor eligibility", () => {
         },
       },
     });
+    await admin.event.setLive.mutate({ eventId: otherEventId, live: true });
     await admin.attendee.setVoterExcluded.mutate({
       eventId,
       attendeeId,

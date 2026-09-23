@@ -66,7 +66,7 @@ export default function AwardsAndVotingTab() {
     },
   );
   const updateWinnerMutation = api.award.updateWinner.useMutation();
-  const updateCurrentStateMutation = api.event.updateCurrentState.useMutation();
+  const updateCurrentStateMutation = api.event.updateLiveState.useMutation();
   const [customWinnerName, setCustomWinnerName] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [pendingRevealAwardId, setPendingRevealAwardId] = useState<
@@ -147,7 +147,7 @@ export default function AwardsAndVotingTab() {
   const revealAward = async (awardId: string) => {
     const updateCurrentAward = () =>
       updateCurrentStateMutation
-        .mutateAsync({ currentAwardId: awardId })
+        .mutateAsync({ eventId: event.id, currentAwardId: awardId })
         .then(refetchEvent)
         .finally(() => setPendingRevealAwardId(null));
 
@@ -290,6 +290,7 @@ export default function AwardsAndVotingTab() {
                         if (shouldHide) {
                           updateCurrentStateMutation
                             .mutateAsync({
+                              eventId: event.id,
                               currentAwardId:
                                 event.awards[index + 1]?.id ?? null,
                             })

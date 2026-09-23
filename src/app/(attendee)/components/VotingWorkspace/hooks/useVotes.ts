@@ -7,7 +7,7 @@ export type LocalVote = Omit<Vote, "id" | "createdAt" | "updatedAt">;
 export type VoteByAwardId = Record<string, LocalVote>;
 
 export function useVotes(eventId: string, attendee: Attendee) {
-  const [votes, setVotes] = useState<VoteByAwardId>(getLocalVotes());
+  const [votes, setVotes] = useState<VoteByAwardId>(getLocalVotes(eventId));
   const { data: votesData } = api.vote.all.useQuery({
     eventId,
     attendeeId: attendee.id,
@@ -15,8 +15,8 @@ export function useVotes(eventId: string, attendee: Attendee) {
   const upsertMutation = api.vote.upsert.useMutation();
 
   useEffect(() => {
-    setLocalVotes(votes);
-  }, [votes]);
+    setLocalVotes(eventId, votes);
+  }, [eventId, votes]);
 
   useEffect(() => {
     if (votesData) {
@@ -70,17 +70,17 @@ function emptyVote(
   };
 }
 
-function getLocalVotes(): VoteByAwardId {
+function getLocalVotes(eventId: string): VoteByAwardId {
   if (typeof window !== "undefined") {
-    const votes = localStorage.getItem("votes");
+    const votes = localStorage.getItem(`votes:${eventId}`);
     if (votes) return JSON.parse(votes);
   }
   const votes = {};
-  setLocalVotes(votes);
+  setLocalVotes(eventId, votes);
   return votes;
 }
 
-function setLocalVotes(votes: VoteByAwardId) {
+function setLocalVotes(eventId: string, votes: VoteByAwardId) {
   if (typeof window === "undefined") return; // SSR guard
-  localStorage.setItem("votes", JSON.stringify(votes));
+  localStorage.setItem(`votes:${eventId}`, JSON.stringify(votes));
 }

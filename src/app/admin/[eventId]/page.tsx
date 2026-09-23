@@ -11,7 +11,7 @@ export default async function AdminEventPage({
 }) {
   const [event, currentEvent] = await Promise.all([
     api.event.getAdmin(params.eventId),
-    api.event.getCurrent(),
+    api.event.getLiveEvent(params.eventId),
   ]);
 
   if (!event) {

@@ -8,7 +8,7 @@ import { api } from "~/trpc/react";
 
 export default function ResultsDashboard() {
   const { currentEvent, event, refetchEvent } = useDashboardContext();
-  const updateCurrentStateMutation = api.event.updateCurrentState.useMutation();
+  const updateCurrentStateMutation = api.event.updateLiveState.useMutation();
 
   if (!event) {
     return null;
@@ -46,7 +46,7 @@ export default function ResultsDashboard() {
           className="rounded-lg bg-red-200 px-4 font-semibold"
           onClick={() => {
             updateCurrentStateMutation
-              .mutateAsync({ currentAwardId: null })
+              .mutateAsync({ eventId: event.id, currentAwardId: null })
               .then(refetchEvent);
           }}
         >
@@ -63,7 +63,7 @@ export default function ResultsDashboard() {
               className="flex flex-1 cursor-pointer items-center justify-between rounded-lg text-start font-medium focus:outline-none"
               onClick={() => {
                 updateCurrentStateMutation
-                  .mutateAsync({ currentAwardId: award.id })
+                  .mutateAsync({ eventId: event.id, currentAwardId: award.id })
                   .then(refetchEvent);
               }}
             >

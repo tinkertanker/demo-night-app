@@ -7,9 +7,11 @@ import {
   ChevronsUpDown,
   CirclePlay,
   ClipboardListIcon,
+  CopyIcon,
   ExternalLink,
   LayoutDashboardIcon,
   MessageSquareTextIcon,
+  MonitorPlayIcon,
   OctagonPause,
   PresentationIcon,
   SettingsIcon,
@@ -18,6 +20,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import { toast } from "sonner";
 
 import { getBrandingClient } from "~/lib/branding";
 import { formatEventDate } from "~/lib/singaporeDate";
@@ -83,10 +86,11 @@ export function AdminSidebar({
   const { isMobile, setOpenMobile } = useSidebar();
   const { data: events } = api.event.allAdmin.useQuery();
   const { data: currentEvent, refetch: refetchEvent } =
-    api.event.getCurrent.useQuery();
-  const currentPhase =
-    currentEvent?.id === event.id ? currentEvent.phase : null;
-  const updateCurrentMutation = api.event.updateCurrent.useMutation();
+    api.event.getLiveEvent.useQuery(event.id);
+  const isLive = currentEvent?.id === event.id;
+  const currentPhase = isLive ? currentEvent.phase : null;
+  const joinCode = currentEvent?.joinCode ?? event.joinCode;
+  const setLiveMutation = api.event.setLive.useMutation();
 
   const { data: submissionCount } = api.submission.count.useQuery({
     eventId: event.id,
@@ -170,23 +174,60 @@ export function AdminSidebar({
         )}
         <Button
           onClick={async () => {
-            await updateCurrentMutation.mutateAsync(
-              currentEvent?.id === event.id ? null : event.id ?? null,
-            );
+            await setLiveMutation.mutateAsync({
+              eventId: event.id,
+              live: !isLive,
+            });
             void refetchEvent();
           }}
-          variant={currentEvent?.id === event.id ? "destructive" : "default"}
+          disabled={setLiveMutation.isPending}
+          variant={isLive ? "destructive" : "default"}
           className="w-full"
         >
-          {currentEvent?.id === event.id ? (
+          {isLive ? (
             <OctagonPause className="size-4" />
           ) : (
             <CirclePlay className="size-4" />
           )}
-          {currentEvent?.id === event.id
-            ? "Stop live event"
-            : "Start live event"}
+          {isLive ? "Stop live event" : "Start live event"}
         </Button>
+        {isLive && joinCode && (
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/50 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Join code
+                </span>
+                <span className="font-mono text-2xl font-bold tracking-widest">
+                  {joinCode}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Copy join link"
+                onClick={() => {
+                  void navigator.clipboard
+                    .writeText(`${window.location.origin}/${joinCode}`)
+                    .then(() => toast.success("Join link copied"));
+                }}
+              >
+                <CopyIcon className="size-4" />
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() =>
+                window.open(`/admin/${event.id}/present`, "_blank")
+              }
+            >
+              <MonitorPlayIcon className="size-4" />
+              Open presenter view
+            </Button>
+          </div>
+        )}
       </div>
 
       <SidebarContent>

@@ -16,6 +16,7 @@ import LoadingScreen from "~/components/loading/LoadingScreen";
 
 import DemosWorkspace from "./DemosWorkspace";
 import EventHeader from "./EventHeader";
+import { rememberJoinCode } from "./JoinEventForm";
 import PreWorkspace from "./PreWorkspace";
 import RecapWorkspace from "./RecapWorkspace";
 import ResultsWorkspace from "./ResultsWorkspace";
@@ -40,6 +41,13 @@ export default function Workspaces({
     }
   }, [event]);
 
+  useEffect(() => {
+    if (initialCurrentEvent.joinCode) {
+      rememberJoinCode(initialCurrentEvent.joinCode);
+    }
+  }, [initialCurrentEvent.joinCode]);
+
+  // The event stopped being live: reloading lands on the join screen.
   useEffect(() => {
     if (!currentEvent) {
       window.location.reload();

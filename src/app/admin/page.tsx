@@ -19,8 +19,9 @@ import { Card, CardContent, CardTitle } from "~/components/ui/card";
 
 export default function AdminHomePage() {
   const branding = getBrandingClient();
-  const { data: currentEvent, refetch: refetchCurrentEvent } =
-    api.event.getCurrent.useQuery();
+  const { data: liveEvents, refetch: refetchCurrentEvent } =
+    api.event.getLive.useQuery();
+  const liveEventIds = new Set(liveEvents?.map((e) => e.id));
   const {
     data: events,
     refetch: refetchEvents,
@@ -98,12 +99,17 @@ export default function AdminHomePage() {
                           <span className="line-clamp-1 text-xl">
                             {event.name}
                           </span>
-                          {event.id === currentEvent?.id && (
+                          {liveEventIds.has(event.id) && (
                             <div className="flex items-center gap-2 rounded-full bg-primary/10 px-2 py-1">
                               <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
                               <span className="text-xs font-semibold text-primary">
                                 LIVE
                               </span>
+                              {event.joinCode && (
+                                <span className="font-mono text-xs font-bold tracking-wider text-primary">
+                                  {event.joinCode}
+                                </span>
+                              )}
                             </div>
                           )}
                         </CardTitle>
