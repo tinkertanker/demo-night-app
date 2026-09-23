@@ -244,15 +244,22 @@ function DemoRow({
           layoutId={`name-${demo.id}`}
           className="w-full p-4 py-2"
         >
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{demo.name}</span>
-            {!demo.votable && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TrophyIcon className="h-4 w-4 shrink-0 text-destructive" />
-                </TooltipTrigger>
-                <TooltipContent>Not eligible for awards</TooltipContent>
-              </Tooltip>
+          <div className="flex flex-col gap-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">{demo.name}</span>
+              {!demo.votable && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TrophyIcon className="h-4 w-4 shrink-0 text-destructive" />
+                  </TooltipTrigger>
+                  <TooltipContent>Not eligible for awards</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+            {demo.description && (
+              <span className="line-clamp-2 text-sm italic text-muted-foreground">
+                {demo.description}
+              </span>
             )}
           </div>
         </motion.td>
