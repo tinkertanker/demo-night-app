@@ -62,7 +62,7 @@ export default async function DemoistPage({
   }
 
   const [currentEvent, event, demo] = await Promise.all([
-    api.event.getCurrent(),
+    api.event.getLiveEvent(eventId),
     api.event.get(eventId),
     api.demo.get({ id: demoId, secret }),
   ]);

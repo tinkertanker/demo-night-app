@@ -71,7 +71,7 @@ export default function DemosAndFeedbackTab() {
   }, [feedback]);
 
   const updateCurrentEventStateMutation =
-    api.event.updateCurrentState.useMutation();
+    api.event.updateLiveState.useMutation();
   const deleteFeedbackMutation = api.feedback.delete.useMutation();
 
   const currentDemoIndex = useMemo(() => {
@@ -90,12 +90,12 @@ export default function DemosAndFeedbackTab() {
   const goLive = useCallback(
     (demo: Demo) => {
       setSelectedDemo(demo);
-      if (!isDemoPhase) return;
+      if (!isDemoPhase || !currentEvent) return;
       updateCurrentEventStateMutation
-        .mutateAsync({ currentDemoId: demo.id })
+        .mutateAsync({ eventId: currentEvent.id, currentDemoId: demo.id })
         .then(() => refetchEvent());
     },
-    [isDemoPhase, updateCurrentEventStateMutation, refetchEvent],
+    [isDemoPhase, currentEvent, updateCurrentEventStateMutation, refetchEvent],
   );
 
   if (!event) return null;

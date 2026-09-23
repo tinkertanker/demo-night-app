@@ -54,6 +54,7 @@ export function UpsertEventModal({
       id: event?.id ?? defaultId,
       date: formatDateDDMMYYYY(event?.date ?? new Date()),
       url: event?.url ?? "",
+      joinCode: event?.joinCode ?? "",
     },
   });
 
@@ -83,6 +84,7 @@ export function UpsertEventModal({
                 date: parsedDate,
                 url: data.url,
                 config,
+                joinCode: data.joinCode || undefined,
               })
               .then(async (result) => {
                 // If creating new event and test data checkbox is checked, populate test data
@@ -148,6 +150,23 @@ export function UpsertEventModal({
               autoComplete="off"
               placeholder="https://lu.ma/demo-night"
             />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="font-semibold">Join code (Optional)</span>
+            <input
+              type="text"
+              {...register("joinCode", {
+                pattern: /^[A-Za-z0-9]{4}$/,
+              })}
+              className="rounded-md border border-gray-200 p-2 font-mono uppercase tracking-widest"
+              autoComplete="off"
+              maxLength={4}
+              placeholder="Generated automatically"
+            />
+            <span className="text-sm text-muted-foreground">
+              4 letters or digits attendees enter to join while the event is
+              live.
+            </span>
           </label>
           <div className="flex items-start gap-3 rounded-md border border-gray-200 p-3">
             <Switch

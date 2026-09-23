@@ -9,7 +9,11 @@ import { LogoConfetti } from "~/components/Confetti";
 import { env } from "~/env";
 
 export default function PrePresentation() {
-  const { event } = usePresentationContext();
+  const { currentEvent, event } = usePresentationContext();
+  const joinCode = currentEvent.joinCode ?? event.joinCode;
+  const joinUrl = joinCode
+    ? `${env.NEXT_PUBLIC_URL}/${joinCode}`
+    : env.NEXT_PUBLIC_URL;
   const [demoIndex, setDemoIndex] = useState(0);
 
   useEffect(() => {
@@ -25,10 +29,22 @@ export default function PrePresentation() {
   return (
     <div className="flex size-full flex-col items-center justify-center gap-8 p-4">
       <div className="z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-gray-300/50 p-4 pb-2 shadow-xl backdrop-blur">
-        <QRCode value={env.NEXT_PUBLIC_URL} bgColor="transparent" size={256} />
+        <QRCode value={joinUrl} bgColor="transparent" size={256} />
         <p className="text-center text-lg font-bold italic text-gray-500">
           Scan to join! 🚀
         </p>
+        {joinCode && (
+          <p className="text-center text-gray-600">
+            or go to{" "}
+            <span className="font-semibold">
+              {env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, "")}
+            </span>{" "}
+            and enter
+            <span className="block font-mono text-5xl font-bold tracking-[0.2em] text-black">
+              {joinCode}
+            </span>
+          </p>
+        )}
       </div>
       <div className="flex w-full flex-col gap-2">
         <h2 className="w-full text-2xl font-bold">

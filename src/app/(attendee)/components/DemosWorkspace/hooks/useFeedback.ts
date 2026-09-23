@@ -19,7 +19,7 @@ export function useFeedback(
   selectedDemo: PublicDemo,
 ) {
   const [feedbackByDemoId, setFeedbackByDemoId] = useState<FeedbackByDemoId>(
-    getLocalFeedbackByDemoId(),
+    getLocalFeedbackByDemoId(eventId),
   );
   const { data: allFeedbackData } = api.feedback.all.useQuery({
     eventId,
@@ -36,8 +36,8 @@ export function useFeedback(
   );
 
   useEffect(() => {
-    setLocalFeedbackByDemoId(feedbackByDemoId);
-  }, [feedbackByDemoId]);
+    setLocalFeedbackByDemoId(eventId, feedbackByDemoId);
+  }, [eventId, feedbackByDemoId]);
 
   useEffect(() => {
     if (allFeedbackData) {
@@ -111,17 +111,20 @@ function feedbackIsEmpty(feedback: LocalFeedback): boolean {
   );
 }
 
-function getLocalFeedbackByDemoId(): FeedbackByDemoId {
+function getLocalFeedbackByDemoId(eventId: string): FeedbackByDemoId {
   if (typeof window !== "undefined") {
-    const feedback = localStorage.getItem("feedback");
+    const feedback = localStorage.getItem(`feedback:${eventId}`);
     if (feedback) return JSON.parse(feedback);
   }
   const feedback = {};
-  setLocalFeedbackByDemoId(feedback);
+  setLocalFeedbackByDemoId(eventId, feedback);
   return feedback;
 }
 
-function setLocalFeedbackByDemoId(feedbackByDemoId: FeedbackByDemoId) {
+function setLocalFeedbackByDemoId(
+  eventId: string,
+  feedbackByDemoId: FeedbackByDemoId,
+) {
   if (typeof window === "undefined") return; // SSR guard
-  localStorage.setItem("feedback", JSON.stringify(feedbackByDemoId));
+  localStorage.setItem(`feedback:${eventId}`, JSON.stringify(feedbackByDemoId));
 }

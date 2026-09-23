@@ -78,6 +78,8 @@ model Event {
   config    Json     @default("{}")
   secret    String   @default(cuid())
   livePhase Int?
+  // Short code attendees use to join the event while it is live (see src/lib/joinCode.ts)
+  joinCode  String?  @unique
 
   submissions   Submission[]
   demos         Demo[]

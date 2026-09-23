@@ -12,7 +12,8 @@ export function useEventAdmin({
   initialCurrentEvent?: CurrentEvent | null;
 }) {
   const { data: currentEvent, refetch: refetchCurrentEvent } =
-    api.event.getCurrent.useQuery(undefined, {
+    api.event.getLiveEvent.useQuery(initialEvent?.id ?? "", {
+      enabled: !!initialEvent?.id,
       initialData: initialCurrentEvent,
     });
   const { data: event, refetch: refetchEvent } = api.event.getAdmin.useQuery(

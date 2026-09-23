@@ -6,10 +6,13 @@ import { api } from "~/trpc/react";
 
 export default function useEventSync(initialCurrentEvent: CurrentEvent) {
   const { data: currentEvent } =
-    api.event.getCurrentActive.useQuery<CurrentEvent | null>(undefined, {
-      initialData: initialCurrentEvent,
-      ...liveQueryOptions(),
-    });
+    api.event.getLiveActive.useQuery<CurrentEvent | null>(
+      initialCurrentEvent.id,
+      {
+        initialData: initialCurrentEvent,
+        ...liveQueryOptions(),
+      },
+    );
 
   const { data: event, refetch: refetchEvent } = api.event.get.useQuery(
     currentEvent?.id ?? "",

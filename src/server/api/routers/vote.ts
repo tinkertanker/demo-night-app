@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { EventPhase, getCurrentEvent } from "~/lib/types/currentEvent";
+import { EventPhase, getLiveEvent } from "~/lib/types/currentEvent";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { lockVotingEvent } from "~/server/votingLock";
@@ -162,9 +162,9 @@ async function assertVotingIsOpen(
   let livePhase = event.livePhase;
 
   if (livePhase === null) {
-    const currentEvent = await getCurrentEvent();
-    if (currentEvent?.id === eventId) {
-      livePhase = currentEvent.phase;
+    const liveEvent = await getLiveEvent(eventId);
+    if (liveEvent) {
+      livePhase = liveEvent.phase;
       await prisma.event.update({
         where: { id: eventId },
         data: { livePhase },

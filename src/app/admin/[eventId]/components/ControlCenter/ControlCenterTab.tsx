@@ -32,16 +32,17 @@ export default function ControlCenterTab({
   const { currentEvent, event, refetchEvent } = useDashboardContext();
   const eventConfig = event?.config as EventConfig;
   const isPitchNight = eventConfig?.isPitchNight ?? false;
-  const updateCurrentStateMutation = api.event.updateCurrentState.useMutation();
+  const updateCurrentStateMutation = api.event.updateLiveState.useMutation();
   const [suggestedPhase, setSuggestedPhase] = useState<EventPhase | null>(null);
 
   const setPhase = useCallback(
     (phase: EventPhase) => {
+      if (!currentEvent) return;
       updateCurrentStateMutation
-        .mutateAsync({ phase })
+        .mutateAsync({ eventId: currentEvent.id, phase })
         .then(() => refetchEvent());
     },
-    [updateCurrentStateMutation, refetchEvent],
+    [currentEvent, updateCurrentStateMutation, refetchEvent],
   );
 
   useEffect(() => {

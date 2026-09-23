@@ -5,11 +5,16 @@ import {
   type EventFeedback,
   type Prisma,
 } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import { cache } from "react";
 import { z } from "zod";
 
 import { rankAutomaticAwardWinners } from "~/lib/automaticAwardWinners";
-import { storedCurrentEventDate } from "~/lib/currentEventDate";
+import {
+  generateJoinCode,
+  isValidJoinCode,
+  normalizeJoinCode,
+} from "~/lib/joinCode";
 import {
   singaporeCalendarDaysBetween,
   toSingaporeMidnight,
@@ -44,6 +49,16 @@ export type PublicDemo = Omit<
   "eventId" | "secret" | "createdAt" | "updatedAt"
 >;
 
+const liveEventSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  phase: z.nativeEnum(kv.EventPhase),
+  currentDemoId: z.string().nullable(),
+  currentAwardId: z.string().nullable(),
+  isPitchNight: z.boolean().optional().default(false),
+  joinCode: z.string().nullable().optional(),
+});
+
 export const eventRouter = createTRPCRouter({
   all: publicProcedure
     .input(
@@ -63,80 +78,41 @@ export const eventRouter = createTRPCRouter({
         skip: input?.offset,
       });
     }),
+  // Kept for the public OpenAPI contract, which predates multiple live events:
+  // returns the most recently started live event.
   getCurrent: publicProcedure
     .meta({ openapi: { method: "GET", path: "/event/current" } })
     .input(z.undefined())
-    .output(
-      z
-        .object({
-          id: z.string(),
-          name: z.string(),
-          phase: z.nativeEnum(kv.EventPhase),
-          currentDemoId: z.string().nullable(),
-          currentAwardId: z.string().nullable(),
-          isPitchNight: z.boolean().optional().default(false),
-        })
-        .nullable(),
-    )
+    .output(liveEventSchema.nullable())
     .query(async () => {
-      const storedCurrentEvent = await readCurrentEvent();
-      const currentEvent = storedCurrentEvent
-        ? await withDurablePhase(storedCurrentEvent)
-        : null;
-      // Handle migration: add isPitchNight if missing from old data
-      if (currentEvent && !("isPitchNight" in currentEvent)) {
-        const oldEvent = currentEvent as Omit<kv.CurrentEvent, "isPitchNight">;
-        const migratedEvent: kv.CurrentEvent = {
-          id: oldEvent.id,
-          name: oldEvent.name,
-          phase: oldEvent.phase,
-          currentDemoId: oldEvent.currentDemoId,
-          currentAwardId: oldEvent.currentAwardId,
-          isPitchNight: false,
-        };
-        return migratedEvent;
-      }
-      return currentEvent;
+      const ids = await kv.getLiveEventIds();
+      const latestId = ids[ids.length - 1];
+      return latestId ? readLiveEvent(latestId) : null;
     }),
-  getCurrentActive: publicProcedure
-    .input(z.undefined())
-    .output(
-      z
-        .object({
-          id: z.string(),
-          name: z.string(),
-          phase: z.nativeEnum(kv.EventPhase),
-          currentDemoId: z.string().nullable(),
-          currentAwardId: z.string().nullable(),
-          isPitchNight: z.boolean().optional().default(false),
-        })
-        .nullable(),
-    )
-    .query(async () => {
-      const storedCurrentEvent = await readCurrentEvent();
-      if (!storedCurrentEvent) {
-        return null;
-      }
-      const currentEvent = await withDurablePhase(storedCurrentEvent);
-
-      const eventDate = await resolveCurrentEventDate(currentEvent);
-      if (!eventDate || isBeyondCurrentEventWindow(eventDate)) {
-        return null;
-      }
-
-      if (!("isPitchNight" in currentEvent)) {
-        const oldEvent = currentEvent as Omit<kv.CurrentEvent, "isPitchNight">;
-        return {
-          id: oldEvent.id,
-          name: oldEvent.name,
-          phase: oldEvent.phase,
-          currentDemoId: oldEvent.currentDemoId,
-          currentAwardId: oldEvent.currentAwardId,
-          isPitchNight: false,
-        };
-      }
-
-      return currentEvent;
+  getLive: protectedProcedure.query(async (): Promise<kv.CurrentEvent[]> => {
+    const liveEvents = await kv.getLiveEvents();
+    return Promise.all(liveEvents.map(withDurableState));
+  }),
+  getLiveEvent: publicProcedure
+    .input(z.string())
+    .output(liveEventSchema.nullable())
+    .query(async ({ input }) => readLiveEvent(input)),
+  // What attendees see: live events whose date has passed drop off.
+  getLiveActive: publicProcedure
+    .input(z.string())
+    .output(liveEventSchema.nullable())
+    .query(async ({ input }) => readLiveActiveEvent(input)),
+  getLiveByCode: publicProcedure
+    .input(z.string())
+    .output(liveEventSchema.nullable())
+    .query(async ({ input }) => {
+      const joinCode = normalizeJoinCode(input);
+      if (!isValidJoinCode(joinCode)) return null;
+      const event = await db.event.findUnique({
+        where: { joinCode },
+        select: { id: true },
+      });
+      return event ? readLiveActiveEvent(event.id) : null;
     }),
   get: publicProcedure
     .input(z.string())
@@ -152,20 +128,31 @@ export const eventRouter = createTRPCRouter({
         date: z.date().optional(),
         url: z.string().url().optional().or(z.literal("")),
         config: eventConfigSchema.optional(),
+        joinCode: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
+      const joinCode = input.joinCode
+        ? normalizeJoinCode(input.joinCode)
+        : undefined;
+      if (joinCode !== undefined && !isValidJoinCode(joinCode)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Join codes are 4 letters or digits",
+        });
+      }
       const data = {
         id: input.id,
         name: input.name,
         date: input.date ? toSingaporeMidnight(input.date) : input.date,
         url: input.url,
         config: input.config,
+        joinCode,
       };
 
       try {
         if (input.originalId) {
-          return db.event
+          return await db.event
             .update({
               where: { id: input.originalId },
               data,
@@ -173,30 +160,22 @@ export const eventRouter = createTRPCRouter({
             .then(async (res: Event) => {
               await db.$transaction(async (prisma) => {
                 await lockCurrentEventState(prisma);
-                const currentEvent = await kv.getCurrentEvent();
-                if (!currentEvent || currentEvent.id !== input.originalId) return;
-
                 await lockVotingEvent(prisma, res.id);
+                const liveEvent = await kv.getLiveEvent(res.id);
+                if (!liveEvent) return;
+
                 const event = await prisma.event.findUniqueOrThrow({
                   where: { id: res.id },
                   select: { livePhase: true },
                 });
-                const livePhase = event.livePhase ?? currentEvent.phase;
+                const livePhase = event.livePhase ?? liveEvent.phase;
                 if (event.livePhase === null) {
                   await prisma.event.update({
                     where: { id: res.id },
                     data: { livePhase },
                   });
                 }
-                await kv.updateCurrentEvent(
-                  {
-                    id: res.id,
-                    name: res.name,
-                    config: res.config,
-                    date: res.date,
-                  },
-                  livePhase as kv.EventPhase,
-                );
+                await kv.startLiveEvent(res, livePhase as kv.EventPhase);
               });
               return res;
             });
@@ -207,23 +186,32 @@ export const eventRouter = createTRPCRouter({
           ? PITCH_NIGHT_AWARDS
           : DEFAULT_AWARDS;
 
-        const result = await db.event.create({
-          data: {
-            id: data.id!,
-            name: data.name!,
-            date: data.date!,
-            url: data.url ?? "",
-            config: eventConfig,
-            demos: {
-              create: DEFAULT_DEMOS,
+        const createEvent = (joinCode: string) =>
+          db.event.create({
+            data: {
+              id: data.id!,
+              name: data.name!,
+              date: data.date!,
+              url: data.url ?? "",
+              config: eventConfig,
+              joinCode,
+              demos: {
+                create: DEFAULT_DEMOS,
+              },
+              awards: {
+                create: awardsToCreate,
+              },
             },
-            awards: {
-              create: awardsToCreate,
-            },
-          },
-        });
-        return result;
+          });
+        if (data.joinCode) return await createEvent(data.joinCode);
+        return await withUniqueJoinCode(createEvent);
       } catch (error: any) {
+        if (isUniqueViolation(error, "joinCode")) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Another event already uses this join code",
+          });
+        }
         if (error.code === "P2002") {
           throw new Error("An event with this ID already exists");
         }
@@ -241,6 +229,7 @@ export const eventRouter = createTRPCRouter({
         config: true,
         secret: true,
         livePhase: true,
+        joinCode: true,
         _count: {
           select: {
             demos: true,
@@ -267,88 +256,83 @@ export const eventRouter = createTRPCRouter({
         },
       });
     }),
-  updateCurrent: protectedProcedure
-    .input(z.string().nullable())
+  setLive: protectedProcedure
+    .input(z.object({ eventId: z.string(), live: z.boolean() }))
     .mutation(async ({ input }) => {
-      if (!input) {
+      if (!input.live) {
         return db.$transaction(async (prisma) => {
           await lockCurrentEventState(prisma);
-          return kv.updateCurrentEvent(null);
+          await lockVotingEvent(prisma, input.eventId);
+          await kv.stopLiveEvent(input.eventId);
         });
       }
       const event = await db.event.findUnique({
-        where: { id: input },
-        select: { id: true, name: true, config: true, date: true },
+        where: { id: input.eventId },
+        select: { id: true, name: true, config: true },
       });
       if (!event) {
         throw new Error("Event not found");
       }
+      await ensureJoinCode(event.id);
       return db.$transaction(async (prisma) => {
         await lockCurrentEventState(prisma);
+        await stopStaleLiveEvents(prisma, event.id);
         await lockVotingEvent(prisma, event.id);
-        const currentEvent = await kv.getCurrentEvent();
+        const liveEvent = await kv.getLiveEvent(event.id);
         const durableEvent = await prisma.event.findUniqueOrThrow({
           where: { id: event.id },
           select: { livePhase: true },
         });
         const livePhase =
-          durableEvent.livePhase ??
-          (currentEvent?.id === event.id
-            ? currentEvent.phase
-            : kv.EventPhase.Pre);
+          durableEvent.livePhase ?? liveEvent?.phase ?? kv.EventPhase.Pre;
         if (durableEvent.livePhase === null) {
           await prisma.event.update({
             where: { id: event.id },
             data: { livePhase },
           });
         }
-        return kv.updateCurrentEvent(event, livePhase as kv.EventPhase);
+        return kv.startLiveEvent(event, livePhase as kv.EventPhase);
       });
     }),
-  updateCurrentState: protectedProcedure
+  updateLiveState: protectedProcedure
     .input(
       z.object({
+        eventId: z.string(),
         phase: z.nativeEnum(kv.EventPhase).optional(),
         currentDemoId: z.string().optional().nullable(),
         currentAwardId: z.string().optional().nullable(),
       }),
     )
-    .mutation(async ({ input }) => {
-      const currentEvent = await kv.getCurrentEvent();
-      if (!currentEvent) {
-        return kv.updateCurrentEventState(input);
-      }
-
+    .mutation(async ({ input: { eventId, ...input } }) => {
       if (input.phase !== undefined) {
         await db.$transaction(async (prisma) => {
-          await lockCurrentEventState(prisma);
-          const lockedCurrentEvent = await kv.getCurrentEvent();
-          if (lockedCurrentEvent?.id !== currentEvent.id) {
-            throw new Error("Current event changed during phase update");
+          await lockVotingEvent(prisma, eventId);
+          const liveEvent = await kv.getLiveEvent(eventId);
+          if (!liveEvent) {
+            throw new Error("Event is not live");
           }
 
-          await lockVotingEvent(prisma, currentEvent.id);
           const event = await prisma.event.findUniqueOrThrow({
-            where: { id: currentEvent.id },
+            where: { id: eventId },
             select: { livePhase: true },
           });
-          const previousPhase = event.livePhase ?? lockedCurrentEvent.phase;
+          const previousPhase = event.livePhase ?? liveEvent.phase;
 
           if (
             previousPhase === kv.EventPhase.Voting &&
             input.phase === kv.EventPhase.Results
           ) {
-            await assignAutomaticAwardWinners(prisma, currentEvent.id);
+            await assignAutomaticAwardWinners(prisma, eventId);
           }
 
           await prisma.event.update({
-            where: { id: currentEvent.id },
+            where: { id: eventId },
             data: { livePhase: input.phase },
           });
         });
       }
 
-      return projectCurrentEventState(currentEvent.id, input);
+      return projectLiveEventState(eventId, input);
     }),
   populateTestData: protectedProcedure
     .input(
@@ -622,14 +606,12 @@ export const eventRouter = createTRPCRouter({
         where: { id: input },
       })
       .then(async () => {
-        const currentEvent = await kv.getCurrentEvent();
-        if (input === currentEvent?.id) {
+        const liveIds = await kv.getLiveEventIds();
+        if (liveIds.includes(input)) {
           return db.$transaction(async (prisma) => {
             await lockCurrentEventState(prisma);
-            const lockedCurrentEvent = await kv.getCurrentEvent();
-            if (input === lockedCurrentEvent?.id) {
-              return kv.updateCurrentEvent(null);
-            }
+            await lockVotingEvent(prisma, input);
+            return kv.stopLiveEvent(input);
           });
         }
       });
@@ -679,7 +661,7 @@ async function assignAutomaticAwardWinners(
   }
 }
 
-async function projectCurrentEventState(
+async function projectLiveEventState(
   eventId: string,
   input: {
     phase?: kv.EventPhase;
@@ -688,44 +670,45 @@ async function projectCurrentEventState(
   },
 ) {
   return db.$transaction(async (prisma) => {
-    await lockCurrentEventState(prisma);
     await lockVotingEvent(prisma, eventId);
-    const [currentEvent, event] = await Promise.all([
-      kv.getCurrentEvent(),
+    const [liveEvent, event] = await Promise.all([
+      kv.getLiveEvent(eventId),
       prisma.event.findUniqueOrThrow({
         where: { id: eventId },
         select: { livePhase: true },
       }),
     ]);
 
-    if (currentEvent?.id !== eventId) {
-      throw new Error("Current event changed during state update");
+    if (!liveEvent) {
+      throw new Error("Event stopped being live during state update");
     }
     if (input.phase !== undefined && event.livePhase !== input.phase) {
       return;
     }
 
-    return kv.updateCurrentEventState(input);
+    return kv.updateLiveEventState(eventId, input);
   });
 }
 
-async function withDurablePhase(
-  currentEvent: kv.CurrentEvent,
-): Promise<kv.CurrentEvent> {
+// The database holds the durable phase and join code; KV holds the fast-moving
+// presentation state.
+async function withDurableState(
+  liveEvent: kv.CurrentEvent,
+): Promise<kv.CurrentEvent & { date?: Date }> {
   const event = await db.event.findUnique({
-    where: { id: currentEvent.id },
-    select: { livePhase: true },
+    where: { id: liveEvent.id },
+    select: { livePhase: true, joinCode: true, date: true },
   });
-  const livePhase = event?.livePhase;
-  if (
-    livePhase === null ||
-    livePhase === undefined ||
-    !kv.allPhases.includes(livePhase as kv.EventPhase)
-  ) {
-    return currentEvent;
-  }
+  if (!event) return liveEvent;
 
-  return { ...currentEvent, phase: livePhase as kv.EventPhase };
+  const joinCode = event.joinCode ?? (await ensureJoinCode(liveEvent.id));
+  const livePhase = event.livePhase;
+  const phase =
+    livePhase !== null && kv.allPhases.includes(livePhase as kv.EventPhase)
+      ? (livePhase as kv.EventPhase)
+      : liveEvent.phase;
+
+  return { ...liveEvent, phase, joinCode, date: event.date };
 }
 
 const CURRENT_EVENT_ACTIVE_DAYS = 2;
@@ -734,6 +717,80 @@ function isBeyondCurrentEventWindow(eventDate: Date) {
   return (
     singaporeCalendarDaysBetween(eventDate, new Date()) >=
     CURRENT_EVENT_ACTIVE_DAYS
+  );
+}
+
+// Events nobody stopped after their day would otherwise pile up in the live
+// list. Call while holding lockCurrentEventState.
+async function stopStaleLiveEvents(
+  prisma: Prisma.TransactionClient,
+  keepEventId: string,
+) {
+  const otherIds = (await kv.getLiveEventIds()).filter(
+    (id) => id !== keepEventId,
+  );
+  if (!otherIds.length) return;
+
+  const events = await prisma.event.findMany({
+    where: { id: { in: otherIds } },
+    select: { id: true, date: true },
+  });
+  const dates = new Map(events.map((e) => [e.id, e.date]));
+  for (const id of otherIds) {
+    const date = dates.get(id);
+    if (!date || isBeyondCurrentEventWindow(date)) {
+      await kv.stopLiveEvent(id);
+    }
+  }
+}
+
+async function readLiveEvent(eventId: string) {
+  const liveEvent = await readStoredLiveEvent(eventId);
+  if (!liveEvent) return null;
+  return withDurableState(liveEvent);
+}
+
+async function readLiveActiveEvent(eventId: string) {
+  const liveEvent = await readStoredLiveEvent(eventId);
+  if (!liveEvent) return null;
+  const { date, ...event } = await withDurableState(liveEvent);
+  if (!date || isBeyondCurrentEventWindow(date)) return null;
+  return event;
+}
+
+// Gives the event a join code if it doesn't have one yet (events created before
+// join codes existed) and returns its code.
+async function ensureJoinCode(eventId: string): Promise<string | null> {
+  await withUniqueJoinCode((joinCode) =>
+    db.event.updateMany({
+      where: { id: eventId, joinCode: null },
+      data: { joinCode },
+    }),
+  );
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { joinCode: true },
+  });
+  return event?.joinCode ?? null;
+}
+
+async function withUniqueJoinCode<T>(
+  write: (joinCode: string) => Promise<T>,
+): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await write(generateJoinCode());
+    } catch (error) {
+      if (attempt >= 5 || !isUniqueViolation(error, "joinCode")) throw error;
+    }
+  }
+}
+
+function isUniqueViolation(error: any, field: string) {
+  const target = error?.meta?.target;
+  return (
+    error?.code === "P2002" &&
+    (Array.isArray(target) ? target.includes(field) : target?.includes(field))
   );
 }
 
@@ -758,8 +815,7 @@ const completeEventSelect: Prisma.EventSelect = {
   awards: { orderBy: { index: "asc" } },
 };
 
-const readCurrentEvent = cache(kv.getCurrentEvent);
-const readCurrentEventDate = cache(kv.getCurrentEventDateRecord);
+const readStoredLiveEvent = cache(kv.getLiveEvent);
 
 const readCompleteEvent = cache(async (id: string) =>
   db.event.findUnique({
@@ -767,22 +823,3 @@ const readCompleteEvent = cache(async (id: string) =>
     select: completeEventSelect,
   }),
 );
-
-async function resolveCurrentEventDate(
-  currentEvent: kv.CurrentEvent,
-): Promise<Date | null> {
-  const dateRecord = await readCurrentEventDate();
-  if (dateRecord?.eventId === currentEvent.id) {
-    const storedDate = storedCurrentEventDate(dateRecord);
-    if (storedDate) return storedDate;
-  }
-
-  const legacyDate = storedCurrentEventDate(currentEvent);
-  if (legacyDate) return legacyDate;
-
-  const event = await db.event.findUnique({
-    where: { id: currentEvent.id },
-    select: { date: true },
-  });
-  return event?.date ?? null;
-}

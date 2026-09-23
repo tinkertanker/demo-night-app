@@ -4,7 +4,8 @@ import LoadingDots from "./LoadingDots";
 import { useWorkspaceContext } from "~/app/(attendee)/contexts/WorkspaceContext";
 
 export default function LoadingScreen() {
-  const { currentEvent } = useWorkspaceContext();
+  // Also rendered by the presenter view, outside the attendee workspace.
+  const currentEvent = useWorkspaceContext()?.currentEvent;
   const { isPitchNight } = getBrandingClient(currentEvent?.isPitchNight);
   return (
     <div className="flex w-full flex-1 animate-pulse flex-col items-center justify-center gap-2 py-16 text-black">
