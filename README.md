@@ -53,6 +53,19 @@ yarn dev
 - The local app should now be available at `localhost:3000` and `localhost:3000/admin`!
 - You can log in with "<test@example.com>"
 
+### Tests
+
+Run `yarn test` for unit tests. With the development server and local database
+running, run `yarn test:voters` for voting/moderation integration tests. Set
+`TEST_BASE_URL` if the server uses a port other than 3000. These tests create and
+clean up their own events and admin session, and refuse remote databases or URLs.
+
+Voter exclusions require the `20260916093000_event_voter_exclusions` migration
+before deploying the updated app. Exclusion keeps allocations but removes them
+from totals and automatic winners for that event; Restore includes them again.
+This is name-based moderation, not identity verification: a new browser can still
+join as a new attendee.
+
 ## 📊 Data Ops
 
 ### Dev Data Studio

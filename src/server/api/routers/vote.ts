@@ -4,6 +4,10 @@ import { z } from "zod";
 import { EventPhase, getCurrentEvent } from "~/lib/types/currentEvent";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import {
+  assertVoterCanVote,
+  countedVotesWhere,
+} from "~/server/voterEligibility";
 import { lockVotingEvent } from "~/server/votingLock";
 
 export const voteRouter = createTRPCRouter({
@@ -37,6 +41,7 @@ export const voteRouter = createTRPCRouter({
           await lockVotingEvent(prisma, input.eventId);
           await assertVotingIsOpen(prisma, input.eventId);
           await assertVoteBelongsToEvent(prisma, input);
+          await assertVoterCanVote(prisma, input.eventId, input.attendeeId);
 
           // Validate investment amount if provided
           if (input.amount !== null && input.amount !== undefined) {
@@ -115,7 +120,7 @@ export const voteRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const votes = await db.vote.findMany({
         where: {
-          eventId: input.eventId,
+          ...countedVotesWhere(input.eventId),
           awardId: input.awardId,
         },
         select: {
@@ -140,10 +145,11 @@ export const voteRouter = createTRPCRouter({
     return db.$transaction(async (prisma) => {
       const vote = await prisma.vote.findUniqueOrThrow({
         where: { id: input },
-        select: { eventId: true },
+        select: { eventId: true, attendeeId: true },
       });
       await lockVotingEvent(prisma, vote.eventId);
       await assertVotingIsOpen(prisma, vote.eventId);
+      await assertVoterCanVote(prisma, vote.eventId, vote.attendeeId);
       return prisma.vote.delete({
         where: { id: input },
       });

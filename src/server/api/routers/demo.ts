@@ -8,6 +8,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { countedVotesWhere } from "~/server/voterEligibility";
 
 type BaseFeedback = {
   id: string;
@@ -273,7 +274,7 @@ export const demoRouter = createTRPCRouter({
     .query(async ({ input }): Promise<DemoStats> => {
       const demo = await db.demo.findUnique({
         where: { id: input.id, secret: input.secret },
-        select: { id: true },
+        select: { id: true, eventId: true },
       });
 
       if (!demo) {
@@ -288,7 +289,7 @@ export const demoRouter = createTRPCRouter({
           _sum: { claps: true, cheers: true, confetti: true },
         }),
         db.vote.aggregate({
-          where: { demoId: demo.id },
+          where: { demoId: demo.id, ...countedVotesWhere(demo.eventId) },
           _sum: { amount: true },
         }),
       ]);
