@@ -742,6 +742,7 @@ async function stopStaleLiveEvents(
   for (const id of otherIds) {
     const date = dates.get(id);
     if (!date || isBeyondCurrentEventWindow(date)) {
+      await lockVotingEvent(prisma, id);
       await kv.stopLiveEvent(id);
     }
   }

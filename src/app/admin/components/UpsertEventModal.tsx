@@ -48,7 +48,11 @@ export function UpsertEventModal({
 
   const isDevMode = env.NEXT_PUBLIC_NODE_ENV === "development";
 
-  const { register, handleSubmit } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     values: {
       name: event?.name ?? "",
       id: event?.id ?? defaultId,
@@ -163,10 +167,16 @@ export function UpsertEventModal({
               maxLength={4}
               placeholder="Generated automatically"
             />
-            <span className="text-sm text-muted-foreground">
-              4 letters or digits attendees enter to join while the event is
-              live.
-            </span>
+            {errors.joinCode ? (
+              <span className="text-sm text-red-600">
+                Join codes must be exactly 4 letters or digits.
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                4 letters or digits attendees enter to join while the event is
+                live.
+              </span>
+            )}
           </label>
           <div className="flex items-start gap-3 rounded-md border border-gray-200 p-3">
             <Switch

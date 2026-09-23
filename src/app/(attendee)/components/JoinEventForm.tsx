@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { JOIN_CODE_LENGTH, normalizeJoinCode } from "~/lib/joinCode";
 import { api } from "~/trpc/react";
@@ -25,6 +25,7 @@ export default function JoinEventForm({
   const router = useRouter();
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
+  const [isRechecking, startRecheck] = useTransition();
   const [lastCode, setLastCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,7 +48,12 @@ export default function JoinEventForm({
         onSubmit={(e) => {
           e.preventDefault();
           if (joinCode.length !== JOIN_CODE_LENGTH) return;
-          if (joinCode === invalidCode) return;
+          // Same code as the failed one: the event may have gone live since,
+          // so re-render this page rather than navigating to itself.
+          if (joinCode === invalidCode) {
+            startRecheck(() => router.refresh());
+            return;
+          }
           setPending(true);
           router.push(`/${joinCode}`);
         }}
@@ -78,7 +84,7 @@ export default function JoinEventForm({
             try again.
           </p>
         )}
-        <Button pending={pending}>Join</Button>
+        <Button pending={pending || isRechecking}>Join</Button>
       </form>
       {lastEvent && lastCode && (
         <Link
