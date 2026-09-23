@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 
 import { liveQueryOptions } from "~/lib/liveQuery";
 import { type CurrentEvent } from "~/lib/types/currentEvent";
@@ -14,14 +14,15 @@ export default function useEventAdminSync(initialCurrentEvent: CurrentEvent) {
       },
     );
   // Keep showing the last live state if the event stops being live mid-show.
-  const lastLiveEvent = useRef(initialCurrentEvent);
-  if (lastLiveEvent.current.id !== initialCurrentEvent.id) {
-    lastLiveEvent.current = initialCurrentEvent;
-  }
-  if (liveEvent) {
-    lastLiveEvent.current = liveEvent;
-  }
-  const currentEvent = liveEvent ?? lastLiveEvent.current;
+  const [lastLiveEvent, setLastLiveEvent] = useState(initialCurrentEvent);
+  useEffect(() => {
+    if (liveEvent) setLastLiveEvent(liveEvent);
+  }, [liveEvent]);
+  const currentEvent =
+    liveEvent ??
+    (lastLiveEvent.id === initialCurrentEvent.id
+      ? lastLiveEvent
+      : initialCurrentEvent);
 
   const { data: event, refetch: refetchEvent } = api.event.getAdmin.useQuery(
     currentEvent.id,
