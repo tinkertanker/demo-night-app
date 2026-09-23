@@ -19,7 +19,7 @@ export default async function AdminEventPage({
   }
 
   return (
-    <main className="flex min-h-screen w-full">
+    <main className="flex min-h-dvh w-full">
       <ClientEventDashboard event={event} currentEvent={currentEvent} />
     </main>
   );
