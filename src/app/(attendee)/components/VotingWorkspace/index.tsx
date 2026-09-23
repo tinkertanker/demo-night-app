@@ -4,8 +4,8 @@ import {
   useFeedback,
 } from "../DemosWorkspace/hooks/useFeedback";
 import { SurveyCTA } from "../SurveyCTA";
-import { UpdateAttendeeForm } from "../UpdateAttendee";
 import { type Award } from "@prisma/client";
+import { UpdateAttendeeForm } from "~/app/(attendee)/components/UpdateAttendee";
 
 import { liveQueryOptions } from "~/lib/liveQuery";
 import { type EventConfig } from "~/lib/types/eventConfig";

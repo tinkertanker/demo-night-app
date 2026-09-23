@@ -5,6 +5,7 @@ import { useAttendee } from "../hooks/useAttendee";
 import useEventSync from "../hooks/useEventSync";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { UpdateAttendeeForm } from "~/app/(attendee)/components/UpdateAttendee";
 
 import { animationVariants } from "~/lib/animation";
 import { type CurrentEvent, EventPhase } from "~/lib/types/currentEvent";
@@ -18,7 +19,6 @@ import EventHeader from "./EventHeader";
 import PreWorkspace from "./PreWorkspace";
 import RecapWorkspace from "./RecapWorkspace";
 import ResultsWorkspace from "./ResultsWorkspace";
-import { UpdateAttendeeForm } from "./UpdateAttendee";
 import VotingWorkspace from "./VotingWorkspace";
 
 export default function Workspaces({
@@ -58,8 +58,7 @@ export default function Workspaces({
     if (!ready) return <LoadingScreen />;
     if (
       config.isPitchNight &&
-      (currentEvent?.phase === EventPhase.Demos ||
-        currentEvent?.phase === EventPhase.Voting) &&
+      currentEvent?.phase === EventPhase.Demos &&
       !attendee.name?.trim()
     ) {
       return (

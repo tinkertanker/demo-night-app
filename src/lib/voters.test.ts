@@ -5,7 +5,7 @@ import {
   attendeeNameSchema,
   duplicateVoterIds,
   investmentParticipation,
-} from "./voters";
+} from "~/lib/voters";
 
 describe("voter names", () => {
   it("rejects whitespace but accepts single-word and non-Latin names", () => {
