@@ -94,9 +94,9 @@ Required environment variables are defined in `.env.example` and validated in `/
 
 1. **Pre-Event**: Admins create event, demos submit via submission form
 2. **During Event**: Attendees provide feedback on demos, vote for awards
+3. **Post-Event**: View results, hall of fame for past winners
 
 Several events can be live at once. Each event has a 4-character `joinCode`; attendees join at `/<CODE>` (or type it on `/`), and each live event has its own presenter view at `/admin/[eventId]/present`. Live presentation state (phase, current demo/award) is stored per event in KV (`liveEventIds`, `liveEvent:{id}` in `src/lib/types/currentEvent.ts`), with the durable phase in `Event.livePhase`.
-3. **Post-Event**: View results, hall of fame for past winners
 
 ### Development Notes
 
