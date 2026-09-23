@@ -382,43 +382,53 @@ export default function AwardsAndVotingTab() {
             <AnimatePresence mode="popLayout">
               {Array.from(votesByDemoId.entries())
                 .sort((a, b) => b[1] - a[1])
-                .map(([demoId, voteCount]) => (
-                  <motion.tr
-                    key={demoId}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className={cn(
-                      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-                      "cursor-pointer",
-                      selectedAward?.winnerId === demoId && "bg-accent",
-                    )}
-                    onClick={() => handleSelectWinner(demoId)}
-                  >
-                    <TableCell className="py-3 text-right font-medium md:py-2">
-                      {isPitchNight
-                        ? `$${(voteCount / 1000).toFixed(0)}k`
-                        : voteCount}
-                    </TableCell>
-                    <TableCell className="py-3 font-medium md:py-2">
-                      <div className="flex items-center justify-start gap-2">
-                        {selectedAward?.winnerId === demoId && (
-                          <CircleCheck className="h-4 w-4 shrink-0 text-primary" />
-                        )}
-                        <span
-                          className={cn(
-                            "line-clamp-2",
-                            selectedAward?.winnerId === demoId &&
-                              "font-semibold",
+                .map(([demoId, voteCount]) => {
+                  const demo = event.demos.find((demo) => demo.id === demoId);
+                  return (
+                    <motion.tr
+                      key={demoId}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className={cn(
+                        "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+                        "cursor-pointer",
+                        selectedAward?.winnerId === demoId && "bg-accent",
+                      )}
+                      onClick={() => handleSelectWinner(demoId)}
+                    >
+                      <TableCell className="py-3 text-right font-medium md:py-2">
+                        {isPitchNight
+                          ? `$${(voteCount / 1000).toFixed(0)}k`
+                          : voteCount}
+                      </TableCell>
+                      <TableCell className="py-3 font-medium md:py-2">
+                        <div className="flex flex-col gap-0">
+                          <div className="flex items-center justify-start gap-2">
+                            {selectedAward?.winnerId === demoId && (
+                              <CircleCheck className="h-4 w-4 shrink-0 text-primary" />
+                            )}
+                            <span
+                              className={cn(
+                                "line-clamp-2",
+                                selectedAward?.winnerId === demoId &&
+                                  "font-semibold",
+                              )}
+                            >
+                              {demo?.name}
+                            </span>
+                          </div>
+                          {demo?.description && (
+                            <span className="line-clamp-1 text-sm italic text-muted-foreground">
+                              {demo.description}
+                            </span>
                           )}
-                        >
-                          {event.demos.find((demo) => demo.id === demoId)?.name}
-                        </span>
-                      </div>
-                    </TableCell>
-                  </motion.tr>
-                ))}
+                        </div>
+                      </TableCell>
+                    </motion.tr>
+                  );
+                })}
             </AnimatePresence>
           </TableBody>
         </Table>

@@ -293,11 +293,18 @@ function DemoList({
                     {demo.votable ? votableIndices.get(demo.id) : "-"}
                   </TableCell>
                   <TableCell className="py-3 md:py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="line-clamp-2 font-semibold md:line-clamp-1">
-                        {demo.name}
-                      </span>
-                      {liveDemoId === demo.id && <LiveIndicator />}
+                    <div className="flex flex-col gap-0">
+                      <div className="flex items-center gap-2">
+                        <span className="line-clamp-2 font-semibold md:line-clamp-1">
+                          {demo.name}
+                        </span>
+                        {liveDemoId === demo.id && <LiveIndicator />}
+                      </div>
+                      {demo.description && (
+                        <span className="line-clamp-1 text-sm italic text-muted-foreground">
+                          {demo.description}
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="py-0">
