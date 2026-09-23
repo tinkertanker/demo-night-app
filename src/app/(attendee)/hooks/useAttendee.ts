@@ -1,11 +1,17 @@
 import { type Attendee } from "@prisma/client";
 import { useEffect, useState } from "react";
 
+import { attendeeNameSchema } from "~/lib/voters";
 import { api } from "~/trpc/react";
 
 export function useAttendee(eventId: string) {
-  const [attendee, setAttendee] = useState<Attendee>(getLocalAttendee());
-  const { data: attendeeData } = api.attendee.upsert.useQuery({
+  const [attendee, setAttendee] = useState<Attendee>(getLocalAttendee);
+  const utils = api.useUtils();
+  const {
+    data: attendeeData,
+    isError,
+    refetch,
+  } = api.attendee.upsert.useQuery({
     id: attendee.id,
     eventId: eventId,
   });
@@ -21,18 +27,26 @@ export function useAttendee(eventId: string) {
     }
   }, [attendeeData]);
 
-  useEffect(() => {
-    if (!attendee) return;
-    updateMutation.mutate({
-      id: attendee.id,
-      name: attendee.name,
-      email: attendee.email,
-      linkedin: attendee.linkedin,
-      type: attendee.type,
+  async function updateAttendee(next: Attendee) {
+    const saved = await updateMutation.mutateAsync({
+      ...next,
+      name: attendeeNameSchema.parse(next.name),
     });
-  }, [attendee]); // eslint-disable-line react-hooks/exhaustive-deps
+    utils.attendee.upsert.setData({ id: saved.id, eventId }, saved);
+    setAttendee(saved);
+    await utils.attendee.votingStatus.invalidate({
+      eventId,
+      attendeeId: saved.id,
+    });
+  }
 
-  return { attendee, setAttendee };
+  return {
+    attendee,
+    setAttendee: updateAttendee,
+    ready: !!attendeeData,
+    isError,
+    refetch,
+  };
 }
 
 function getLocalAttendee(): Attendee {

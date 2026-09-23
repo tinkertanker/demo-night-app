@@ -3,10 +3,12 @@
 import { useWorkspaceContext } from "../contexts/WorkspaceContext";
 import { type Attendee } from "@prisma/client";
 import { CircleUserRoundIcon } from "lucide-react";
+import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { getBrandingClient } from "~/lib/branding";
+import { attendeeNameSchema } from "~/lib/voters";
 
 import Button from "~/components/Button";
 import { useModal } from "~/components/modal/provider";
@@ -16,7 +18,7 @@ export function UpdateAttendeeButton({
   setAttendee,
 }: {
   attendee: Attendee | null;
-  setAttendee: (attendee: Attendee) => void;
+  setAttendee: (attendee: Attendee) => Promise<void>;
 }) {
   const { currentEvent } = useWorkspaceContext();
   const { isPitchNight } = getBrandingClient(currentEvent?.isPitchNight);
@@ -45,7 +47,7 @@ export function UpdateAttendeeModal({
   isPitchNight,
 }: {
   attendee: Attendee | null;
-  setAttendee: (attendee: Attendee) => void;
+  setAttendee: (attendee: Attendee) => Promise<void>;
   isPitchNight: boolean;
 }) {
   const modal = useModal();
@@ -67,14 +69,21 @@ export function UpdateAttendeeForm({
   onSubmit,
   isPreDemo = true,
   isPitchNight,
+  isJoining = false,
 }: {
   attendee: Attendee | null;
-  setAttendee: (attendee: Attendee) => void;
+  setAttendee: (attendee: Attendee) => Promise<void>;
   onSubmit?: () => void;
   isPreDemo?: boolean;
   isPitchNight: boolean;
+  isJoining?: boolean;
 }) {
-  const { register, handleSubmit } = useForm({
+  const nameId = useId();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
     values: {
       name: attendee?.name ?? "",
     },
@@ -82,41 +91,69 @@ export function UpdateAttendeeForm({
 
   return (
     <form
-      onSubmit={handleSubmit((data) => {
+      onSubmit={handleSubmit(async (data) => {
         if (!attendee) {
           toast.error("Failed to update profile. Hang with us!");
           return;
         }
-        setAttendee({
-          id: attendee.id,
-          name: data.name,
-          email: attendee.email,
-          linkedin: attendee.linkedin,
-          type: attendee.type,
-        });
-        const message = isPreDemo
-          ? `Profile updated! Hang tight – ${isPitchNight ? "pitches" : "demos"} starting soon 😎`
-          : "Sweet! Presenters will see your updated profile 😎";
-        toast.success(message);
-        onSubmit?.();
+        try {
+          await setAttendee({ ...attendee, name: data.name.trim() });
+          const message = isJoining
+            ? "Name saved!"
+            : isPreDemo
+              ? `Profile updated! Hang tight – ${isPitchNight ? "pitches" : "demos"} starting soon 😎`
+              : "Sweet! Presenters will see your updated profile 😎";
+          toast.success(message);
+          onSubmit?.();
+        } catch {
+          toast.error("Could not save your name. Please try again.");
+        }
       })}
       className="flex w-full flex-col items-center gap-4 font-medium"
     >
       <div>
         <h1 className="text-center text-4xl font-bold tracking-tight">
-          {isPreDemo ? "Enter your name" : "Update Profile 🧑‍💼"}
+          {isPreDemo || isJoining ? "Enter your name" : "Update Profile 🧑‍💼"}
         </h1>
       </div>
-      <label className="flex w-full flex-col gap-1">
-        <span className="text-lg font-semibold">Name</span>
+      <div className="flex w-full flex-col gap-1">
+        <label htmlFor={nameId} className="text-lg font-semibold">
+          Name
+        </label>
         <input
+          id={nameId}
           type="text"
           placeholder="Ada Lovelace"
-          {...register("name")}
+          autoComplete="name"
+          aria-required="true"
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? `${nameId}-error` : `${nameId}-hint`}
+          {...register("name", {
+            validate: (value) =>
+              attendeeNameSchema.safeParse(value).success ||
+              "Please enter your name",
+          })}
           className="z-30 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
         />
-      </label>
-      <Button isPitchNight={isPitchNight}>Submit</Button>
+        <span
+          id={`${nameId}-hint`}
+          className="text-sm font-normal text-gray-600"
+        >
+          Please use your real name so the organiser can recognise you.
+        </span>
+        {errors.name && (
+          <span
+            id={`${nameId}-error`}
+            role="alert"
+            className="text-sm text-destructive"
+          >
+            {errors.name.message}
+          </span>
+        )}
+      </div>
+      <Button isPitchNight={isPitchNight} pending={isSubmitting}>
+        {isJoining ? "Continue" : "Submit"}
+      </Button>
     </form>
   );
 }

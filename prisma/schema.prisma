@@ -81,13 +81,14 @@ model Event {
   // Short code attendees use to join the event while it is live (see src/lib/joinCode.ts)
   joinCode  String?  @unique
 
-  submissions   Submission[]
-  demos         Demo[]
-  attendees     Attendee[]
-  awards        Award[]
-  feedback      Feedback[]
-  votes         Vote[]
-  eventFeedback EventFeedback[]
+  submissions    Submission[]
+  demos          Demo[]
+  attendees      Attendee[]
+  excludedVoters Attendee[]      @relation("ExcludedVoters")
+  awards         Award[]
+  feedback       Feedback[]
+  votes          Vote[]
+  eventFeedback  EventFeedback[]
 
   @@index([date])
 }
@@ -146,8 +147,9 @@ model Demo {
 }
 
 model Attendee {
-  id     String  @id @default(cuid())
-  events Event[]
+  id                 String  @id @default(cuid())
+  events             Event[]
+  excludedFromEvents Event[] @relation("ExcludedVoters")
 
   name     String?
   email    String?

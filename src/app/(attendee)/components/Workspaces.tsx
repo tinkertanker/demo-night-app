@@ -5,11 +5,13 @@ import { useAttendee } from "../hooks/useAttendee";
 import useEventSync from "../hooks/useEventSync";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { UpdateAttendeeForm } from "~/app/(attendee)/components/UpdateAttendee";
 
 import { animationVariants } from "~/lib/animation";
 import { type CurrentEvent, EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig, eventConfigSchema } from "~/lib/types/eventConfig";
 
+import Button from "~/components/Button";
 import LoadingScreen from "~/components/loading/LoadingScreen";
 
 import DemosWorkspace from "./DemosWorkspace";
@@ -29,7 +31,9 @@ export default function Workspaces({
   const [config, setConfig] = useState<EventConfig>(
     eventConfigSchema.parse(event?.config ?? {}),
   );
-  const { attendee, setAttendee } = useAttendee(initialCurrentEvent.id);
+  const { attendee, setAttendee, ready, isError, refetch } = useAttendee(
+    initialCurrentEvent.id,
+  );
 
   useEffect(() => {
     if (event) {
@@ -51,6 +55,32 @@ export default function Workspaces({
   }, [currentEvent]);
 
   function workspace() {
+    if (isError) {
+      return (
+        <div className="mx-auto max-w-xl space-y-4 p-4 text-center">
+          <p role="alert">Could not join the event. Please try again.</p>
+          <Button onClick={() => void refetch()}>Try again</Button>
+        </div>
+      );
+    }
+    if (!ready) return <LoadingScreen />;
+    if (
+      config.isPitchNight &&
+      currentEvent?.phase === EventPhase.Demos &&
+      !attendee.name?.trim()
+    ) {
+      return (
+        <div className="mx-auto w-full max-w-xl px-4 pt-8">
+          <UpdateAttendeeForm
+            attendee={attendee}
+            setAttendee={setAttendee}
+            isPitchNight={config.isPitchNight}
+            isPreDemo={false}
+            isJoining
+          />
+        </div>
+      );
+    }
     switch (currentEvent?.phase) {
       case EventPhase.Pre:
         return <PreWorkspace />;

@@ -12,7 +12,7 @@ export type IWorkspaceContext = {
   event: CompleteEvent;
   config: EventConfig;
   attendee: Attendee;
-  setAttendee: (attendee: Attendee) => void;
+  setAttendee: (attendee: Attendee) => Promise<void>;
 };
 
 export const WorkspaceContext = createContext<IWorkspaceContext>(null!);
