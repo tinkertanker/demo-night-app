@@ -27,7 +27,7 @@ export default async function SubmissionsPage({
   }
 
   return (
-    <main className="flex h-screen w-full flex-col p-4">
+    <main className="flex h-dvh w-full flex-col p-4">
       <SubmissionsDashboard event={event} isAdmin={!!auth} />
     </main>
   );
