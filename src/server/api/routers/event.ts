@@ -8,7 +8,6 @@ import {
 import { cache } from "react";
 import { z } from "zod";
 
-import { rankAutomaticAwardWinners } from "~/lib/automaticAwardWinners";
 import { storedCurrentEventDate } from "~/lib/currentEventDate";
 import {
   singaporeCalendarDaysBetween,
@@ -19,7 +18,6 @@ import * as kv from "~/lib/types/currentEvent";
 import { DEFAULT_DEMOS } from "~/lib/types/demo";
 import {
   DEFAULT_EVENT_CONFIG,
-  type EventConfig,
   eventConfigSchema,
 } from "~/lib/types/eventConfig";
 import {
@@ -27,6 +25,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { assignAutomaticAwardWinners } from "~/server/automaticAwardWinners";
 import { db } from "~/server/db";
 import { lockCurrentEventState, lockVotingEvent } from "~/server/votingLock";
 
@@ -174,7 +173,8 @@ export const eventRouter = createTRPCRouter({
               await db.$transaction(async (prisma) => {
                 await lockCurrentEventState(prisma);
                 const currentEvent = await kv.getCurrentEvent();
-                if (!currentEvent || currentEvent.id !== input.originalId) return;
+                if (!currentEvent || currentEvent.id !== input.originalId)
+                  return;
 
                 await lockVotingEvent(prisma, res.id);
                 const event = await prisma.event.findUniqueOrThrow({
@@ -635,49 +635,6 @@ export const eventRouter = createTRPCRouter({
       });
   }),
 });
-
-async function assignAutomaticAwardWinners(
-  prisma: Prisma.TransactionClient,
-  eventId: string,
-) {
-  const rankingAward = await prisma.award.findFirst({
-    where: { eventId, winnerRank: 1 },
-    select: {
-      event: {
-        select: {
-          config: true,
-          demos: {
-            select: { id: true, index: true, votable: true },
-          },
-        },
-      },
-      votes: {
-        select: { demoId: true, amount: true },
-      },
-    },
-  });
-
-  if (!rankingAward) return;
-
-  const config = rankingAward.event.config as EventConfig;
-  const rankedDemoIds = rankAutomaticAwardWinners(
-    rankingAward.event.demos,
-    rankingAward.votes,
-    config.isPitchNight ?? false,
-  );
-  const automaticAwards = await prisma.award.findMany({
-    where: { eventId, winnerRank: { not: null } },
-    select: { id: true, winnerRank: true },
-  });
-
-  for (const award of automaticAwards) {
-    const winnerId = rankedDemoIds[(award.winnerRank ?? 0) - 1] ?? null;
-    await prisma.award.update({
-      where: { id: award.id },
-      data: { winnerId, winnerName: null },
-    });
-  }
-}
 
 async function projectCurrentEventState(
   eventId: string,

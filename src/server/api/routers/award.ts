@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { countedVotesWhere } from "~/server/voterEligibility";
 import { lockVotingEvent } from "~/server/votingLock";
 
 export const awardRouter = createTRPCRouter({
@@ -13,9 +14,14 @@ export const awardRouter = createTRPCRouter({
       if (!input) {
         return [];
       }
+      const award = await db.award.findUniqueOrThrow({
+        where: { id: input },
+        select: { eventId: true },
+      });
       return db.vote.findMany({
-        where: { awardId: input },
+        where: { awardId: input, ...countedVotesWhere(award.eventId) },
         select: {
+          attendeeId: true,
           demoId: true,
           amount: true,
         },

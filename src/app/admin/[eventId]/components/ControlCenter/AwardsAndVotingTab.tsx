@@ -19,6 +19,7 @@ import { liveQueryOptions } from "~/lib/liveQuery";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
+import { investmentParticipation } from "~/lib/voters";
 import { api } from "~/trpc/react";
 
 import { Button } from "~/components/ui/button";
@@ -38,6 +39,7 @@ import {
 } from "~/components/ui/tooltip";
 
 import { type MobilePanel, SplitPanels } from "./SplitPanels";
+import VotersPanel from "./VotersPanel";
 
 const DRUM_ROLL_PATH = "/sounds/drumroll.mp3";
 // Leaves room for the presentation's 2-second winner animation delay and its
@@ -55,6 +57,7 @@ export default function AwardsAndVotingTab() {
     event?.awards[0]?.id,
   );
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("left");
+  const [showVoters, setShowVoters] = useState(false);
   const { data: votes, refetch: refetchVotes } = api.award.getVotes.useQuery(
     selectedAwardId ?? "",
     {
@@ -103,7 +106,7 @@ export default function AwardsAndVotingTab() {
     votes?.forEach((vote) => {
       if (!vote.demoId) return;
       // For pitch nights, sum investment amounts; for demo nights, count votes
-      const value = isPitchNight && vote.amount ? vote.amount : 1;
+      const value = isPitchNight ? vote.amount ?? 0 : 1;
       map.set(vote.demoId, (map.get(vote.demoId) ?? 0) + value);
     });
     return map;
@@ -307,6 +310,7 @@ export default function AwardsAndVotingTab() {
   );
 
   const votesLabel = isPitchNight ? "Investments" : "Votes";
+  const participation = investmentParticipation(votes ?? []);
   const votesPanel = (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 bg-background md:min-w-[300px]">
       <div className="flex shrink-0 flex-col items-start gap-1">
@@ -315,7 +319,6 @@ export default function AwardsAndVotingTab() {
             {selectedAward?.name
               ? `${votesLabel} for ${selectedAward.name}`
               : votesLabel}
-            <span> ({votes?.length ?? 0} total)</span>
           </h2>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -332,6 +335,11 @@ export default function AwardsAndVotingTab() {
             <TooltipContent>Deselect winner</TooltipContent>
           </Tooltip>
         </div>
+        <p className="text-sm text-muted-foreground">
+          {isPitchNight
+            ? `${participation.investors} investors · ${participation.allocations} allocations`
+            : `${new Set(votes?.map((vote) => vote.attendeeId)).size} voters · ${votes?.length ?? 0} votes`}
+        </p>
         <form
           className="flex w-full items-center gap-2"
           onSubmit={(e) => {
@@ -420,7 +428,29 @@ export default function AwardsAndVotingTab() {
   return (
     <SplitPanels
       left={awardsPanel}
-      right={votesPanel}
+      right={
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="flex shrink-0 gap-2" aria-label="Voting views">
+            <Button
+              size="sm"
+              variant={showVoters ? "outline" : "secondary"}
+              aria-pressed={!showVoters}
+              onClick={() => setShowVoters(false)}
+            >
+              {votesLabel}
+            </Button>
+            <Button
+              size="sm"
+              variant={showVoters ? "secondary" : "outline"}
+              aria-pressed={showVoters}
+              onClick={() => setShowVoters(true)}
+            >
+              Voters
+            </Button>
+          </div>
+          {showVoters ? <VotersPanel /> : votesPanel}
+        </div>
+      }
       leftLabel="Awards"
       rightLabel={votesLabel}
       mobilePanel={mobilePanel}
