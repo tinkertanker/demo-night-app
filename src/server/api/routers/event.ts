@@ -308,9 +308,7 @@ export const eventRouter = createTRPCRouter({
         await db.$transaction(async (prisma) => {
           await lockVotingEvent(prisma, eventId);
           const liveEvent = await kv.getLiveEvent(eventId);
-          if (!liveEvent) {
-            throw new Error("Event is not live");
-          }
+          if (!liveEvent) throw notLiveError();
 
           const event = await prisma.event.findUniqueOrThrow({
             where: { id: eventId },
@@ -679,9 +677,7 @@ async function projectLiveEventState(
       }),
     ]);
 
-    if (!liveEvent) {
-      throw new Error("Event stopped being live during state update");
-    }
+    if (!liveEvent) throw notLiveError();
     if (input.phase !== undefined && event.livePhase !== input.phase) {
       return;
     }
@@ -718,6 +714,13 @@ function isBeyondCurrentEventWindow(eventDate: Date) {
     singaporeCalendarDaysBetween(eventDate, new Date()) >=
     CURRENT_EVENT_ACTIVE_DAYS
   );
+}
+
+function notLiveError() {
+  return new TRPCError({
+    code: "PRECONDITION_FAILED",
+    message: "Event is not live",
+  });
 }
 
 // Events nobody stopped after their day would otherwise pile up in the live
