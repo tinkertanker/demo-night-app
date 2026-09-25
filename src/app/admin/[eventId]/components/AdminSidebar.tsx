@@ -6,15 +6,12 @@ import {
   ChevronDown,
   ChevronsUpDown,
   CirclePlay,
-  ClipboardListIcon,
   CopyIcon,
   ExternalLink,
   LayoutDashboardIcon,
-  MessageSquareTextIcon,
   MonitorPlayIcon,
   OctagonPause,
   PresentationIcon,
-  SettingsIcon,
   TrophyIcon,
   UsersIcon,
 } from "lucide-react";
@@ -22,10 +19,8 @@ import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { toast } from "sonner";
 
-import { getBrandingClient } from "~/lib/branding";
 import { formatEventDate } from "~/lib/singaporeDate";
 import { EventPhase } from "~/lib/types/currentEvent";
-import { type EventConfig } from "~/lib/types/eventConfig";
 import { api } from "~/trpc/react";
 
 import MascotLogo from "~/components/MascotLogo";
@@ -49,39 +44,30 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar,
 } from "~/components/ui/sidebar";
 
 import { LiveIndicator } from "./LiveIndicator";
 
 export enum AdminTab {
-  Submissions = "submissions",
   Demos = "demos",
   Awards = "awards",
-  Configuration = "configuration",
   DemosAndFeedback = "demos-and-feedback",
   AwardsAndVoting = "awards-and-voting",
   Attendees = "attendees",
-  EventFeedback = "event-feedback",
 }
 
 interface AdminSidebarProps {
   event: AdminEvent;
-  config: EventConfig;
   selectedTab: AdminTab;
   setSelectedTab: (tab: AdminTab) => void;
 }
 
 export function AdminSidebar({
   event,
-  config,
   selectedTab,
   setSelectedTab,
 }: AdminSidebarProps) {
-  const branding = getBrandingClient(config?.isPitchNight);
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   const { data: events } = api.event.allAdmin.useQuery();
@@ -91,10 +77,6 @@ export function AdminSidebar({
   const currentPhase = isLive ? currentEvent.phase : null;
   const joinCode = currentEvent?.joinCode ?? event.joinCode;
   const setLiveMutation = api.event.setLive.useMutation();
-
-  const { data: submissionCount } = api.submission.count.useQuery({
-    eventId: event.id,
-  });
 
   const selectTab = useCallback(
     (tab: AdminTab) => {
@@ -237,24 +219,6 @@ export function AdminSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => {
-                    selectTab(AdminTab.Submissions);
-                  }}
-                  className={
-                    selectedTab === AdminTab.Submissions ? "bg-accent" : ""
-                  }
-                >
-                  <div className="flex items-center gap-2">
-                    <ClipboardListIcon className="h-4 w-4" />
-                    <span>Submissions</span>
-                  </div>
-                </SidebarMenuButton>
-                {submissionCount !== undefined ? (
-                  <SidebarMenuBadge>{submissionCount}</SidebarMenuBadge>
-                ) : null}
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
                   onClick={() => selectTab(AdminTab.Demos)}
                   className={selectedTab === AdminTab.Demos ? "bg-accent" : ""}
                 >
@@ -277,20 +241,6 @@ export function AdminSidebar({
                 </SidebarMenuButton>
                 <SidebarMenuBadge>{event.awards.length}</SidebarMenuBadge>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => selectTab(AdminTab.Configuration)}
-                  className={
-                    selectedTab === AdminTab.Configuration ? "bg-accent" : ""
-                  }
-                >
-                  <div className="flex items-center gap-2">
-                    <SettingsIcon className="h-4 w-4" />
-                    <span>Configuration</span>
-                  </div>
-                </SidebarMenuButton>
-                <SidebarMenuBadge>{config.partners.length}</SidebarMenuBadge>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -300,64 +250,24 @@ export function AdminSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() =>
-                    selectTab(
-                      selectedTab === AdminTab.DemosAndFeedback
-                        ? AdminTab.AwardsAndVoting
-                        : AdminTab.DemosAndFeedback,
-                    )
+                  onClick={() => selectTab(AdminTab.DemosAndFeedback)}
+                  className={
+                    selectedTab === AdminTab.DemosAndFeedback ||
+                    selectedTab === AdminTab.AwardsAndVoting
+                      ? "bg-accent"
+                      : ""
                   }
                 >
                   <div className="flex items-center gap-2">
                     <LayoutDashboardIcon className="h-4 w-4" />
-                    <span>Control Center</span>
+                    <span>Control Centre</span>
+                    {currentPhase === EventPhase.Demos ||
+                    currentPhase === EventPhase.Voting ||
+                    currentPhase === EventPhase.Results ? (
+                      <LiveIndicator />
+                    ) : null}
                   </div>
                 </SidebarMenuButton>
-                <SidebarMenuSub>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton
-                      onClick={() => selectTab(AdminTab.DemosAndFeedback)}
-                      className={
-                        selectedTab === AdminTab.DemosAndFeedback
-                          ? "bg-accent"
-                          : ""
-                      }
-                    >
-                      <div className="flex items-center gap-2">
-                        <PresentationIcon className="h-4 w-4 shrink-0" />
-                        <span className="line-clamp-1">
-                          {branding.isPitchNight
-                            ? "Pitches & Feedback"
-                            : "Demos & Feedback"}
-                        </span>
-                        {currentPhase === EventPhase.Demos && <LiveIndicator />}
-                      </div>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton
-                      onClick={() => selectTab(AdminTab.AwardsAndVoting)}
-                      className={
-                        selectedTab === AdminTab.AwardsAndVoting
-                          ? "bg-accent"
-                          : ""
-                      }
-                    >
-                      <div className="flex items-center gap-2">
-                        <TrophyIcon className="h-4 w-4 shrink-0" />
-                        <span className="line-clamp-1">
-                          {branding.isPitchNight
-                            ? "Awards & Investing"
-                            : "Awards & Voting"}
-                        </span>
-                        {currentPhase === EventPhase.Voting ||
-                        currentPhase === EventPhase.Results ? (
-                          <LiveIndicator />
-                        ) : null}
-                      </div>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                </SidebarMenuSub>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -372,22 +282,6 @@ export function AdminSidebar({
                   </div>
                 </SidebarMenuButton>
                 <SidebarMenuBadge>{event._count.attendees}</SidebarMenuBadge>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => selectTab(AdminTab.EventFeedback)}
-                  className={
-                    selectedTab === AdminTab.EventFeedback ? "bg-accent" : ""
-                  }
-                >
-                  <div className="flex items-center gap-2">
-                    <MessageSquareTextIcon className="h-4 w-4" />
-                    <span>Event Feedback</span>
-                  </div>
-                </SidebarMenuButton>
-                <SidebarMenuBadge>
-                  {event._count.eventFeedback}
-                </SidebarMenuBadge>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
