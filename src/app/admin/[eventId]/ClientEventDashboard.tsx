@@ -11,11 +11,8 @@ import { eventConfigSchema } from "~/lib/types/eventConfig";
 import { AdminSidebar, AdminTab } from "./components/AdminSidebar";
 import AttendeesTab from "./components/Attendees/AttendeesTab";
 import { AwardsTab } from "./components/Awards/AwardsTab";
-import { ConfigurationTab } from "./components/Configuration/ConfigurationTab";
 import ControlCenterTab from "./components/ControlCenter/ControlCenterTab";
 import { DemosTab } from "./components/Demos/DemosTab";
-import EventFeedbackTab from "./components/EventFeedback/EventFeedbackTab";
-import SubmissionsTab from "./components/Submissions/SubmissionsTab";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 
 import { type AdminEvent, DashboardContext } from "./contexts/DashboardContext";
@@ -37,7 +34,10 @@ export function ClientEventDashboard({
   );
   const [selectedTab, setSelectedTab] = useQueryState<AdminTab>("tab", {
     defaultValue: AdminTab.DemosAndFeedback,
-    parse: (value) => value as AdminTab,
+    parse: (value) =>
+      (Object.values(AdminTab) as string[]).includes(value)
+        ? (value as AdminTab)
+        : AdminTab.DemosAndFeedback,
     serialize: (value) => value,
   });
 
@@ -49,14 +49,12 @@ export function ClientEventDashboard({
 
   function dashboard() {
     switch (selectedTab) {
-      case AdminTab.Submissions:
-        return <SubmissionsTab />;
       case AdminTab.Demos:
         return <DemosTab />;
       case AdminTab.Awards:
         return <AwardsTab />;
-      case AdminTab.Configuration:
-        return <ConfigurationTab />;
+      case AdminTab.Attendees:
+        return <AttendeesTab />;
       case AdminTab.DemosAndFeedback:
       case AdminTab.AwardsAndVoting:
         return (
@@ -65,10 +63,6 @@ export function ClientEventDashboard({
             setSelectedTab={setSelectedTab}
           />
         );
-      case AdminTab.Attendees:
-        return <AttendeesTab />;
-      case AdminTab.EventFeedback:
-        return <EventFeedbackTab />;
     }
   }
 
@@ -89,7 +83,6 @@ export function ClientEventDashboard({
         <div className="flex h-dvh w-full">
           <AdminSidebar
             event={event}
-            config={config}
             selectedTab={selectedTab}
             setSelectedTab={setSelectedTab}
           />
