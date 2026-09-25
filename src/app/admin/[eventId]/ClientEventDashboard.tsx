@@ -34,7 +34,10 @@ export function ClientEventDashboard({
   );
   const [selectedTab, setSelectedTab] = useQueryState<AdminTab>("tab", {
     defaultValue: AdminTab.DemosAndFeedback,
-    parse: (value) => value as AdminTab,
+    parse: (value) =>
+      (Object.values(AdminTab) as string[]).includes(value)
+        ? (value as AdminTab)
+        : AdminTab.DemosAndFeedback,
     serialize: (value) => value,
   });
 
@@ -52,14 +55,11 @@ export function ClientEventDashboard({
         return <AwardsTab />;
       case AdminTab.Attendees:
         return <AttendeesTab />;
-      default:
+      case AdminTab.DemosAndFeedback:
+      case AdminTab.AwardsAndVoting:
         return (
           <ControlCenterTab
-            selectedTab={
-              selectedTab === AdminTab.AwardsAndVoting
-                ? AdminTab.AwardsAndVoting
-                : AdminTab.DemosAndFeedback
-            }
+            selectedTab={selectedTab}
             setSelectedTab={setSelectedTab}
           />
         );
