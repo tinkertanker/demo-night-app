@@ -19,7 +19,7 @@ import {
   toSingaporeMidnight,
 } from "~/lib/singaporeDate";
 import { DEFAULT_AWARDS, PITCH_NIGHT_AWARDS } from "~/lib/types/award";
-import * as kv from "~/lib/types/currentEvent";
+import * as live from "~/server/liveEvent";
 import { DEFAULT_DEMOS } from "~/lib/types/demo";
 import {
   DEFAULT_EVENT_CONFIG,
@@ -51,7 +51,7 @@ export type PublicDemo = Omit<
 const liveEventSchema = z.object({
   id: z.string(),
   name: z.string(),
-  phase: z.nativeEnum(kv.EventPhase),
+  phase: z.nativeEnum(live.EventPhase),
   currentDemoId: z.string().nullable(),
   currentAwardId: z.string().nullable(),
   isPitchNight: z.boolean().optional().default(false),
@@ -84,12 +84,12 @@ export const eventRouter = createTRPCRouter({
     .input(z.undefined())
     .output(liveEventSchema.nullable())
     .query(async () => {
-      const ids = await kv.getLiveEventIds();
+      const ids = await live.getLiveEventIds();
       const latestId = ids[ids.length - 1];
       return latestId ? readLiveEvent(latestId) : null;
     }),
-  getLive: protectedProcedure.query(async (): Promise<kv.CurrentEvent[]> => {
-    const liveEvents = await kv.getLiveEvents();
+  getLive: protectedProcedure.query(async (): Promise<live.CurrentEvent[]> => {
+    const liveEvents = await live.getLiveEvents();
     return Promise.all(liveEvents.map(withDurableState));
   }),
   getLiveEvent: publicProcedure
@@ -160,7 +160,7 @@ export const eventRouter = createTRPCRouter({
               await db.$transaction(async (prisma) => {
                 await lockCurrentEventState(prisma);
                 await lockVotingEvent(prisma, res.id);
-                const liveEvent = await kv.getLiveEvent(res.id);
+                const liveEvent = await live.getLiveEvent(res.id, prisma);
                 if (!liveEvent) return;
 
                 const event = await prisma.event.findUniqueOrThrow({
@@ -174,7 +174,7 @@ export const eventRouter = createTRPCRouter({
                     data: { livePhase },
                   });
                 }
-                await kv.startLiveEvent(res, livePhase as kv.EventPhase);
+                await live.startLiveEvent(res, livePhase as live.EventPhase, prisma);
               });
               return res;
             });
@@ -262,7 +262,7 @@ export const eventRouter = createTRPCRouter({
         return db.$transaction(async (prisma) => {
           await lockCurrentEventState(prisma);
           await lockVotingEvent(prisma, input.eventId);
-          await kv.stopLiveEvent(input.eventId);
+          await live.stopLiveEvent(input.eventId, prisma);
         });
       }
       const event = await db.event.findUnique({
@@ -277,27 +277,27 @@ export const eventRouter = createTRPCRouter({
         await lockCurrentEventState(prisma);
         await stopStaleLiveEvents(prisma, event.id);
         await lockVotingEvent(prisma, event.id);
-        const liveEvent = await kv.getLiveEvent(event.id);
+        const liveEvent = await live.getLiveEvent(event.id, prisma);
         const durableEvent = await prisma.event.findUniqueOrThrow({
           where: { id: event.id },
           select: { livePhase: true },
         });
         const livePhase =
-          durableEvent.livePhase ?? liveEvent?.phase ?? kv.EventPhase.Pre;
+          durableEvent.livePhase ?? liveEvent?.phase ?? live.EventPhase.Pre;
         if (durableEvent.livePhase === null) {
           await prisma.event.update({
             where: { id: event.id },
             data: { livePhase },
           });
         }
-        return kv.startLiveEvent(event, livePhase as kv.EventPhase);
+        return live.startLiveEvent(event, livePhase as live.EventPhase, prisma);
       });
     }),
   updateLiveState: protectedProcedure
     .input(
       z.object({
         eventId: z.string(),
-        phase: z.nativeEnum(kv.EventPhase).optional(),
+        phase: z.nativeEnum(live.EventPhase).optional(),
         currentDemoId: z.string().optional().nullable(),
         currentAwardId: z.string().optional().nullable(),
       }),
@@ -306,7 +306,7 @@ export const eventRouter = createTRPCRouter({
       if (input.phase !== undefined) {
         await db.$transaction(async (prisma) => {
           await lockVotingEvent(prisma, eventId);
-          const liveEvent = await kv.getLiveEvent(eventId);
+          const liveEvent = await live.getLiveEvent(eventId, prisma);
           if (!liveEvent) throw notLiveError();
 
           const event = await prisma.event.findUniqueOrThrow({
@@ -316,8 +316,8 @@ export const eventRouter = createTRPCRouter({
           const previousPhase = event.livePhase ?? liveEvent.phase;
 
           if (
-            previousPhase === kv.EventPhase.Voting &&
-            input.phase === kv.EventPhase.Results
+            previousPhase === live.EventPhase.Voting &&
+            input.phase === live.EventPhase.Results
           ) {
             await assignAutomaticAwardWinners(prisma, eventId);
           }
@@ -603,12 +603,12 @@ export const eventRouter = createTRPCRouter({
         where: { id: input },
       })
       .then(async () => {
-        const liveIds = await kv.getLiveEventIds();
+        const liveIds = await live.getLiveEventIds();
         if (liveIds.includes(input)) {
           return db.$transaction(async (prisma) => {
             await lockCurrentEventState(prisma);
             await lockVotingEvent(prisma, input);
-            return kv.stopLiveEvent(input);
+            return live.stopLiveEvent(input, prisma);
           });
         }
       });
@@ -618,7 +618,7 @@ export const eventRouter = createTRPCRouter({
 async function projectLiveEventState(
   eventId: string,
   input: {
-    phase?: kv.EventPhase;
+    phase?: live.EventPhase;
     currentDemoId?: string | null;
     currentAwardId?: string | null;
   },
@@ -626,7 +626,7 @@ async function projectLiveEventState(
   return db.$transaction(async (prisma) => {
     await lockVotingEvent(prisma, eventId);
     const [liveEvent, event] = await Promise.all([
-      kv.getLiveEvent(eventId),
+      live.getLiveEvent(eventId, prisma),
       prisma.event.findUniqueOrThrow({
         where: { id: eventId },
         select: { livePhase: true },
@@ -638,15 +638,15 @@ async function projectLiveEventState(
       return;
     }
 
-    return kv.updateLiveEventState(eventId, input);
+    return live.updateLiveEventState(eventId, input, prisma);
   });
 }
 
-// The database holds the durable phase and join code; KV holds the fast-moving
+// The Event row holds the durable phase and join code; LiveEvent holds the fast-moving
 // presentation state.
 async function withDurableState(
-  liveEvent: kv.CurrentEvent,
-): Promise<kv.CurrentEvent & { date?: Date }> {
+  liveEvent: live.CurrentEvent,
+): Promise<live.CurrentEvent & { date?: Date }> {
   const event = await db.event.findUnique({
     where: { id: liveEvent.id },
     select: { livePhase: true, joinCode: true, date: true },
@@ -656,8 +656,8 @@ async function withDurableState(
   const joinCode = event.joinCode ?? (await ensureJoinCode(liveEvent.id));
   const livePhase = event.livePhase;
   const phase =
-    livePhase !== null && kv.allPhases.includes(livePhase as kv.EventPhase)
-      ? (livePhase as kv.EventPhase)
+    livePhase !== null && live.allPhases.includes(livePhase as live.EventPhase)
+      ? (livePhase as live.EventPhase)
       : liveEvent.phase;
 
   return { ...liveEvent, phase, joinCode, date: event.date };
@@ -685,7 +685,7 @@ async function stopStaleLiveEvents(
   prisma: Prisma.TransactionClient,
   keepEventId: string,
 ) {
-  const otherIds = (await kv.getLiveEventIds()).filter(
+  const otherIds = (await live.getLiveEventIds(prisma)).filter(
     (id) => id !== keepEventId,
   );
   if (!otherIds.length) return;
@@ -699,7 +699,7 @@ async function stopStaleLiveEvents(
     const date = dates.get(id);
     if (!date || isBeyondCurrentEventWindow(date)) {
       await lockVotingEvent(prisma, id);
-      await kv.stopLiveEvent(id);
+      await live.stopLiveEvent(id, prisma);
     }
   }
 }
@@ -775,7 +775,7 @@ const completeEventSelect: Prisma.EventSelect = {
   awards: { orderBy: { index: "asc" } },
 };
 
-const readStoredLiveEvent = cache(kv.getLiveEvent);
+const readStoredLiveEvent = cache(live.getLiveEvent);
 
 const readCompleteEvent = cache(async (id: string) =>
   db.event.findUnique({
