@@ -42,7 +42,6 @@ yarn db:push                 # Push schema without migration
 - **Framework**: Next.js 14 (App Router)
 - **Database**: PostgreSQL with Prisma ORM
 - **API**: tRPC for type-safe APIs
-- **Cache**: Redis/Vercel KV
 - **Auth**: NextAuth.js with Google OAuth
 - **UI**: Tailwind CSS + shadcn/ui components
 - **State Management**: React Query (via tRPC)
@@ -86,7 +85,6 @@ All APIs are defined as tRPC routers in `/src/server/api/routers/`. The app uses
 Required environment variables are defined in `.env.example` and validated in `/src/env.js`. Key variables:
 
 - Database URLs (PostgreSQL)
-- Redis/KV store configuration
 - NextAuth secret and OAuth credentials
 - Public URLs for the application
 
@@ -96,7 +94,11 @@ Required environment variables are defined in `.env.example` and validated in `/
 2. **During Event**: Attendees provide feedback on demos, vote for awards
 3. **Post-Event**: View results, hall of fame for past winners
 
-Several events can be live at once. Each event has a 4-character `joinCode`; attendees join at `/<CODE>` (or type it on `/`), and each live event has its own presenter view at `/admin/[eventId]/present`. Live presentation state (phase, current demo/award) is stored per event in KV (`liveEventIds`, `liveEvent:{id}` in `src/lib/types/currentEvent.ts`), with the durable phase in `Event.livePhase`.
+Several events can be live at once. Each event has a 4-character `joinCode`; attendees join at `/<CODE>` (or type it on `/`), and each live event has its own presenter view at `/admin/[eventId]/present`. Live presentation state (phase, current demo/award) is stored per event in the `LiveEvent` table (`src/server/liveEvent.ts`; a row exists only while the event is live), with the durable phase in `Event.livePhase`.
+
+### Hosting
+
+Production runs on Cloudflare Workers (OpenNext, `wrangler.jsonc`) at https://demo-night.tk.sg with Neon Postgres (project `demo-night`, AWS Singapore). Deploy with `DATABASE_URL_NON_POOLING=<direct Neon URL> yarn cf:deploy`, which applies migrations, ensures admins and deploys. The old Docker setup on dev.tk.sg (`deploy.sh`, `docker-compose.prod.yml`) is retired.
 
 ### Development Notes
 

@@ -3,6 +3,12 @@
   "name": "demo-night-app",
   "main": ".open-next/worker.js",
   "account_id": "b8b1032c61d9475cd00229c74db7ec72",
+  "routes": [
+    {
+      "pattern": "demo-night.tk.sg",
+      "custom_domain": true
+    }
+  ],
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
