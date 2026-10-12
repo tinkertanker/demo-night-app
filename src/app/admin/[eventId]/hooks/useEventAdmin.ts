@@ -1,6 +1,6 @@
 import { type AdminEvent } from "../contexts/DashboardContext";
 
-import { liveQueryOptions } from "~/lib/liveQuery";
+import { liveQueryOptions, useLiveActivity } from "~/lib/liveQuery";
 import { type CurrentEvent } from "~/lib/types/currentEvent";
 import { api } from "~/trpc/react";
 
@@ -16,6 +16,11 @@ export function useEventAdmin({
       enabled: !!initialEvent?.id,
       initialData: initialCurrentEvent,
     });
+  useLiveActivity([
+    currentEvent?.phase,
+    currentEvent?.currentDemoId,
+    currentEvent?.currentAwardId,
+  ]);
   const { data: event, refetch: refetchEvent } = api.event.getAdmin.useQuery(
     initialEvent?.id ?? "",
     {

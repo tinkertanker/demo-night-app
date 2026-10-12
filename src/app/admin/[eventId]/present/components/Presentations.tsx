@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { animationVariants } from "~/lib/animation";
 import { type CurrentEvent, EventPhase } from "~/lib/types/currentEvent";
 
+import LiveUpdatesPaused from "~/components/LiveUpdatesPaused";
 import LoadingScreen from "~/components/loading/LoadingScreen";
 
 import AwardsPresentation from "./AwardsPresentation";
@@ -61,6 +62,7 @@ export default function Presentations({
   return (
     <PresentationContext.Provider value={{ currentEvent, event, refetchEvent }}>
       <PresentationHeader />
+      <LiveUpdatesPaused />
       <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           key={phase}

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { liveQueryOptions } from "~/lib/liveQuery";
+import { liveQueryOptions, useLiveActivity } from "~/lib/liveQuery";
 import { type CurrentEvent } from "~/lib/types/currentEvent";
 import { api } from "~/trpc/react";
 
@@ -13,6 +13,12 @@ export default function useEventSync(initialCurrentEvent: CurrentEvent) {
         ...liveQueryOptions(),
       },
     );
+
+  useLiveActivity([
+    currentEvent?.phase,
+    currentEvent?.currentDemoId,
+    currentEvent?.currentAwardId,
+  ]);
 
   const { data: event, refetch: refetchEvent } = api.event.get.useQuery(
     currentEvent?.id ?? "",
