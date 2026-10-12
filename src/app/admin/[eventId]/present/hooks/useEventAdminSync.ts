@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { liveQueryOptions } from "~/lib/liveQuery";
+import {
+  LIVE_REFRESH_INTERVAL,
+  useLiveActivity,
+} from "~/lib/liveQuery";
 import { type CurrentEvent } from "~/lib/types/currentEvent";
 import { api } from "~/trpc/react";
 
@@ -10,7 +13,10 @@ export default function useEventAdminSync(initialCurrentEvent: CurrentEvent) {
       initialCurrentEvent.id,
       {
         initialData: initialCurrentEvent,
-        ...liveQueryOptions(),
+        // Once the event stops, check again only when the tab regains focus.
+        refetchInterval: (query) =>
+          query.state.data ? LIVE_REFRESH_INTERVAL : false,
+        staleTime: LIVE_REFRESH_INTERVAL,
       },
     );
   // Keep showing the last live state if the event stops being live mid-show.
@@ -23,6 +29,12 @@ export default function useEventAdminSync(initialCurrentEvent: CurrentEvent) {
     (lastLiveEvent.id === initialCurrentEvent.id
       ? lastLiveEvent
       : initialCurrentEvent);
+
+  useLiveActivity([
+    currentEvent.phase,
+    currentEvent.currentDemoId,
+    currentEvent.currentAwardId,
+  ]);
 
   const { data: event, refetch: refetchEvent } = api.event.getAdmin.useQuery(
     currentEvent.id,
