@@ -12,6 +12,7 @@ import { type CurrentEvent, EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig, eventConfigSchema } from "~/lib/types/eventConfig";
 
 import Button from "~/components/Button";
+import LiveUpdatesPaused from "~/components/LiveUpdatesPaused";
 import LoadingScreen from "~/components/loading/LoadingScreen";
 
 import DemosWorkspace from "./DemosWorkspace";
@@ -107,6 +108,7 @@ export default function Workspaces({
       value={{ currentEvent, event, attendee, setAttendee, config }}
     >
       <EventHeader />
+      <LiveUpdatesPaused />
       <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           key={currentEvent?.phase}

@@ -2,7 +2,9 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  // Rust-free client: runs on Cloudflare Workers through the pg driver adapter
+  engineType = "client"
 }
 
 datasource db {
@@ -89,8 +91,22 @@ model Event {
   feedback       Feedback[]
   votes          Vote[]
   eventFeedback  EventFeedback[]
+  liveEvent      LiveEvent?
 
   @@index([date])
+}
+
+// Presentation state of an event while it is live. A row exists only while the
+// event is live (see src/server/liveEvent.ts).
+model LiveEvent {
+  eventId        String   @id
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name           String
+  phase          Int
+  currentDemoId  String?
+  currentAwardId String?
+  isPitchNight   Boolean  @default(false)
+  createdAt      DateTime @default(now())
 }
 
 enum SubmissionStatus {

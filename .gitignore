@@ -50,3 +50,9 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+.neon
+
+# cloudflare
+.open-next
+.wrangler
+.dev.vars*

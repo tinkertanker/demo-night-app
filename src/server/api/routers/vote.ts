@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { EventPhase, getLiveEvent } from "~/lib/types/currentEvent";
+import { EventPhase, getLiveEvent } from "~/server/liveEvent";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import {
@@ -166,7 +166,7 @@ async function assertVotingIsOpen(
       where: { id: eventId },
       select: { livePhase: true },
     }),
-    getLiveEvent(eventId),
+    getLiveEvent(eventId, prisma),
   ]);
   let livePhase = event.livePhase;
 
