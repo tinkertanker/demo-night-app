@@ -52,6 +52,18 @@ function getClient(): PrismaClient {
   return globalForPrisma.prisma;
 }
 
+// Closes this request's database connection once the response is ready, rather
+// than leaving it open until the runtime reclaims it. No-op outside Workers.
+export function releaseRequestDb() {
+  const ctx = workerRequestContext();
+  const client = ctx && requestClients.get(ctx);
+  if (!ctx || !client) return;
+  requestClients.delete(ctx);
+  (ctx as { waitUntil(promise: Promise<unknown>): void }).waitUntil(
+    client.$disconnect(),
+  );
+}
+
 export const db = new Proxy({} as PrismaClient, {
   get(_, prop) {
     const client = getClient();

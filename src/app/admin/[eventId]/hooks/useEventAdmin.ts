@@ -1,6 +1,10 @@
 import { type AdminEvent } from "../contexts/DashboardContext";
 
-import { liveQueryOptions, useLiveActivity } from "~/lib/liveQuery";
+import {
+  LIVE_REFRESH_INTERVAL,
+  liveQueryOptions,
+  useLiveActivity,
+} from "~/lib/liveQuery";
 import { type CurrentEvent } from "~/lib/types/currentEvent";
 import { api } from "~/trpc/react";
 
@@ -15,6 +19,11 @@ export function useEventAdmin({
     api.event.getLiveEvent.useQuery(initialEvent?.id ?? "", {
       enabled: !!initialEvent?.id,
       initialData: initialCurrentEvent,
+      // Poll while live so show progress driven from the presenter view
+      // counts as activity and keeps this dashboard updating
+      refetchInterval: (query) =>
+        query.state.data ? LIVE_REFRESH_INTERVAL : false,
+      staleTime: LIVE_REFRESH_INTERVAL,
     });
   useLiveActivity([
     currentEvent?.phase,

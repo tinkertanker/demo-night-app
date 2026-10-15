@@ -19,7 +19,6 @@ import {
   toSingaporeMidnight,
 } from "~/lib/singaporeDate";
 import { DEFAULT_AWARDS, PITCH_NIGHT_AWARDS } from "~/lib/types/award";
-import * as live from "~/server/liveEvent";
 import { DEFAULT_DEMOS } from "~/lib/types/demo";
 import {
   DEFAULT_EVENT_CONFIG,
@@ -32,6 +31,7 @@ import {
 } from "~/server/api/trpc";
 import { assignAutomaticAwardWinners } from "~/server/automaticAwardWinners";
 import { db } from "~/server/db";
+import * as live from "~/server/liveEvent";
 import { lockCurrentEventState, lockVotingEvent } from "~/server/votingLock";
 
 import { type AdminEvent } from "~/app/admin/[eventId]/contexts/DashboardContext";
@@ -174,7 +174,11 @@ export const eventRouter = createTRPCRouter({
                     data: { livePhase },
                   });
                 }
-                await live.startLiveEvent(res, livePhase as live.EventPhase, prisma);
+                await live.startLiveEvent(
+                  res,
+                  livePhase as live.EventPhase,
+                  prisma,
+                );
               });
               return res;
             });
@@ -597,21 +601,9 @@ export const eventRouter = createTRPCRouter({
         return { success: true };
       });
     }),
+  // Deleting the event also deletes its LiveEvent row (cascade)
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
-    return db.event
-      .delete({
-        where: { id: input },
-      })
-      .then(async () => {
-        const liveIds = await live.getLiveEventIds();
-        if (liveIds.includes(input)) {
-          return db.$transaction(async (prisma) => {
-            await lockCurrentEventState(prisma);
-            await lockVotingEvent(prisma, input);
-            return live.stopLiveEvent(input, prisma);
-          });
-        }
-      });
+    return db.event.delete({ where: { id: input } });
   }),
 });
 
