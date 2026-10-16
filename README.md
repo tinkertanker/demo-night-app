@@ -86,3 +86,30 @@ yarn db:migrate
 
 - Fixing failed migrations:
   <https://www.prisma.io/docs/orm/prisma-migrate/workflows/patching-and-hotfixing>
+
+### Production backups
+
+Production Postgres runs on Neon (project `demo-night`, branch `production`).
+Neon's own point-in-time restore only covers 6 hours on the Free plan, so the
+[Nightly database backup](.github/workflows/nightly-db-backup.yml) workflow runs
+at 03:00 Singapore time (and on demand via **Run workflow**). It takes a
+`pg_dump -Fc` over the direct (non-pooled) connection as the read-only
+`backup_reader` role and uploads it to the private R2 bucket `demo-night-backups`
+as `nightly/YYYY-MM-DD/postgres.dump` (Singapore date). An R2 lifecycle rule
+deletes objects under `nightly/` after 30 days.
+
+Repository secrets: `NEON_BACKUP_DATABASE_URL`, `R2_BACKUP_ACCESS_KEY_ID`,
+`R2_BACKUP_SECRET_ACCESS_KEY` (an R2 token scoped to that bucket only).
+
+To restore, download a dump and load it into an empty database (for example a
+new Neon branch), then point the app at it once checked:
+
+```bash
+aws s3 cp s3://demo-night-backups/nightly/2026-10-13/postgres.dump . \
+  --endpoint-url https://b8b1032c61d9475cd00229c74db7ec72.r2.cloudflarestorage.com
+pg_restore --list postgres.dump            # inspect
+pg_restore --no-owner --no-privileges -d "$TARGET_DATABASE_URL" postgres.dump
+```
+
+`scripts/backup.sh` is the legacy backup for the self-hosted Docker Compose
+deployment and does not back up Neon.
