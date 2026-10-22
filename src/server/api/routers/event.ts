@@ -868,7 +868,7 @@ const completeEventSelect: Prisma.EventSelect = {
       votable: true,
     },
   },
-  awards: { orderBy: { index: "asc" } },
+  awards: { orderBy: [{ index: "asc" }, { id: "asc" }] },
 };
 
 const readStoredLiveEvent = cache(live.getLiveEvent);

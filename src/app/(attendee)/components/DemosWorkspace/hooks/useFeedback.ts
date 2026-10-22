@@ -19,14 +19,19 @@ export function useFeedback(
   attendee: Attendee,
   selectedDemo: PublicDemo,
 ) {
+  const pending = useRef<FeedbackByDemoId>(
+    getLocalFeedbackByDemoId(eventId, attendee.id, true),
+  );
   const [feedbackByDemoId, setFeedbackByDemoId] = useState<FeedbackByDemoId>(
-    getLocalFeedbackByDemoId(eventId, attendee.id),
+    () => ({
+      ...getLocalFeedbackByDemoId(eventId, attendee.id),
+      ...pending.current,
+    }),
   );
   const { data: allFeedbackData } = api.feedback.all.useQuery({
     eventId,
     attendeeId: attendee.id,
   });
-  const pending = useRef<FeedbackByDemoId>({});
   const queue = useRef(Promise.resolve());
   const utils = api.useUtils();
   const feedback =
@@ -34,6 +39,7 @@ export function useFeedback(
     emptyFeedback(eventId, attendee.id, selectedDemo.id);
   const setFeedback = (next: LocalFeedback) => {
     pending.current[next.demoId] = next;
+    setLocalFeedbackByDemoId(eventId, attendee.id, pending.current, true);
     setFeedbackByDemoId((previous) => ({ ...previous, [next.demoId]: next }));
     setSaveStatus(FeedbackSaveStatus.UNSAVED);
   };
@@ -61,6 +67,7 @@ export function useFeedback(
           );
           if (pending.current[item.demoId] === item)
             delete pending.current[item.demoId];
+          setLocalFeedbackByDemoId(eventId, attendee.id, pending.current, true);
         }
         if (!Object.keys(pending.current).length)
           setSaveStatus(FeedbackSaveStatus.SAVED);
@@ -118,11 +125,13 @@ function emptyFeedback(
 function getLocalFeedbackByDemoId(
   eventId: string,
   attendeeId: string,
+  draftsOnly = false,
 ): FeedbackByDemoId {
   if (typeof window !== "undefined") {
     const stored =
-      localStorage.getItem(`feedback:${eventId}:${attendeeId}`) ??
-      localStorage.getItem(`feedback:${eventId}`);
+      localStorage.getItem(
+        `${draftsOnly ? "feedback-drafts" : "feedback"}:${eventId}:${attendeeId}`,
+      ) ?? (draftsOnly ? null : localStorage.getItem(`feedback:${eventId}`));
     if (stored) {
       const parsed = JSON.parse(stored) as FeedbackByDemoId;
       return Object.fromEntries(
@@ -145,10 +154,11 @@ function setLocalFeedbackByDemoId(
   eventId: string,
   attendeeId: string,
   feedbackByDemoId: FeedbackByDemoId,
+  draftsOnly = false,
 ) {
   if (typeof window === "undefined") return; // SSR guard
   localStorage.setItem(
-    `feedback:${eventId}:${attendeeId}`,
+    `${draftsOnly ? "feedback-drafts" : "feedback"}:${eventId}:${attendeeId}`,
     JSON.stringify(feedbackByDemoId),
   );
 }

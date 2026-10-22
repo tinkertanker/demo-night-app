@@ -76,7 +76,13 @@ export default function InvestmentAmountSelect({
         )}
       </div>
       {demos
-        .filter((demo) => demo.votable)
+        .filter(
+          (demo) =>
+            demo.votable ||
+            allocations.some(
+              (vote) => vote.demoId === demo.id && (vote.amount ?? 0) > 0,
+            ),
+        )
         .map((demo) => {
           const amount =
             allocations.find((vote) => vote.demoId === demo.id)?.amount ?? 0;
@@ -86,6 +92,12 @@ export default function InvestmentAmountSelect({
               className="space-y-3 rounded-xl bg-gray-200/80 p-4"
             >
               <h3 className="text-xl font-bold">{demo.name}</h3>
+              {!demo.votable && (
+                <p className="text-sm">
+                  Voting closed for this project. You can take back your
+                  support.
+                </p>
+              )}
               {settings.mode === "stickers" ? (
                 <button
                   aria-pressed={amount > 0}
@@ -96,6 +108,14 @@ export default function InvestmentAmountSelect({
                   {amount
                     ? "⭐ Favourite — take back"
                     : "☆ Give favourite sticker"}
+                </button>
+              ) : !demo.votable ? (
+                <button
+                  disabled={mutation.isPending}
+                  className="rounded-lg bg-white px-4 py-3 font-semibold disabled:opacity-50"
+                  onClick={() => update(demo.id, 0)}
+                >
+                  Take back {settings.format(amount)}
                 </button>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">

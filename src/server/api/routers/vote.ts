@@ -248,6 +248,7 @@ async function assertVoteBelongsToEvent(
     attendeeId: string;
     awardId: string;
     demoId: string | null;
+    amount?: number | null;
   },
 ) {
   const [awards, demo, attendee] = await Promise.all([
@@ -258,7 +259,11 @@ async function assertVoteBelongsToEvent(
     }),
     input.demoId
       ? prisma.demo.findFirst({
-          where: { id: input.demoId, eventId: input.eventId, votable: true },
+          where: {
+            id: input.demoId,
+            eventId: input.eventId,
+            ...(input.amount === 0 ? {} : { votable: true }),
+          },
           select: { id: true },
         })
       : Promise.resolve({ id: "cleared-vote" }),

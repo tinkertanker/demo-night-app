@@ -1,9 +1,6 @@
 import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
 import DemosWorkspace from "../DemosWorkspace";
-import {
-  type FeedbackByDemoId,
-  useFeedback,
-} from "../DemosWorkspace/hooks/useFeedback";
+import { type FeedbackByDemoId } from "../DemosWorkspace/hooks/useFeedback";
 import { SurveyCTA } from "../SurveyCTA";
 import { type Award } from "@prisma/client";
 import { useState } from "react";
@@ -79,11 +76,10 @@ export default function VotingWorkspace() {
 
 function VotingContent() {
   const { currentEvent, event, attendee } = useWorkspaceContext();
-  const { feedbackByDemoId } = useFeedback(
-    currentEvent.id,
-    attendee,
-    event.demos[0]!,
-  );
+  const { data: feedbackByDemoId = {} } = api.feedback.all.useQuery({
+    eventId: currentEvent.id,
+    attendeeId: attendee.id,
+  });
   const config = event.config as EventConfig;
   const settings = votingSettings(config);
   const { votes, setVote } = useVotes(
@@ -130,7 +126,11 @@ function VotingContent() {
         </button>
       </div>
       <div hidden={!showPostcards}>
-        <DemosWorkspace />
+        {event.demos.length > 0 ? (
+          <DemosWorkspace />
+        ) : (
+          <p className="p-4 text-center">No projects yet.</p>
+        )}
       </div>
       <div hidden={showPostcards}>
         <div className="flex size-full flex-col items-center justify-center gap-4 p-4">

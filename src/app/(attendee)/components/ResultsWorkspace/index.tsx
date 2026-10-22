@@ -23,7 +23,12 @@ export default function ResultsWorkspace() {
     (a) => a.id === currentEvent.currentAwardId,
   );
 
-  if (!votingSettings(config).showResults) return <DemosWorkspace />;
+  if (!votingSettings(config).showResults)
+    return event.demos.length > 0 ? (
+      <DemosWorkspace />
+    ) : (
+      <p className="p-4 text-center">No projects yet.</p>
+    );
   return (
     <>
       <div className="w-full max-w-xl">

@@ -100,7 +100,8 @@ export function UpsertEventModal({
               isPitchNight,
               votingMode,
               votingUnit,
-              stickerAllowance,
+              stickerAllowance:
+                votingMode === "stickers" ? stickerAllowance : undefined,
               feedbackGoal: feedbackGoal ? Number(feedbackGoal) : undefined,
             };
             upsertMutation
@@ -284,7 +285,10 @@ export function UpsertEventModal({
                 max={10}
                 required
                 value={stickerAllowance}
-                onChange={(e) => setStickerAllowance(Number(e.target.value))}
+                onChange={(e) => {
+                  const next = e.target.valueAsNumber;
+                  if (Number.isFinite(next)) setStickerAllowance(next);
+                }}
               />
               <span className="text-sm text-gray-500">
                 Five by default, one per project, shared across the event. Uses

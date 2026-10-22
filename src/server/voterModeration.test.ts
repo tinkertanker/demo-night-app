@@ -478,6 +478,17 @@ describe("voting modes and shared postcards", () => {
       }),
       /increments/i,
     );
+    await db.demo.update({ where: { id: demoId }, data: { votable: false } });
+    await assert.rejects(
+      caller.vote.upsert.mutate({
+        eventId,
+        attendeeId,
+        awardId,
+        demoId,
+        amount: 5000,
+      }),
+      /does not belong/i,
+    );
     await caller.vote.upsert.mutate({
       eventId,
       attendeeId,
@@ -489,6 +500,40 @@ describe("voting modes and shared postcards", () => {
     assert.deepEqual(
       votes.map((vote) => [vote.demoId, vote.amount]),
       [[secondDemoId, 40000]],
+    );
+  });
+
+  it("uses the same sticker award in the public ballot and validator when award indexes tie", async () => {
+    const fallbackId = `${prefix}-aaa-award`;
+    await db.award.update({
+      where: { id: awardId },
+      data: { winnerRank: null },
+    });
+    await db.award.create({
+      data: {
+        id: fallbackId,
+        eventId,
+        name: "Another award",
+        index: 0,
+        description: "",
+      },
+    });
+    await admin.event.upsert.mutate({
+      originalId: eventId,
+      config: { isPitchNight: false, votingMode: "stickers" },
+    });
+    const event = (await caller.event.get.query(eventId))!;
+    assert.equal(event.awards[0]!.id, fallbackId);
+    await caller.vote.upsert.mutate({
+      eventId,
+      attendeeId,
+      awardId: event.awards[0]!.id,
+      demoId,
+      amount: 1,
+    });
+    assert.equal(
+      (await caller.vote.all.query({ eventId, attendeeId }))[0]!.awardId,
+      fallbackId,
     );
   });
 
@@ -546,6 +591,10 @@ describe("voting modes and shared postcards", () => {
       caller.vote.upsert.mutate({ eventId, attendeeId, awardId, demoId }),
       /amount is required/i,
     );
+    await db.demo.update({
+      where: { id: votes[0]!.demoId! },
+      data: { votable: false },
+    });
     await caller.vote.upsert.mutate({
       eventId,
       attendeeId,
@@ -557,7 +606,7 @@ describe("voting modes and shared postcards", () => {
       eventId,
       attendeeId,
       awardId,
-      demoId: secondDemoId,
+      demoId: votes[0]!.demoId === demoId ? secondDemoId : demoId,
       amount: 1,
     });
     await assert.rejects(
