@@ -60,6 +60,10 @@ running, run `yarn test:voters` for voting/moderation integration tests. Set
 `TEST_BASE_URL` if the server uses a port other than 3000. These tests create and
 clean up their own events and admin session, and refuse remote databases or URLs.
 
+With `agent-browser` installed, `yarn test:postcard-drafts` uses the same local
+server/database to exercise a delayed postcard save across a live phase change
+and reload, then checks that the newer draft is restored and saved.
+
 Voter exclusions require the `20260916093000_event_voter_exclusions` migration
 before deploying the updated app. Exclusion keeps allocations but removes them
 from totals and automatic winners for that event; Restore includes them again.

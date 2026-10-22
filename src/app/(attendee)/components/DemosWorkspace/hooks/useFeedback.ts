@@ -39,7 +39,15 @@ export function useFeedback(
     emptyFeedback(eventId, attendee.id, selectedDemo.id);
   const setFeedback = (next: LocalFeedback) => {
     pending.current[next.demoId] = next;
-    setLocalFeedbackByDemoId(eventId, attendee.id, pending.current, true);
+    setLocalFeedbackByDemoId(
+      eventId,
+      attendee.id,
+      {
+        ...getLocalFeedbackByDemoId(eventId, attendee.id, true),
+        [next.demoId]: next,
+      },
+      true,
+    );
     setFeedbackByDemoId((previous) => ({ ...previous, [next.demoId]: next }));
     setSaveStatus(FeedbackSaveStatus.UNSAVED);
   };
@@ -67,7 +75,16 @@ export function useFeedback(
           );
           if (pending.current[item.demoId] === item)
             delete pending.current[item.demoId];
-          setLocalFeedbackByDemoId(eventId, attendee.id, pending.current, true);
+          // A newer workspace may have edited this draft while the save ran.
+          const drafts = getLocalFeedbackByDemoId(eventId, attendee.id, true);
+          const fields = Object.keys(item).sort();
+          if (
+            JSON.stringify(drafts[item.demoId], fields) ===
+            JSON.stringify(item, fields)
+          ) {
+            delete drafts[item.demoId];
+            setLocalFeedbackByDemoId(eventId, attendee.id, drafts, true);
+          }
         }
         if (!Object.keys(pending.current).length)
           setSaveStatus(FeedbackSaveStatus.SAVED);
