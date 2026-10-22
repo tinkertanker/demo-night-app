@@ -1,14 +1,14 @@
 import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
-import {
-  type FeedbackByDemoId,
-  useFeedback,
-} from "../DemosWorkspace/hooks/useFeedback";
+import DemosWorkspace from "../DemosWorkspace";
+import { type FeedbackByDemoId } from "../DemosWorkspace/hooks/useFeedback";
 import { SurveyCTA } from "../SurveyCTA";
 import { type Award } from "@prisma/client";
-import { UpdateAttendeeForm } from "~/app/(attendee)/components/UpdateAttendee";
+import { useState } from "react";
 
 import { liveQueryOptions } from "~/lib/liveQuery";
+import { stickerAwardId } from "~/lib/types/award";
 import { type EventConfig } from "~/lib/types/eventConfig";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
 
@@ -19,6 +19,7 @@ import LoadingScreen from "~/components/loading/LoadingScreen";
 import AwardVoteSelect from "./AwardVoteSelect";
 import InvestmentAmountSelect from "./InvestmentAmountSelect";
 import { type VoteByAwardId, useVotes } from "./hooks/useVotes";
+import { UpdateAttendeeForm } from "~/app/(attendee)/components/UpdateAttendee";
 
 export default function VotingWorkspace() {
   const { currentEvent, attendee, setAttendee, config } = useWorkspaceContext();
@@ -47,7 +48,8 @@ export default function VotingWorkspace() {
       >
         <Sticker name="face" size={104} />
         <h1 className="text-2xl font-bold">
-          Your {config.isPitchNight ? "investments" : "votes"} are not counted
+          Your {votingSettings(config).financial ? "investments" : "votes"} are
+          not counted
         </h1>
         <p className="text-gray-600">
           The organiser has excluded your entry from this event. Please speak to
@@ -74,17 +76,26 @@ export default function VotingWorkspace() {
 
 function VotingContent() {
   const { currentEvent, event, attendee } = useWorkspaceContext();
-  const { feedbackByDemoId } = useFeedback(
+  const { data: feedbackByDemoId = {} } = api.feedback.all.useQuery({
+    eventId: currentEvent.id,
+    attendeeId: attendee.id,
+  });
+  const config = event.config as EventConfig;
+  const settings = votingSettings(config);
+  const { votes, setVote } = useVotes(
     currentEvent.id,
     attendee,
-    event.demos[0]!,
+    settings.categories,
   );
-  const { votes, setVote } = useVotes(currentEvent.id, attendee);
-  const config = event.config as EventConfig;
-  const isPitchNight = config?.isPitchNight ?? false;
+  const [showPostcards, setShowPostcards] = useState(false);
   const surveyUrl = config?.surveyUrl;
 
-  const votableAwards = event.awards.filter((award) => award.votable);
+  const votableAwards = event.awards.filter(
+    (award) =>
+      award.votable &&
+      (settings.mode !== "stickers" ||
+        award.id === stickerAwardId(event.awards)),
+  );
 
   const markSurveyOpenedMutation =
     api.eventFeedback.markSurveyOpened.useMutation();
@@ -97,50 +108,85 @@ function VotingContent() {
   };
 
   return (
-    <div className="absolute bottom-0 max-h-[calc(100dvh-120px)] w-full max-w-xl">
-      <div className="flex size-full flex-col items-center justify-center gap-4 p-4">
-        <Sticker name="heart" size={104} className="-mb-2" />
-        <div>
-          <h1 className="text-center text-4xl font-bold tracking-tight">
-            {isPitchNight ? "Investing Time! 💰" : "Voting Time! 🗳️"}
-          </h1>
-          <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">
-            {isPitchNight
-              ? "You have $100k to invest across the companies that pitched tonight. Allocate your funds to your favorites!"
-              : "Who gets immortalized in the Demo Night Hall of Fame? You decide! Note that you can only vote for each demoist once so choose wisely!"}
-          </p>
-        </div>
-        <div className="flex w-full flex-col gap-8">
-          {isPitchNight
-            ? // Pitch Night: Show investment interface for the crowd favorite award
-              votableAwards.map((award) => (
-                <InvestmentAmountSelect
-                  key={award.id}
-                  award={award}
-                  demos={event.demos}
-                  eventId={currentEvent.id}
-                  attendeeId={attendee.id}
-                />
-              ))
-            : // Demo Night: Show traditional voting interface
-              votableAwards.map((award) => (
-                <AwardVoteItem
-                  key={award.id}
-                  award={award}
-                  demos={event.demos}
-                  votes={votes}
-                  setVote={setVote}
-                  feedbackByDemoId={feedbackByDemoId}
-                />
-              ))}
-        </div>
-        {surveyUrl && (
-          <SurveyCTA
-            surveyUrl={surveyUrl}
-            onSurveyClick={handleSurveyClick}
-            className="z-10"
-          />
+    <div className="w-full max-w-xl">
+      <div className="flex justify-center gap-2 p-3">
+        <button
+          className="rounded-lg border bg-white px-4 py-2"
+          aria-pressed={!showPostcards}
+          onClick={() => setShowPostcards(false)}
+        >
+          Voting
+        </button>
+        <button
+          className="rounded-lg border bg-white px-4 py-2"
+          aria-pressed={showPostcards}
+          onClick={() => setShowPostcards(true)}
+        >
+          Feedback postcards
+        </button>
+      </div>
+      <div hidden={!showPostcards}>
+        {event.demos.length > 0 ? (
+          <DemosWorkspace />
+        ) : (
+          <p className="p-4 text-center">No projects yet.</p>
         )}
+      </div>
+      <div hidden={showPostcards}>
+        <div className="flex size-full flex-col items-center justify-center gap-4 p-4">
+          <Sticker name="heart" size={104} className="-mb-2" />
+          <div>
+            <h1 className="text-center text-4xl font-bold tracking-tight">
+              {settings.financial
+                ? "Investing Time! 💰"
+                : settings.mode === "stickers"
+                  ? "Choose your favourites! ⭐"
+                  : settings.mode === "awards"
+                    ? "Voting Time! 🗳️"
+                    : `Give your support! ${settings.symbol}`}
+            </h1>
+            <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">
+              {settings.weighted
+                ? `You have ${settings.format(settings.budget)} ${settings.name} ${settings.mode === "stickers" ? "to give to your favourite projects" : "to allocate to your favourites"}.`
+                : settings.categories
+                  ? "Choose one project per category. The same project can win more than one category. Each category is tallied independently."
+                  : settings.showResults
+                    ? "Who gets immortalized in the Demo Night Hall of Fame? You decide! Note that you can only vote for each demoist once so choose wisely!"
+                    : "Choose your favourite project. There are no public rankings or winners."}
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-8">
+            {settings.weighted
+              ? // Allocation and sticker votes share amount-based results.
+                votableAwards.map((award) => (
+                  <InvestmentAmountSelect
+                    key={award.id}
+                    award={award}
+                    demos={event.demos}
+                    eventId={currentEvent.id}
+                    attendeeId={attendee.id}
+                  />
+                ))
+              : // Demo Night: Show traditional voting interface
+                votableAwards.map((award) => (
+                  <AwardVoteItem
+                    key={award.id}
+                    award={award}
+                    demos={event.demos}
+                    votes={votes}
+                    setVote={setVote}
+                    feedbackByDemoId={feedbackByDemoId}
+                  />
+                ))}
+          </div>
+          {surveyUrl && (
+            <SurveyCTA
+              surveyUrl={surveyUrl}
+              onSurveyClick={handleSurveyClick}
+              className="z-10"
+            />
+          )}
+        </div>
       </div>
     </div>
   );

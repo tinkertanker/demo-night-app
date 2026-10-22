@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { feedbackScore } from "~/lib/feedback";
+import { liveQueryOptions } from "~/lib/liveQuery";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 import AttendeeTypeBadge from "~/components/AttendeeTypeBadge";
 import { LogoConfetti } from "~/components/Confetti";
+import PostcardContent from "~/components/PostcardContent";
 import LoadingScreen from "~/components/loading/LoadingScreen";
-
-import { liveQueryOptions } from "~/lib/liveQuery";
 
 export type FeedbackAndAttendee = Feedback & {
   attendee: { name: string | null; type: string | null };
@@ -120,9 +120,7 @@ export function FeedbackItem({ feedback }: { feedback: FeedbackAndAttendee }) {
           }}
         />
       </div>
-      {feedback.comment && (
-        <p className="font-medium italic">{`"${feedback.comment}"`}</p>
-      )}
+      <PostcardContent feedback={feedback} />
     </motion.li>
   );
 }

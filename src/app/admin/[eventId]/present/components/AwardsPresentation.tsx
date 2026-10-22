@@ -7,6 +7,7 @@ import ConfettiExplosion from "react-dom-confetti";
 import { getAwardWinner } from "~/lib/awardWinner";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { type PublicDemo } from "~/server/api/routers/event";
 
 import { LogoConfetti, ResultsConfetti } from "~/components/Confetti";
@@ -14,7 +15,7 @@ import { LogoConfetti, ResultsConfetti } from "~/components/Confetti";
 export default function AwardsPresentation() {
   const { currentEvent, event } = usePresentationContext();
   const config = event.config as EventConfig;
-  const isPitchNight = config?.isPitchNight ?? false;
+  const financial = votingSettings(config).financial;
 
   const awards = [...event.awards].reverse();
 
@@ -25,16 +26,31 @@ export default function AwardsPresentation() {
   const title = useMemo(() => {
     switch (currentEvent.phase) {
       case EventPhase.Voting:
-        return isPitchNight ? "Investing Time! 💰" : "Voting Time! 🗳️";
+        return financial ? "Investing Time! 💰" : "Voting Time! 🗳️";
       case EventPhase.Results:
-        return isPitchNight ? "Investment Results! 🤩" : "Voting Results! 🤩";
+        return financial ? "Investment Results! 🤩" : "Voting Results! 🤩";
       case EventPhase.Recap:
         return "Event Recap! 🎉";
       default:
         return "Awards Presentation";
     }
-  }, [currentEvent.phase, isPitchNight]);
+  }, [currentEvent.phase, financial]);
 
+  if (!votingSettings(config).showResults) {
+    return (
+      <div className="flex min-h-[calc(100dvh-80px)] flex-col items-center justify-center gap-4 p-8 text-center">
+        <h1 className="text-4xl font-bold">
+          {currentEvent.phase === EventPhase.Voting
+            ? "Choose your favourites! ⭐"
+            : "Thank you for sharing! 🎉"}
+        </h1>
+        <p className="max-w-xl text-xl">
+          Celebrate projects with feedback postcards and free appreciation
+          badges. No public rankings or winners.
+        </p>
+      </div>
+    );
+  }
   return (
     <>
       <div className="flex size-full min-h-[calc(100dvh-80px)] flex-col items-center justify-center gap-4 p-4 pb-20">

@@ -2,16 +2,11 @@ import { useDashboardContext } from "../../contexts/DashboardContext";
 import { LiveIndicator } from "../LiveIndicator";
 import { type Demo } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChevronLeft,
-  ChevronRight,
-  EyeIcon,
-  Radio,
-  Trash,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, EyeIcon, Radio, Trash } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { feedbackScore } from "~/lib/feedback";
+import { liveQueryOptions } from "~/lib/liveQuery";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
@@ -19,9 +14,10 @@ import { type FeedbackAndAttendee } from "~/server/api/routers/demo";
 import { api } from "~/trpc/react";
 
 import AttendeeTypeBadge from "~/components/AttendeeTypeBadge";
+import PostcardContent from "~/components/PostcardContent";
+import Sticker from "~/components/Sticker";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
-import Sticker from "~/components/Sticker";
 import {
   Table,
   TableBody,
@@ -38,7 +34,6 @@ import {
 
 import FeedbackOverview from "./FeedbackOverview";
 import { type MobilePanel, SplitPanels } from "./SplitPanels";
-import { liveQueryOptions } from "~/lib/liveQuery";
 
 export default function DemosAndFeedbackTab() {
   const { currentEvent, event, refetchEvent } = useDashboardContext();
@@ -79,7 +74,8 @@ export default function DemosAndFeedbackTab() {
     return event.demos.findIndex((d) => d.id === currentEvent.currentDemoId);
   }, [event, currentEvent?.currentDemoId]);
 
-  const liveDemo = currentDemoIndex >= 0 ? event?.demos[currentDemoIndex] : undefined;
+  const liveDemo =
+    currentDemoIndex >= 0 ? event?.demos[currentDemoIndex] : undefined;
   const prevDemo =
     currentDemoIndex > 0 ? event?.demos[currentDemoIndex - 1] : undefined;
   const nextDemo =
@@ -125,9 +121,7 @@ export default function DemosAndFeedbackTab() {
       feedback={feedback ?? []}
       scoredFeedback={scoredFeedback}
       onDelete={(id) =>
-        deleteFeedbackMutation
-          .mutateAsync(id)
-          .then(() => refetchFeedback())
+        deleteFeedbackMutation.mutateAsync(id).then(() => refetchFeedback())
       }
     />
   );
@@ -200,7 +194,9 @@ function StageControls({
           <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <Radio className="size-3 text-red-500" />
             On stage
-            {position && <span className="normal-case tracking-normal">· {position}</span>}
+            {position && (
+              <span className="normal-case tracking-normal">· {position}</span>
+            )}
           </div>
           <p className="line-clamp-2 text-base font-semibold leading-tight md:text-lg">
             {liveDemo?.name ?? `No ${itemLabel} selected`}
@@ -394,7 +390,9 @@ function FeedbackItem({
       summary.push(`👏<span class="text-xs text-black"> x${item.claps}</span>`);
     }
     if (item.cheers) {
-      summary.push(`🥳<span class="text-xs text-black"> x${item.cheers}</span>`);
+      summary.push(
+        `🥳<span class="text-xs text-black"> x${item.cheers}</span>`,
+      );
     }
     if (item.confetti) {
       summary.push(
@@ -444,9 +442,7 @@ function FeedbackItem({
           </Button>
         </CardHeader>
         <CardContent className="-mt-3 p-3 pt-0 md:-mt-4 md:p-4 md:pt-0">
-          {item.comment && (
-            <p className="text-sm italic">&ldquo;{item.comment}&rdquo;</p>
-          )}
+          <PostcardContent feedback={item} />
         </CardContent>
       </Card>
     </motion.div>

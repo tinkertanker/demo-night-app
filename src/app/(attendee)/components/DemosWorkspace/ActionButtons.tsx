@@ -14,27 +14,24 @@ export function ActionButtons({
   setFeedback: (feedback: LocalFeedback) => void;
 }) {
   return (
-    <div className="fixed bottom-3 z-10 flex w-full max-w-xl select-none items-center justify-evenly px-4 ">
+    <div className="relative z-10 flex w-full max-w-xl select-none items-center justify-evenly px-4">
       <ReactionButton
         feedback={feedback}
         setFeedback={setFeedback}
         reaction="cheers"
         emoji="🥳"
-        size="small"
       />
       <ReactionButton
         feedback={feedback}
         setFeedback={setFeedback}
         reaction="claps"
         emoji="👏"
-        size="large"
       />
       <ReactionButton
         feedback={feedback}
         setFeedback={setFeedback}
         reaction="confetti"
         emoji="🎉"
-        size="small"
       />
     </div>
   );
@@ -45,27 +42,26 @@ function ReactionButton({
   setFeedback,
   reaction,
   emoji,
-  size,
 }: {
   feedback: LocalFeedback | null;
   setFeedback: (feedback: LocalFeedback) => void;
   reaction: "claps" | "cheers" | "confetti";
   emoji: string;
-  size: "small" | "large";
 }) {
   const count = feedback?.[reaction] ?? 0;
+  const label = { claps: "Clap", cheers: "Cheer", confetti: "Celebrate" }[
+    reaction
+  ];
 
   return (
     <div className="relative flex flex-col items-center justify-center gap-1">
       <motion.button
+        aria-label={`${label} (${count})`}
         whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
         whileTap={{ scale: 1.5, transition: { duration: 0.2 } }}
         className={cn(
-          "aspect-square rounded-full border-2 bg-white text-center shadow-lg shadow-black/10 transition-all",
+          "relative flex size-24 flex-col items-center justify-center rounded-full border-2 bg-white text-center text-primary-dark shadow-lg shadow-black/10 transition-all",
           count > 0 ? "border-primary bg-primary/5" : "border-black/5",
-          size === "large"
-            ? "relative w-28 text-lg text-primary-dark"
-            : "relative w-20 text-primary-dark",
         )}
         onClick={() => {
           if (feedback) {
@@ -76,25 +72,10 @@ function ReactionButton({
           }
         }}
       >
-        {size === "large" ? (
-          <>
-            <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform pb-4 text-[50px]">
-              {emoji}
-            </p>
-            <p className="absolute bottom-8 left-1/2 -translate-x-1/2 translate-y-full transform font-bold">
-              {count}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform pb-3 text-[40px]">
-              {emoji}
-            </p>
-            <p className="absolute bottom-6 left-1/2 -translate-x-1/2 translate-y-full transform text-sm font-bold">
-              {count}
-            </p>
-          </>
-        )}
+        <span aria-hidden="true" className="text-[40px] leading-none">
+          {emoji}
+        </span>
+        <span className="mt-1 text-sm font-bold">{count}</span>
       </motion.button>
     </div>
   );

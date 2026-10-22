@@ -180,16 +180,18 @@ export default function AdminHomePage() {
           <AdminList />
         </div>
       </div>
-      <UpsertEventModal
-        event={eventToEdit}
-        onSubmit={() => refetch()}
-        onDeleted={() => {
-          setModalOpen(false);
-          refetch();
-        }}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-      />
+      {modalOpen && (
+        <UpsertEventModal
+          event={eventToEdit}
+          onSubmit={() => refetch()}
+          onDeleted={() => {
+            setModalOpen(false);
+            refetch();
+          }}
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+        />
+      )}
     </main>
   );
 }

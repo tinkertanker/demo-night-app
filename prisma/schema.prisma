@@ -207,10 +207,14 @@ model Feedback {
   demoId     String
 
   rating   Int?
-  claps    Int     @default(0)
-  cheers   Int     @default(0)
-  confetti Int     @default(0)
+  claps    Int      @default(0)
+  cheers   Int      @default(0)
+  confetti Int      @default(0)
   comment  String?
+  liked    String?
+  wonder   String?
+  tryNext  String?
+  badges   String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

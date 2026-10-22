@@ -18,6 +18,7 @@ import { awardHasWinner, getAwardWinner } from "~/lib/awardWinner";
 import { liveQueryOptions } from "~/lib/liveQuery";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { investmentParticipation } from "~/lib/voters";
 import { api } from "~/trpc/react";
@@ -50,7 +51,9 @@ export default function AwardsAndVotingTab() {
   const { event, currentEvent, refetchEvent } = useDashboardContext();
   const config = event?.config as EventConfig;
   const isPitchNight = config?.isPitchNight ?? false;
+  const settings = votingSettings(config);
   const isResultsPhase =
+    settings.showResults &&
     event?.id === currentEvent?.id &&
     currentEvent?.phase === EventPhase.Results;
   const [selectedAwardId, setSelectedAwardId] = useState<string | undefined>(
@@ -106,11 +109,11 @@ export default function AwardsAndVotingTab() {
     votes?.forEach((vote) => {
       if (!vote.demoId) return;
       // For pitch nights, sum investment amounts; for demo nights, count votes
-      const value = isPitchNight ? vote.amount ?? 0 : 1;
+      const value = settings.weighted ? vote.amount ?? 0 : 1;
       map.set(vote.demoId, (map.get(vote.demoId) ?? 0) + value);
     });
     return map;
-  }, [event, votes, isPitchNight]);
+  }, [event, votes, settings.weighted]);
 
   if (!event) return null;
 
@@ -310,7 +313,7 @@ export default function AwardsAndVotingTab() {
     </div>
   );
 
-  const votesLabel = isPitchNight ? "Investments" : "Votes";
+  const votesLabel = settings.weighted ? settings.label : "Votes";
   const participation = investmentParticipation(votes ?? []);
   const votesPanel = (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 bg-background md:min-w-[300px]">
@@ -337,8 +340,8 @@ export default function AwardsAndVotingTab() {
           </Tooltip>
         </div>
         <p className="text-sm text-muted-foreground">
-          {isPitchNight
-            ? `${participation.investors} investors · ${participation.allocations} allocations`
+          {settings.weighted
+            ? `${participation.investors} ${settings.financial ? "investors" : "supporters"} · ${participation.allocations} allocations`
             : `${new Set(votes?.map((vote) => vote.attendeeId)).size} voters · ${votes?.length ?? 0} votes`}
         </p>
         <form
@@ -373,7 +376,7 @@ export default function AwardsAndVotingTab() {
           <TableHeader className="sticky top-0 z-[1] bg-background">
             <TableRow>
               <TableHead className="w-[56px] text-right">
-                {isPitchNight ? "$" : "#"}
+                {settings.weighted ? settings.symbol : "#"}
               </TableHead>
               <TableHead>{isPitchNight ? "Pitch" : "Demo"}</TableHead>
             </TableRow>
@@ -399,8 +402,8 @@ export default function AwardsAndVotingTab() {
                       onClick={() => handleSelectWinner(demoId)}
                     >
                       <TableCell className="py-3 text-right font-medium md:py-2">
-                        {isPitchNight
-                          ? `$${(voteCount / 1000).toFixed(0)}k`
+                        {settings.weighted
+                          ? settings.format(voteCount)
                           : voteCount}
                       </TableCell>
                       <TableCell className="py-3 font-medium md:py-2">

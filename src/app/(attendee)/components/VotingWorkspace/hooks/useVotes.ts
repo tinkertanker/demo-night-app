@@ -6,8 +6,14 @@ import { api } from "~/trpc/react";
 export type LocalVote = Omit<Vote, "id" | "createdAt" | "updatedAt">;
 export type VoteByAwardId = Record<string, LocalVote>;
 
-export function useVotes(eventId: string, attendee: Attendee) {
-  const [votes, setVotes] = useState<VoteByAwardId>(getLocalVotes(eventId));
+export function useVotes(
+  eventId: string,
+  attendee: Attendee,
+  categories = false,
+) {
+  const [votes, setVotes] = useState<VoteByAwardId>(
+    getLocalVotes(eventId, attendee.id),
+  );
   const { data: votesData } = api.vote.all.useQuery({
     eventId,
     attendeeId: attendee.id,
@@ -15,19 +21,16 @@ export function useVotes(eventId: string, attendee: Attendee) {
   const upsertMutation = api.vote.upsert.useMutation();
 
   useEffect(() => {
-    setLocalVotes(eventId, votes);
-  }, [eventId, votes]);
+    setLocalVotes(eventId, attendee.id, votes);
+  }, [eventId, attendee.id, votes]);
 
   useEffect(() => {
     if (votesData) {
       // Convert array to VoteByAwardId format (for demo nights with one vote per award)
-      const votesMap = votesData.reduce(
-        (acc, vote) => {
-          acc[vote.awardId] = vote;
-          return acc;
-        },
-        {} as VoteByAwardId,
-      );
+      const votesMap = votesData.reduce((acc, vote) => {
+        acc[vote.awardId] = vote;
+        return acc;
+      }, {} as VoteByAwardId);
       setVotes(votesMap);
     }
   }, [votesData]);
@@ -39,7 +42,7 @@ export function useVotes(eventId: string, attendee: Attendee) {
     vote.demoId = demoId;
 
     // Ensure no other award is voting for the same demoId
-    if (demoId !== null) {
+    if (demoId !== null && !categories) {
       Object.keys(updatedVotes).forEach((key) => {
         if (key !== awardId && updatedVotes[key]?.demoId === demoId) {
           updatedVotes[key]!.demoId = null;
@@ -70,17 +73,27 @@ function emptyVote(
   };
 }
 
-function getLocalVotes(eventId: string): VoteByAwardId {
+function getLocalVotes(eventId: string, attendeeId: string): VoteByAwardId {
   if (typeof window !== "undefined") {
-    const votes = localStorage.getItem(`votes:${eventId}`);
-    if (votes) return JSON.parse(votes);
+    const votes =
+      localStorage.getItem(`votes:${eventId}:${attendeeId}`) ??
+      localStorage.getItem(`votes:${eventId}`);
+    if (votes)
+      return Object.fromEntries(
+        Object.entries(JSON.parse(votes) as VoteByAwardId).filter(
+          ([, vote]) =>
+            vote.attendeeId === attendeeId && vote.eventId === eventId,
+        ),
+      );
   }
-  const votes = {};
-  setLocalVotes(eventId, votes);
-  return votes;
+  return {};
 }
 
-function setLocalVotes(eventId: string, votes: VoteByAwardId) {
+function setLocalVotes(
+  eventId: string,
+  attendeeId: string,
+  votes: VoteByAwardId,
+) {
   if (typeof window === "undefined") return; // SSR guard
-  localStorage.setItem(`votes:${eventId}`, JSON.stringify(votes));
+  localStorage.setItem(`votes:${eventId}:${attendeeId}`, JSON.stringify(votes));
 }

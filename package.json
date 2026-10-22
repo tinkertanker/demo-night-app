@@ -17,6 +17,7 @@
     "lint": "next lint",
     "test": "tsx --test src/lib/*.test.ts",
     "test:voters": "NODE_ENV=test dotenv -e .env.development.local -- tsx --test src/server/voterModeration.test.ts",
+    "test:postcard-drafts": "NODE_ENV=test dotenv -e .env.development.local -- tsx --test src/server/postcardDrafts.browser.test.ts",
     "test:dates": "tsx --test src/lib/singaporeDate.test.ts",
     "cf:build": "SKIP_ENV_VALIDATION=1 NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-https://demo-night.tk.sg} NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL:-https://demo-night.tk.sg} NEXT_PUBLIC_NODE_ENV=production opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",

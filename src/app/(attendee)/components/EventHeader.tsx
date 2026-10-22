@@ -2,6 +2,7 @@ import { useWorkspaceContext } from "../contexts/WorkspaceContext";
 
 import { getBrandingClient } from "~/lib/branding";
 import { EventPhase, allPhases, displayName } from "~/lib/types/currentEvent";
+import { votingSettings } from "~/lib/types/eventConfig";
 
 import MascotLogo from "~/components/MascotLogo";
 
@@ -37,22 +38,33 @@ export default function EventHeader() {
 }
 
 function PhasePills({ currentPhase }: { currentPhase: EventPhase }) {
-  const { currentEvent } = useWorkspaceContext();
+  const { currentEvent, config } = useWorkspaceContext();
   const { isPitchNight } = getBrandingClient(currentEvent?.isPitchNight);
   return (
     <div className="flex w-full flex-row items-center justify-between gap-1 px-4 pt-1">
-      {allPhases.map((phase) => (
-        <div
-          key={phase}
-          className={`flex h-3 flex-1 items-center justify-center truncate rounded-[6px] text-center text-[8px] font-bold tracking-wide backdrop-blur transition-all duration-500 ease-in-out ${
-            phase === currentPhase
-              ? "bg-primary text-white"
-              : "bg-black/5 text-gray-500"
-          }`}
-        >
-          <p>{displayName(phase, isPitchNight)}</p>
-        </div>
-      ))}
+      {allPhases
+        .filter(
+          (phase) =>
+            votingSettings(config).showResults || phase !== EventPhase.Results,
+        )
+        .map((phase) => (
+          <div
+            key={phase}
+            className={`flex h-3 flex-1 items-center justify-center truncate rounded-[6px] text-center text-[8px] font-bold tracking-wide backdrop-blur transition-all duration-500 ease-in-out ${
+              phase === currentPhase
+                ? "bg-primary text-white"
+                : "bg-black/5 text-gray-500"
+            }`}
+          >
+            <p>
+              {displayName(
+                phase,
+                isPitchNight,
+                votingSettings(config).financial,
+              )}
+            </p>
+          </div>
+        ))}
     </div>
   );
 }

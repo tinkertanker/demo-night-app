@@ -1,9 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { EventPhase, getLiveEvent } from "~/server/liveEvent";
+import { stickerAwardId } from "~/lib/types/award";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { EventPhase, getLiveEvent } from "~/server/liveEvent";
 import {
   assertVoterCanVote,
   countedVotesWhere,
@@ -32,7 +34,7 @@ export const voteRouter = createTRPCRouter({
         attendeeId: z.string(),
         awardId: z.string(),
         demoId: z.string().nullable(),
-        amount: z.number().nullable().optional(),
+        amount: z.number().int().nonnegative().nullable().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -43,10 +45,31 @@ export const voteRouter = createTRPCRouter({
           await assertVoteBelongsToEvent(prisma, input);
           await assertVoterCanVote(prisma, input.eventId, input.attendeeId);
 
+          const event = await prisma.event.findUniqueOrThrow({
+            where: { id: input.eventId },
+            select: { config: true },
+          });
+          const settings = votingSettings(event.config);
+          if (settings.weighted && input.demoId && input.amount == null) {
+            throw new Error("An allocation amount is required");
+          }
+          if (!settings.weighted && input.amount != null) {
+            throw new Error("This event uses award votes, not allocations");
+          }
+          if (
+            settings.mode === "stickers" &&
+            input.amount != null &&
+            input.amount > 1
+          ) {
+            throw new Error("Give at most one favourite sticker per project");
+          }
+
           // Validate investment amount if provided
           if (input.amount !== null && input.amount !== undefined) {
-            if (input.amount % 1000 !== 0) {
-              throw new Error("Investment amount must be in $1k increments");
+            if (input.amount % settings.step !== 0) {
+              throw new Error(
+                `Use increments of ${settings.format(settings.step)}`,
+              );
             }
             if (input.amount < 0) {
               throw new Error("Investment amount cannot be negative");
@@ -57,7 +80,9 @@ export const voteRouter = createTRPCRouter({
               where: {
                 eventId: input.eventId,
                 attendeeId: input.attendeeId,
-                awardId: input.awardId,
+                ...(settings.mode === "stickers"
+                  ? {}
+                  : { awardId: input.awardId }),
                 NOT: {
                   demoId: input.demoId, // Exclude current demo to avoid double-counting on update
                 },
@@ -67,12 +92,24 @@ export const voteRouter = createTRPCRouter({
 
             const totalAllocated = allocated._sum.amount ?? 0;
 
-            if (totalAllocated + input.amount > 100000) {
-              const remaining = 100000 - totalAllocated;
+            if (totalAllocated + input.amount > settings.budget) {
+              const remaining = settings.budget - totalAllocated;
               throw new Error(
-                `Total investment cannot exceed $100,000. You have $${remaining / 1000}k remaining.`,
+                `Your allowance is ${settings.format(settings.budget)}. Remaining: ${settings.format(remaining)}.`,
               );
             }
+          }
+
+          if (input.demoId && input.amount === 0) {
+            await prisma.vote.deleteMany({
+              where: {
+                eventId: input.eventId,
+                attendeeId: input.attendeeId,
+                awardId: input.awardId,
+                demoId: input.demoId,
+              },
+            });
+            return null;
           }
 
           // Use the new compound unique key that includes demoId
@@ -89,6 +126,17 @@ export const voteRouter = createTRPCRouter({
             return null as any; // Return null when clearing vote
           }
 
+          if (!settings.weighted) {
+            // Every one-choice ballot replaces this person's previous pick.
+            await prisma.vote.deleteMany({
+              where: {
+                eventId: input.eventId,
+                attendeeId: input.attendeeId,
+                awardId: input.awardId,
+                demoId: { not: input.demoId },
+              },
+            });
+          }
           // For valid votes (demoId is not null), upsert the vote
           return prisma.vote.upsert({
             where: {
@@ -118,6 +166,11 @@ export const voteRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input }) => {
+      const event = await db.event.findUniqueOrThrow({
+        where: { id: input.eventId },
+        select: { config: true },
+      });
+      if (!votingSettings(event.config).showResults) return {};
       const votes = await db.vote.findMany({
         where: {
           ...countedVotesWhere(input.eventId),
@@ -195,16 +248,22 @@ async function assertVoteBelongsToEvent(
     attendeeId: string;
     awardId: string;
     demoId: string | null;
+    amount?: number | null;
   },
 ) {
-  const [award, demo, attendee] = await Promise.all([
-    prisma.award.findFirst({
-      where: { id: input.awardId, eventId: input.eventId },
-      select: { id: true },
+  const [awards, demo, attendee] = await Promise.all([
+    prisma.award.findMany({
+      where: { eventId: input.eventId },
+      orderBy: [{ index: "asc" }, { id: "asc" }],
+      select: { id: true, votable: true, winnerRank: true },
     }),
     input.demoId
       ? prisma.demo.findFirst({
-          where: { id: input.demoId, eventId: input.eventId },
+          where: {
+            id: input.demoId,
+            eventId: input.eventId,
+            ...(input.amount === 0 ? {} : { votable: true }),
+          },
           select: { id: true },
         })
       : Promise.resolve({ id: "cleared-vote" }),
@@ -214,10 +273,25 @@ async function assertVoteBelongsToEvent(
     }),
   ]);
 
+  const award = awards.find((award) => award.id === input.awardId);
   if (!award || !demo || !attendee) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Vote does not belong to this event",
+    });
+  }
+  const event = await prisma.event.findUniqueOrThrow({
+    where: { id: input.eventId },
+    select: { config: true },
+  });
+  if (
+    !award.votable ||
+    (votingSettings(event.config).mode === "stickers" &&
+      award.id !== stickerAwardId(awards))
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This award is not open for voting",
     });
   }
 }

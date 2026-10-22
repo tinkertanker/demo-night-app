@@ -8,12 +8,9 @@ import { cn } from "~/lib/utils";
 import { type DemoFeedback } from "~/server/api/routers/demo";
 
 import AttendeeTypeBadge from "~/components/AttendeeTypeBadge";
+import PostcardContent from "~/components/PostcardContent";
 
-export function FeedbackItem({
-  feedback,
-}: {
-  feedback: DemoFeedback;
-}) {
+export function FeedbackItem({ feedback }: { feedback: DemoFeedback }) {
   const summary = [
     feedback.claps
       ? `👏<span class="text-xs"> x${feedback.claps}</span>`
@@ -80,9 +77,7 @@ export function FeedbackItem({
           📬 {feedback.attendee.email}
         </p>
       )}
-      {feedback.comment && (
-        <p className="italic text-gray-700">{`"${feedback.comment}"`}</p>
-      )}
+      <PostcardContent feedback={feedback} />
     </div>
   );
 }

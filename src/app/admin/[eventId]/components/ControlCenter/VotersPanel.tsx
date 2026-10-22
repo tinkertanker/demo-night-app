@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { liveQueryOptions } from "~/lib/liveQuery";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 
@@ -39,6 +40,7 @@ type Voter = RouterOutputs["attendee"]["getVoters"][number];
 export default function VotersPanel() {
   const { event, currentEvent, config, refetchEvent } = useDashboardContext();
   const utils = api.useUtils();
+  const settings = votingSettings(config);
   const [search, setSearch] = useState("");
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
   const statusTrigger = useRef<HTMLButtonElement | null>(null);
@@ -76,7 +78,7 @@ export default function VotersPanel() {
     voters?.filter(
       (voter) =>
         !voter.excluded &&
-        (config.isPitchNight ? voter.totalInvested > 0 : voter.voteCount > 0),
+        (settings.weighted ? voter.totalInvested > 0 : voter.voteCount > 0),
     ).length ?? 0;
   const excluded = voters?.filter((voter) => voter.excluded).length ?? 0;
 
@@ -85,7 +87,7 @@ export default function VotersPanel() {
       <div className="space-y-1">
         <h2 className="text-xl font-semibold md:text-2xl">Voters</h2>
         <p className="text-sm text-muted-foreground">
-          {investing} {config.isPitchNight ? "investing" : "voted"} · {excluded}{" "}
+          {investing} {settings.financial ? "investing" : "voted"} · {excluded}{" "}
           excluded
         </p>
         <p className="text-sm text-muted-foreground">
@@ -104,7 +106,11 @@ export default function VotersPanel() {
             <TableRow>
               <TableHead className="px-2">Name</TableHead>
               <TableHead className="px-2 text-right">
-                {config.isPitchNight ? "Invested" : "Votes"}
+                {settings.financial
+                  ? "Invested"
+                  : settings.weighted
+                    ? "Total support"
+                    : "Votes"}
               </TableHead>
               <TableHead className="px-2 text-right">Status</TableHead>
             </TableRow>
@@ -139,14 +145,14 @@ export default function VotersPanel() {
               </TableRow>
             ) : (
               visibleVoters.map((voter) => {
-                const hasVotes = config.isPitchNight
+                const hasVotes = settings.weighted
                   ? voter.totalInvested > 0
                   : voter.voteCount > 0;
                 const status = voter.excluded
                   ? "Excluded"
                   : hasVotes
                     ? "Counted"
-                    : config.isPitchNight
+                    : settings.financial
                       ? "Not invested"
                       : "Not voted";
                 return (
@@ -165,8 +171,8 @@ export default function VotersPanel() {
                       </p>
                     </TableCell>
                     <TableCell className="whitespace-nowrap px-2 text-right tabular-nums">
-                      {config.isPitchNight
-                        ? `$${voter.totalInvested.toLocaleString("en-SG")}`
+                      {settings.weighted
+                        ? settings.format(voter.totalInvested)
                         : voter.voteCount}
                     </TableCell>
                     <TableCell className="px-2 text-right">

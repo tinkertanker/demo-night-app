@@ -8,14 +8,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import {
-  getAwardWinner,
-  type AwardWinnerDisplay,
-} from "~/lib/awardWinner";
+import { type AwardWinnerDisplay, getAwardWinner } from "~/lib/awardWinner";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
 
 import { LogoConfetti } from "~/components/Confetti";
+import PostcardContent from "~/components/PostcardContent";
 import Sticker from "~/components/Sticker";
 
 import { useEventFeedback } from "./hooks/useEventFeedback";
@@ -45,13 +44,13 @@ export default function RecapWorkspace() {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      setAwardIndex((i) => (i + 1) % (event?.awards.length ?? 1));
+      setAwardIndex((i) => (i + 1) % (event?.awards.length || 1));
     }, 5000);
 
     return () => clearInterval(intervalId);
   }, [event?.awards.length]);
 
-  const award = event.awards[awardIndex]!;
+  const award = event.awards[awardIndex];
   const surveyUrl = config?.surveyUrl;
 
   return (
@@ -78,18 +77,20 @@ export default function RecapWorkspace() {
           placeholder={`What did you think? How can we make these events even better?`}
         />
       </div>
-      <div className="flex w-full flex-col gap-2">
-        <h2 className="w-full text-2xl font-bold">Award Winners 🏆</h2>
-        <div className="z-10 flex w-full flex-row">
-          <AnimatePresence initial={false} mode="wait">
-            <AwardWinnerItem
-              key={award.id}
-              award={award}
-              winner={getAwardWinner(award, event.demos)}
-            />
-          </AnimatePresence>
+      {votingSettings(config).showResults && award && (
+        <div className="flex w-full flex-col gap-2">
+          <h2 className="w-full text-2xl font-bold">Award Winners 🏆</h2>
+          <div className="z-10 flex w-full flex-row">
+            <AnimatePresence initial={false} mode="wait">
+              <AwardWinnerItem
+                key={award.id}
+                award={award}
+                winner={getAwardWinner(award, event.demos)}
+              />
+            </AnimatePresence>
+          </div>
         </div>
-      </div>
+      )}
       {config.partners.length > 0 && (
         <div className="flex w-full flex-col gap-2">
           <h2 className="w-full text-2xl font-bold">Hosts & Sponsors 🤝</h2>
@@ -324,9 +325,7 @@ function FeedbackItem({
             <RatingSlider feedback={feedback} />
           </div>
         )}
-        {feedback.comment && (
-          <p className="italic leading-5 text-gray-700">{`"${feedback.comment}"`}</p>
-        )}
+        <PostcardContent feedback={feedback} />
       </Link>
     </div>
   );

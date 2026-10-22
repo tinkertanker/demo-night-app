@@ -39,7 +39,6 @@ type FormValues = z.infer<typeof formSchema>;
 export default function AwardSheet({
   award,
   eventId,
-  isPitchNight = false,
   onSubmit,
   open,
   onOpenChange,
@@ -169,13 +168,12 @@ export default function AwardSheet({
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      {isPitchNight ? "Attendees can invest?" : "Attendees can vote?"}
-                    </FormLabel>
+                    <FormLabel>Attendees can vote?</FormLabel>
                     <p className="text-sm text-muted-foreground">
-                      {isPitchNight
-                        ? "Allow attendees to invest their $100k budget toward this award. The company with the most investment wins! If unchecked, you can still manually select the winner (e.g., for judges' choice)."
-                        : "Determine the winner of this award by audience vote. If unchecked, you can still manually select the winner (e.g., for judges' choice)."}
+                      Determine the winner by audience support using this
+                      event&apos;s voting settings. Sticker voting uses the
+                      first-place award only. If unchecked, you can still
+                      manually select the winner.
                     </p>
                   </div>
                 </FormItem>
