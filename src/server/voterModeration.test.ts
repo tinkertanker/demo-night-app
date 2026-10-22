@@ -888,6 +888,33 @@ describe("voting modes and shared postcards", () => {
     );
   });
 
+  it("replaces one-choice votes outside Categories, including the legacy fallback", async () => {
+    await db.attendee.update({
+      where: { id: attendeeId },
+      data: { name: "Ada Lovelace" },
+    });
+    for (const config of [
+      { isPitchNight: false },
+      { template: "pitching" as const, votingMode: "awards" as const },
+      { template: "noLeaderboard" as const, votingMode: "awards" as const },
+    ]) {
+      await db.vote.deleteMany({ where: { eventId } });
+      await admin.event.upsert.mutate({ originalId: eventId, config });
+      await caller.vote.upsert.mutate({ eventId, attendeeId, awardId, demoId });
+      await caller.vote.upsert.mutate({
+        eventId,
+        attendeeId,
+        awardId,
+        demoId: secondDemoId,
+      });
+      const votes = await caller.vote.all.query({ eventId, attendeeId });
+      assert.deepEqual(
+        votes.map((vote) => [vote.awardId, vote.demoId]),
+        [[awardId, secondDemoId]],
+      );
+    }
+  });
+
   it("replaces a category choice atomically, permits repeated projects across categories, and tallies each winner independently", async () => {
     const created = await admin.event.upsert.mutate({
       id: otherEventId,

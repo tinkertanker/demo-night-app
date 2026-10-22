@@ -126,8 +126,8 @@ export const voteRouter = createTRPCRouter({
             return null as any; // Return null when clearing vote
           }
 
-          if (settings.categories && !settings.weighted) {
-            // A category has one choice per person, independent of other categories.
+          if (!settings.weighted) {
+            // Every one-choice ballot replaces this person's previous pick.
             await prisma.vote.deleteMany({
               where: {
                 eventId: input.eventId,
