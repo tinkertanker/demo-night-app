@@ -2,6 +2,7 @@ import { type Demo, type Feedback } from "@prisma/client";
 import { cache } from "react";
 import { z } from "zod";
 
+import { votingSettings } from "~/lib/types/eventConfig";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -17,6 +18,10 @@ type BaseFeedback = {
   cheers: number;
   confetti: number;
   comment: string | null;
+  liked: string | null;
+  wonder: string | null;
+  tryNext: string | null;
+  badges: string[];
 };
 
 type FeedbackAttribution = {
@@ -63,6 +68,10 @@ export const demoRouter = createTRPCRouter({
           cheers: feedback.cheers,
           confetti: feedback.confetti,
           comment: feedback.comment,
+          liked: feedback.liked,
+          wonder: feedback.wonder,
+          tryNext: feedback.tryNext,
+          badges: feedback.badges,
           rating: feedback.rating,
           attendee: {
             name: feedback.attendee?.name,
@@ -274,7 +283,11 @@ export const demoRouter = createTRPCRouter({
     .query(async ({ input }): Promise<DemoStats> => {
       const demo = await db.demo.findUnique({
         where: { id: input.id, secret: input.secret },
-        select: { id: true, eventId: true },
+        select: {
+          id: true,
+          eventId: true,
+          event: { select: { config: true } },
+        },
       });
 
       if (!demo) {
@@ -300,7 +313,9 @@ export const demoRouter = createTRPCRouter({
         totalClaps: feedbackAgg._sum.claps ?? 0,
         totalCheers: feedbackAgg._sum.cheers ?? 0,
         totalConfetti: feedbackAgg._sum.confetti ?? 0,
-        totalMoneyRaised: voteAgg._sum.amount ?? 0,
+        totalMoneyRaised: votingSettings(demo.event.config).showResults
+          ? voteAgg._sum.amount ?? 0
+          : 0,
       };
     }),
 });
@@ -317,6 +332,10 @@ const readDemoWithFeedback = cache(async (id: string, secret: string) => {
           cheers: true,
           confetti: true,
           comment: true,
+          liked: true,
+          wonder: true,
+          tryNext: true,
+          badges: true,
           attendee: {
             select: {
               name: true,

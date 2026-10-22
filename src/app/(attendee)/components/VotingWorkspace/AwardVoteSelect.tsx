@@ -1,9 +1,11 @@
+import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
 import { type FeedbackByDemoId } from "../DemosWorkspace/hooks/useFeedback";
 import { type Award } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
 import { CircleCheck, Expand } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { votingSettings } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { type PublicDemo } from "~/server/api/routers/event";
 
@@ -25,6 +27,7 @@ export default function AwardVoteSelect({
   feedbackByDemoId: FeedbackByDemoId;
 }) {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const { config } = useWorkspaceContext();
 
   const vote = votes[award.id];
   const selectedDemo = demos.find((d) => d.id === vote?.demoId);
@@ -41,7 +44,9 @@ export default function AwardVoteSelect({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onKeyDown]);
 
-  const voteDemoIds = Object.values(votes).map((v) => v.demoId);
+  const voteDemoIds = votingSettings(config).categories
+    ? []
+    : Object.values(votes).map((v) => v.demoId);
   const votableDemos = demos.filter((demo) => demo.votable);
 
   return (

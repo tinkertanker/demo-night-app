@@ -37,9 +37,6 @@ export default function DemoRecap({
     { enabled: !!secret },
   );
 
-  const isPitchNight =
-    (event.config as EventConfig | null)?.isPitchNight ?? false;
-
   return (
     <>
       <div className="absolute bottom-0 max-h-[calc(100dvh-120px)] w-full max-w-xl overflow-y-auto">
@@ -53,12 +50,7 @@ export default function DemoRecap({
             </p>
           </div>
           <ActionButtons demo={demo} event={event} />
-          {stats && (
-            <DemoStats
-              stats={stats}
-              isPitchNight={isPitchNight}
-            />
-          )}
+          {stats && <DemoStats stats={stats} config={event.config} />}
           <RatingSummary demo={demo} />
           {demo.feedback.map((feedback) => (
             <FeedbackItem key={feedback.id} feedback={feedback} />
@@ -138,6 +130,10 @@ function ActionButtons({
       { label: "Cheers", key: "cheers" },
       { label: "Confetti", key: "confetti" },
       { label: "Comment", key: "comment" },
+      { label: "I liked", key: "liked" },
+      { label: "I wonder", key: "wonder" },
+      { label: "You could try", key: "tryNext" },
+      { label: "Appreciation badges", key: "badges" },
       { label: "Attendee name", key: "attendee.name" },
       { label: "Attendee email", key: "attendee.email" },
       { label: "Attendee linkedin", key: "attendee.linkedin" },
@@ -151,6 +147,10 @@ function ActionButtons({
     cheers: feedback.cheers ?? 0,
     confetti: feedback.confetti ?? 0,
     comment: escapeCsvField(feedback.comment),
+    liked: escapeCsvField(feedback.liked),
+    wonder: escapeCsvField(feedback.wonder),
+    tryNext: escapeCsvField(feedback.tryNext),
+    badges: escapeCsvField(feedback.badges.join("; ")),
     attendee: {
       name: escapeCsvField(feedback.attendee?.name),
       email: escapeCsvField(feedback.attendee?.email),

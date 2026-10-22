@@ -1,6 +1,7 @@
 import { type Attendee, type Feedback } from "@prisma/client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { postcardFields } from "~/lib/postcards";
 import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
 
@@ -19,69 +20,78 @@ export function useFeedback(
   selectedDemo: PublicDemo,
 ) {
   const [feedbackByDemoId, setFeedbackByDemoId] = useState<FeedbackByDemoId>(
-    getLocalFeedbackByDemoId(eventId),
+    getLocalFeedbackByDemoId(eventId, attendee.id),
   );
   const { data: allFeedbackData } = api.feedback.all.useQuery({
     eventId,
     attendeeId: attendee.id,
   });
-  const [feedback, setFeedback] = useState(
+  const pending = useRef<FeedbackByDemoId>({});
+  const queue = useRef(Promise.resolve());
+  const utils = api.useUtils();
+  const feedback =
     feedbackByDemoId[selectedDemo.id] ??
-      emptyFeedback(eventId, attendee.id, selectedDemo.id),
-  );
-  const [debouncedFeedback, setDebouncedFeedback] = useState(feedback);
+    emptyFeedback(eventId, attendee.id, selectedDemo.id);
+  const setFeedback = (next: LocalFeedback) => {
+    pending.current[next.demoId] = next;
+    setFeedbackByDemoId((previous) => ({ ...previous, [next.demoId]: next }));
+    setSaveStatus(FeedbackSaveStatus.UNSAVED);
+  };
   const upsertMutation = api.feedback.upsert.useMutation();
   const [saveStatus, setSaveStatus] = useState<FeedbackSaveStatus>(
     FeedbackSaveStatus.UNSAVED,
   );
 
+  const save = () => {
+    const changes = Object.values(pending.current);
+    if (!changes.length) return;
+    setSaveStatus(FeedbackSaveStatus.SAVING);
+    // Serialize snapshots so a slow earlier save cannot overwrite later edits.
+    queue.current = queue.current
+      .catch(() => undefined)
+      .then(async () => {
+        for (const item of changes) {
+          const saved = await upsertMutation.mutateAsync({
+            ...item,
+            badges: postcardFields.badges.parse(item.badges),
+          });
+          utils.feedback.all.setData(
+            { eventId, attendeeId: attendee.id },
+            (previous) => ({ ...previous, [saved.demoId]: saved }),
+          );
+          if (pending.current[item.demoId] === item)
+            delete pending.current[item.demoId];
+        }
+        if (!Object.keys(pending.current).length)
+          setSaveStatus(FeedbackSaveStatus.SAVED);
+      })
+      .catch(() => setSaveStatus(FeedbackSaveStatus.UNSAVED));
+  };
+  const saveOnExit = useRef(save);
+  saveOnExit.current = save;
+  useEffect(() => () => saveOnExit.current(), []);
+
   useEffect(() => {
-    setLocalFeedbackByDemoId(eventId, feedbackByDemoId);
-  }, [eventId, feedbackByDemoId]);
+    setLocalFeedbackByDemoId(eventId, attendee.id, feedbackByDemoId);
+  }, [eventId, attendee.id, feedbackByDemoId]);
 
   useEffect(() => {
     if (allFeedbackData) {
-      setFeedbackByDemoId(allFeedbackData);
+      setFeedbackByDemoId({ ...allFeedbackData, ...pending.current });
+      if (!Object.keys(pending.current).length)
+        setSaveStatus(FeedbackSaveStatus.SAVED);
     }
   }, [allFeedbackData]);
 
   useEffect(() => {
-    const newFeedback =
-      feedbackByDemoId[selectedDemo.id] ??
-      emptyFeedback(eventId, attendee.id, selectedDemo.id);
-    setFeedback(newFeedback);
-    setDebouncedFeedback(newFeedback); // Reset debounced feedback when demo changes
-  }, [selectedDemo.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (feedbackIsEmpty(debouncedFeedback)) return;
-      setSaveStatus(FeedbackSaveStatus.SAVING);
-      upsertMutation.mutate(debouncedFeedback, {
-        onSuccess: () => {
-          setSaveStatus(FeedbackSaveStatus.SAVED);
-        },
-        onError: () => {
-          setSaveStatus(FeedbackSaveStatus.UNSAVED);
-        },
-      });
-    }, 3_000);
+    const handler = setTimeout(save, 800);
 
     return () => {
       clearTimeout(handler);
-      setSaveStatus(FeedbackSaveStatus.UNSAVED); // Reset status on cleanup
     };
-  }, [debouncedFeedback]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [feedbackByDemoId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    setDebouncedFeedback(feedback);
-    setFeedbackByDemoId({
-      ...feedbackByDemoId,
-      [selectedDemo.id]: feedback,
-    });
-  }, [feedback]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return { feedbackByDemoId, feedback, setFeedback, saveStatus };
+  return { feedbackByDemoId, feedback, setFeedback, saveStatus, save };
 }
 
 function emptyFeedback(
@@ -98,33 +108,47 @@ function emptyFeedback(
     cheers: 0,
     confetti: 0,
     comment: null,
+    liked: null,
+    wonder: null,
+    tryNext: null,
+    badges: [],
   };
 }
 
-function feedbackIsEmpty(feedback: LocalFeedback): boolean {
-  return (
-    feedback.rating === null &&
-    feedback.claps === 0 &&
-    feedback.cheers === 0 &&
-    feedback.confetti === 0 &&
-    feedback.comment === null
-  );
-}
-
-function getLocalFeedbackByDemoId(eventId: string): FeedbackByDemoId {
+function getLocalFeedbackByDemoId(
+  eventId: string,
+  attendeeId: string,
+): FeedbackByDemoId {
   if (typeof window !== "undefined") {
-    const feedback = localStorage.getItem(`feedback:${eventId}`);
-    if (feedback) return JSON.parse(feedback);
+    const stored =
+      localStorage.getItem(`feedback:${eventId}:${attendeeId}`) ??
+      localStorage.getItem(`feedback:${eventId}`);
+    if (stored) {
+      const parsed = JSON.parse(stored) as FeedbackByDemoId;
+      return Object.fromEntries(
+        Object.entries(parsed)
+          .filter(
+            ([, item]) =>
+              item.attendeeId === attendeeId && item.eventId === eventId,
+          )
+          .map(([id, item]) => [
+            id,
+            { ...emptyFeedback(eventId, attendeeId, id), ...item },
+          ]),
+      );
+    }
   }
-  const feedback = {};
-  setLocalFeedbackByDemoId(eventId, feedback);
-  return feedback;
+  return {};
 }
 
 function setLocalFeedbackByDemoId(
   eventId: string,
+  attendeeId: string,
   feedbackByDemoId: FeedbackByDemoId,
 ) {
   if (typeof window === "undefined") return; // SSR guard
-  localStorage.setItem(`feedback:${eventId}`, JSON.stringify(feedbackByDemoId));
+  localStorage.setItem(
+    `feedback:${eventId}:${attendeeId}`,
+    JSON.stringify(feedbackByDemoId),
+  );
 }

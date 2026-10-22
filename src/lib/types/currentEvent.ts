@@ -14,14 +14,18 @@ export const allPhases = [
   EventPhase.Recap,
 ];
 
-export function displayName(phase: EventPhase, isPitchNight = false): string {
+export function displayName(
+  phase: EventPhase,
+  isPitchNight = false,
+  financial = isPitchNight,
+): string {
   switch (phase) {
     case EventPhase.Pre:
       return isPitchNight ? "Pre-Pitches" : "Pre-Demos";
     case EventPhase.Demos:
       return isPitchNight ? "Pitches" : "Demos";
     case EventPhase.Voting:
-      return isPitchNight ? "Investing" : "Voting";
+      return financial ? "Investing" : "Voting";
     case EventPhase.Results:
       return "Results";
     case EventPhase.Recap:

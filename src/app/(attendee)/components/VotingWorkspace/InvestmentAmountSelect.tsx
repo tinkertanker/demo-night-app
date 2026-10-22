@@ -1,20 +1,12 @@
 "use client";
 
-import { type Award, type Vote } from "@prisma/client";
-import { motion } from "framer-motion";
-import { Minus, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import Confetti from "react-confetti";
+import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
+import { type Award } from "@prisma/client";
 import { toast } from "sonner";
 
-import useWindowSize from "~/lib/hooks/useWindowSize";
-import { cn } from "~/lib/utils";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
-
-const TOTAL_BUDGET = 100000; // $100k
-const INCREMENT_25K = 25000; // $25k
-const INCREMENT_5K = 5000; // $5k
 
 export default function InvestmentAmountSelect({
   award,
@@ -27,263 +19,122 @@ export default function InvestmentAmountSelect({
   eventId: string;
   attendeeId: string;
 }) {
-  const [investments, setInvestments] = useState<Record<string, number>>({});
-  const [confettiPieces, setConfettiPieces] = useState(0);
-  const { windowSize } = useWindowSize();
-  const confettiTimeoutId = useRef<NodeJS.Timeout | null>(null);
-  const { data: votesData } = api.vote.all.useQuery({
-    eventId,
-    attendeeId,
+  const { config } = useWorkspaceContext();
+  const settings = votingSettings(config);
+  const utils = api.useUtils();
+  const {
+    data: votes,
+    isLoading,
+    isError,
+    refetch,
+  } = api.vote.all.useQuery({ eventId, attendeeId });
+  const mutation = api.vote.upsert.useMutation({
+    onSuccess: async () => {
+      await utils.vote.all.invalidate({ eventId, attendeeId });
+    },
+    onError: (error) => toast.error(error.message),
   });
-  const upsertMutation = api.vote.upsert.useMutation();
-
-  // Load existing investments from votes
-  useEffect(() => {
-    if (votesData) {
-      const awardVotes = votesData.filter((v: Vote) => v.awardId === award.id);
-      const investmentMap: Record<string, number> = {};
-      awardVotes.forEach((vote: Vote) => {
-        if (vote.demoId && vote.amount) {
-          investmentMap[vote.demoId] = vote.amount;
-        }
-      });
-      setInvestments(investmentMap);
-    }
-  }, [votesData, award.id]);
-
-  const totalInvested = Object.values(investments).reduce(
-    (sum, amount) => sum + amount,
-    0,
-  );
-  const remaining = TOTAL_BUDGET - totalInvested;
-
-  const updateInvestment = (demoId: string, newAmount: number) => {
-    const currentAmount = investments[demoId] ?? 0;
-    const delta = newAmount - currentAmount;
-
-    // Check if we have enough budget remaining
-    if (delta > remaining) {
-      toast.error(
-        `Not enough budget! You have $${remaining / 1000}k remaining.`,
-      );
-      return;
-    }
-
-    // Update local state
-    const newInvestments = { ...investments };
-    if (newAmount === 0) {
-      delete newInvestments[demoId];
-    } else {
-      newInvestments[demoId] = newAmount;
-    }
-    setInvestments(newInvestments);
-
-    // Save to database
-    upsertMutation.mutate(
-      {
-        eventId,
-        attendeeId,
-        awardId: award.id,
-        demoId: newAmount === 0 ? null : demoId,
-        amount: newAmount === 0 ? null : newAmount,
-      },
-      {
-        onError: (error) => {
-          toast.error(error.message);
-          // Revert on error
-          setInvestments(investments);
-        },
-      },
+  if (isLoading) return <p>Loading your allowance…</p>;
+  if (isError)
+    return (
+      <button onClick={() => void refetch()}>
+        Could not load votes. Try again
+      </button>
     );
-  };
-
-  const triggerConfetti = () => {
-    // Confetti based on the increment amount ($10k = 80 pieces)
-    const pieces = 20;
-    setConfettiPieces(pieces);
-    if (confettiTimeoutId.current) {
-      clearTimeout(confettiTimeoutId.current);
-    }
-    confettiTimeoutId.current = setTimeout(() => {
-      setConfettiPieces(0);
-    }, 1500);
-  };
-
-  const increment = (demoId: string, incrementAmount: number) => {
-    const current = investments[demoId] ?? 0;
-    const newAmount = current + incrementAmount;
-    updateInvestment(demoId, newAmount);
-    triggerConfetti();
-  };
-
-  const decrement = (demoId: string, decrementAmount: number) => {
-    const current = investments[demoId] ?? 0;
-    if (current >= decrementAmount) {
-      updateInvestment(demoId, current - decrementAmount);
-      // No confetti on decrement (negative money)
-    }
-  };
-
-  const votableDemos = demos.filter((demo) => demo.votable);
-
-  const drawMoneyEmoji = (ctx: CanvasRenderingContext2D) => {
-    ctx.font = "40px sans-serif";
-    ctx.fillText("💸", 0, 0);
-  };
-
+  const allocations = (votes ?? []).filter(
+    (vote) => settings.mode === "stickers" || vote.awardId === award.id,
+  );
+  const total = allocations.reduce((sum, vote) => sum + (vote.amount ?? 0), 0);
+  const remaining = settings.budget - total;
+  const update = (demoId: string, amount: number) =>
+    mutation.mutate({ eventId, attendeeId, awardId: award.id, demoId, amount });
   return (
-    <div className="flex w-full flex-col gap-4">
-      {/* Budget Tracker */}
-      <div className="z-10 rounded-lg bg-primary/80 p-4 text-white shadow-lg backdrop-blur">
-        <div className="flex items-center justify-between gap-1">
-          <div>
-            <p className="text-xl font-bold">Your Scout Fund</p>
-            <p className="text-sm font-medium text-white/80">
-              ${totalInvested / 1000}k invested • ${remaining / 1000}k remaining
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold">
-              ${remaining / 1000}k
-            </p>
-          </div>
+    <section className="w-full space-y-3">
+      {settings.categories && (
+        <div>
+          <h2 className="text-2xl font-bold">{award.name}</h2>
+          <p className="text-gray-600">{award.description}</p>
         </div>
-        {/* Progress bar */}
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/40">
-          <motion.div
-            className="h-full bg-gradient-to-r from-white/60 to-white"
-            initial={{ width: 0 }}
-            animate={{ width: `${(totalInvested / TOTAL_BUDGET) * 100}%` }}
-            transition={{ duration: 0.3 }}
-          />
-        </div>
+      )}
+      <div className="rounded-xl bg-primary p-4 text-white" role="status">
+        <h2 className="text-xl font-bold">
+          {settings.financial
+            ? "Your Scout Fund"
+            : settings.mode === "stickers"
+              ? "Your favourite stickers"
+              : "Your support allowance"}
+        </h2>
+        <p>
+          {settings.format(total)} {settings.financial ? "invested" : "given"} ·
+          Remaining: {settings.format(remaining)}
+        </p>
+        {settings.mode === "stickers" && (
+          <p className="mt-2 text-sm">
+            One favourite sticker per project. You can take it back and choose
+            another.
+          </p>
+        )}
       </div>
-
-      {/* Investment List */}
-      <div className="flex flex-col gap-3">
-        {votableDemos.map((demo) => {
-          const amount = investments[demo.id] ?? 0;
-          const hasInvestment = amount > 0;
-
+      {demos
+        .filter((demo) => demo.votable)
+        .map((demo) => {
+          const amount =
+            allocations.find((vote) => vote.demoId === demo.id)?.amount ?? 0;
           return (
-            <motion.div
+            <div
               key={demo.id}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(
-                "z-10 flex flex-col gap-2 rounded-lg p-4 shadow-lg backdrop-blur transition-all",
-                hasInvestment
-                  ? "bg-gray-300/50 ring-2 ring-primary/40"
-                  : "bg-gray-300/50 hover:bg-gray-300/60",
-              )}
+              className="space-y-3 rounded-xl bg-gray-200/80 p-4"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-xl font-bold leading-7">{demo.name}</p>
-                  {demo.description && (
-                    <p className="pb-0.5 font-medium italic leading-5 text-gray-700">
-                      {demo.description}
-                    </p>
-                  )}
+              <h3 className="text-xl font-bold">{demo.name}</h3>
+              {settings.mode === "stickers" ? (
+                <button
+                  aria-pressed={amount > 0}
+                  disabled={mutation.isPending || (!amount && remaining < 1)}
+                  className="rounded-lg bg-white px-4 py-3 font-semibold disabled:opacity-50"
+                  onClick={() => update(demo.id, amount ? 0 : 1)}
+                >
+                  {amount
+                    ? "⭐ Favourite — take back"
+                    : "☆ Give favourite sticker"}
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex gap-2">
+                    {[25000, 5000].map((step) => (
+                      <button
+                        key={step}
+                        aria-label={`Take back ${settings.format(step)} from ${demo.name}`}
+                        disabled={mutation.isPending || amount < step}
+                        className="rounded-lg bg-white px-3 py-2 disabled:opacity-40"
+                        onClick={() => update(demo.id, amount - step)}
+                      >
+                        −{settings.format(step)}
+                      </button>
+                    ))}
+                  </div>
+                  <strong>{settings.format(amount)}</strong>
+                  <div className="flex gap-2">
+                    {[5000, 25000].map((step) => (
+                      <button
+                        key={step}
+                        aria-label={`${settings.financial ? "Invest" : "Give"} ${settings.format(step)} to ${demo.name}`}
+                        disabled={mutation.isPending || remaining < step}
+                        className="rounded-lg bg-primary px-3 py-2 text-white disabled:opacity-40"
+                        onClick={() => update(demo.id, amount + step)}
+                      >
+                        +{settings.format(step)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              {/* Investment Controls */}
-              <div className="flex items-center justify-between gap-2">
-                {/* Decrement Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => decrement(demo.id, INCREMENT_25K)}
-                    disabled={amount < INCREMENT_25K}
-                    className={cn(
-                      "flex size-11 flex-col items-center justify-center rounded-full px-2 transition-all",
-                      amount < INCREMENT_25K
-                        ? "cursor-not-allowed bg-white/50 text-gray-400"
-                        : "bg-gray-700/70 text-white hover:bg-gray-700/90 active:scale-95",
-                    )}
-                  >
-                    <Minus size={16} strokeWidth={3.5} />
-                    <span className="-mb-0.5 text-[11px] font-semibold leading-none">
-                      25k
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => decrement(demo.id, INCREMENT_5K)}
-                    disabled={amount < INCREMENT_5K}
-                    className={cn(
-                      "flex size-11 flex-col items-center justify-center rounded-full px-2 transition-all",
-                      amount < INCREMENT_5K
-                        ? "cursor-not-allowed bg-white/50 text-gray-400"
-                        : "bg-gray-700/70 text-white hover:bg-gray-700/90 active:scale-95",
-                    )}
-                  >
-                    <Minus size={16} strokeWidth={3.5} />
-                    <span className="-mb-0.5 text-[11px] font-semibold leading-none">
-                      5k
-                    </span>
-                  </button>
-                </div>
-
-                {/* Amount Display */}
-                <div className="flex flex-1 flex-col items-center">
-                  <p className="text-2xl font-bold">
-                    ${amount === 0 ? "0" : `${amount / 1000}k`}
-                  </p>
-                  {/* {amount > 0 && (
-                    <p className="text-xs text-gray-600">
-                      {((amount / TOTAL_BUDGET) * 100).toFixed(1)}% of budget
-                    </p>
-                  )} */}
-                </div>
-
-                {/* Increment Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => increment(demo.id, INCREMENT_5K)}
-                    disabled={remaining < INCREMENT_5K}
-                    className={cn(
-                      "flex size-11 flex-col items-center justify-center rounded-full px-2 transition-all",
-                      remaining < INCREMENT_5K
-                        ? "cursor-not-allowed bg-white/50 text-gray-400"
-                        : "bg-primary/80 text-white hover:bg-primary active:scale-95",
-                    )}
-                  >
-                    <Plus size={14} strokeWidth={3.5} />
-                    <span className="-mb-0.5 text-[11px] font-semibold leading-none">
-                      5k
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => increment(demo.id, INCREMENT_25K)}
-                    disabled={remaining < INCREMENT_25K}
-                    className={cn(
-                      "flex size-11 flex-col items-center justify-center rounded-full px-2 transition-all",
-                      remaining < INCREMENT_25K
-                        ? "cursor-not-allowed bg-white/50 text-gray-400"
-                        : "bg-primary/80 text-white hover:bg-primary active:scale-95",
-                    )}
-                  >
-                    <Plus size={14} strokeWidth={3.5} />
-                    <span className="-mb-0.5 text-[11px] font-semibold leading-none">
-                      25k
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+              )}
+            </div>
           );
         })}
-      </div>
-      <div className="pointer-events-none fixed inset-0 z-[3]">
-        <Confetti
-          width={windowSize.width}
-          height={windowSize.height}
-          drawShape={drawMoneyEmoji}
-          tweenDuration={1000}
-          gravity={0.05}
-          numberOfPieces={confettiPieces}
-        />
-      </div>
-    </div>
+      <p className="text-sm text-gray-600">
+        Voting never requires a postcard. Feedback and appreciation stay
+        available even when your allowance runs out.
+      </p>
+    </section>
   );
 }

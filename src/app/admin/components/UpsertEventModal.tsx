@@ -6,7 +6,13 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { formatDateDDMMYYYY, parseDateDDMMYYYY } from "~/lib/singaporeDate";
-import { type EventConfig } from "~/lib/types/eventConfig";
+import {
+  DEFAULT_EVENT_CONFIG,
+  EVENT_TEMPLATES,
+  type EventConfig,
+  VOTING_UNITS,
+  votingSettings,
+} from "~/lib/types/eventConfig";
 import { api } from "~/trpc/react";
 
 import { Button } from "~/components/ui/button";
@@ -39,10 +45,22 @@ export function UpsertEventModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const [defaultId] = useState(() => generateRandomId());
+  const [template, setTemplate] = useState<EventConfig["template"] | "">(
+    event ? (event.config as EventConfig)?.template ?? "" : "pitching",
+  );
   const [isPitchNight, setIsPitchNight] = useState(
     event ? (event.config as EventConfig)?.isPitchNight ?? false : true,
   );
   const [useTestData, setUseTestData] = useState(false);
+  const initialSettings = votingSettings(event?.config ?? DEFAULT_EVENT_CONFIG);
+  const [votingMode, setVotingMode] = useState(initialSettings.mode);
+  const [votingUnit, setVotingUnit] = useState(initialSettings.unit);
+  const [stickerAllowance, setStickerAllowance] = useState(
+    initialSettings.mode === "stickers" ? initialSettings.budget : 5,
+  );
+  const [feedbackGoal, setFeedbackGoal] = useState(
+    (event?.config as EventConfig)?.feedbackGoal?.toString() ?? "",
+  );
   const upsertMutation = api.event.upsert.useMutation();
   const populateTestDataMutation = api.event.populateTestData.useMutation();
 
@@ -64,7 +82,7 @@ export function UpsertEventModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{event ? "Edit" : "Create New"} Event</DialogTitle>
         </DialogHeader>
@@ -78,7 +96,12 @@ export function UpsertEventModal({
 
             const config: EventConfig = {
               ...(event?.config as EventConfig),
+              template: template === "" ? undefined : template,
               isPitchNight,
+              votingMode,
+              votingUnit,
+              stickerAllowance,
+              feedbackGoal: feedbackGoal ? Number(feedbackGoal) : undefined,
             };
             upsertMutation
               .mutateAsync({
@@ -119,7 +142,7 @@ export function UpsertEventModal({
                 );
               });
           })}
-          className="flex flex-col gap-4"
+          className="flex min-w-0 flex-col gap-4"
         >
           <label className="flex flex-col gap-1">
             <span className="font-semibold">Name</span>
@@ -178,26 +201,114 @@ export function UpsertEventModal({
               </span>
             )}
           </label>
-          <div className="flex items-start gap-3 rounded-md border border-gray-200 p-3">
-            <Switch
-              id="isPitchNight"
-              checked={isPitchNight}
-              onCheckedChange={setIsPitchNight}
-              className="select-none"
-            />
-            <div className="flex flex-col gap-1">
-              <label
-                htmlFor="isPitchNight"
-                className="cursor-pointer font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          <label className="flex flex-col gap-1">
+            <span className="font-semibold">Event template</span>
+            <select
+              className="w-full min-w-0 rounded-md border p-2"
+              value={template}
+              onChange={(e) => {
+                const next = e.target.value as NonNullable<
+                  EventConfig["template"]
+                >;
+                setTemplate(next);
+                const defaults = EVENT_TEMPLATES[next].defaults;
+                setIsPitchNight(defaults.isPitchNight);
+                setVotingMode(defaults.votingMode);
+                setVotingUnit(defaults.votingUnit);
+              }}
+            >
+              {!template && (
+                <option value="" disabled>
+                  Legacy event — existing behaviour
+                </option>
+              )}
+              {Object.entries(EVENT_TEMPLATES).map(([key, preset]) => (
+                <option key={key} value={key}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-sm text-gray-500">
+              {template
+                ? EVENT_TEMPLATES[template].description
+                : "Existing branding, voting and results are preserved."}{" "}
+              Templates are starting points; customise settings below.
+              {event &&
+                " Existing awards and feedback are kept. Edit categories in Awards & Voting. Templates and allowances cannot change after votes are recorded."}
+            </span>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="font-semibold">Voting mechanics</span>
+            <select
+              className="w-full min-w-0 rounded-md border p-2"
+              value={votingMode}
+              onChange={(e) =>
+                setVotingMode(e.target.value as typeof votingMode)
+              }
+            >
+              <option value="allocation">Allocation — 100,000 per award</option>
+              {template !== "categories" && (
+                <option value="stickers">Favourite stickers</option>
+              )}
+              <option value="awards">
+                One choice per{" "}
+                {template === "categories" ? "category" : "award"}
+              </option>
+            </select>
+          </label>
+          {votingMode === "allocation" && (
+            <label className="flex flex-col gap-1">
+              <span className="font-semibold">Displayed unit</span>
+              <select
+                className="w-full min-w-0 rounded-md border p-2"
+                value={votingUnit}
+                onChange={(e) =>
+                  setVotingUnit(e.target.value as typeof votingUnit)
+                }
               >
-                Pitch Night Mode
-              </label>
-              <p className="text-sm text-gray-500">
-                Enable investing mode where attendees allocate $100k across
-                companies.
-              </p>
-            </div>
-          </div>
+                {Object.entries(VOTING_UNITS).map(([key, unit]) => (
+                  <option key={key} value={key}>
+                    {unit.symbol} {unit.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {votingMode === "stickers" && (
+            <label className="flex flex-col gap-1">
+              <span className="font-semibold">Favourite sticker allowance</span>
+              <input
+                className="rounded-md border p-2"
+                type="number"
+                min={1}
+                max={10}
+                required
+                value={stickerAllowance}
+                onChange={(e) => setStickerAllowance(Number(e.target.value))}
+              />
+              <span className="text-sm text-gray-500">
+                Five by default, one per project, shared across the event. Uses
+                the first-place award.
+              </span>
+            </label>
+          )}
+          <label className="flex flex-col gap-1">
+            <span className="font-semibold">
+              Personal feedback goal (optional)
+            </span>
+            <input
+              className="rounded-md border p-2"
+              type="number"
+              min={1}
+              max={100}
+              value={feedbackGoal}
+              onChange={(e) => setFeedbackGoal(e.target.value)}
+            />
+            <span className="text-sm text-gray-500">
+              Distinct projects, not comments. No leaderboard or required
+              sequence.
+            </span>
+          </label>
           {!event && isDevMode && (
             <div className="flex items-start gap-3 rounded-md border border-yellow-200 bg-yellow-50 p-3">
               <Switch
@@ -215,9 +326,7 @@ export function UpsertEventModal({
                 </label>
                 <p className="text-sm text-gray-600">
                   Populate the event with 10 demo companies, 10 attendees,
-                  feedback entries, and{" "}
-                  {isPitchNight ? "$100k investment allocations" : "votes"}.
-                  Great for testing!
+                  feedback entries, and sample votes. Great for testing!
                 </p>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
+import DemosWorkspace from "../DemosWorkspace";
 import { type Award } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -6,6 +7,7 @@ import ConfettiExplosion from "react-dom-confetti";
 
 import { getAwardWinner } from "~/lib/awardWinner";
 import { type EventConfig } from "~/lib/types/eventConfig";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { type PublicDemo } from "~/server/api/routers/event";
 
 import { ResultsConfetti } from "~/components/Confetti";
@@ -14,7 +16,6 @@ import Sticker from "~/components/Sticker";
 export default function ResultsWorkspace() {
   const { currentEvent, event } = useWorkspaceContext();
   const config = event.config as EventConfig;
-  const isPitchNight = config?.isPitchNight ?? false;
 
   const awards = [...event.awards].reverse();
 
@@ -22,13 +23,16 @@ export default function ResultsWorkspace() {
     (a) => a.id === currentEvent.currentAwardId,
   );
 
+  if (!votingSettings(config).showResults) return <DemosWorkspace />;
   return (
     <>
-      <div className="absolute bottom-0 max-h-[calc(100dvh-120px)] w-full max-w-xl">
+      <div className="w-full max-w-xl">
         <div className="flex size-full flex-col items-center justify-center gap-4 p-4">
           <Sticker name="yay" size={112} className="-mb-2" />
           <h1 className="text-center text-4xl font-bold tracking-tight">
-            {isPitchNight ? "Investment Results! 💸" : "Voting Results! 🚀"}
+            {votingSettings(config).financial
+              ? "Investment Results! 💸"
+              : "Voting Results! 🚀"}
           </h1>
           <div className="flex w-full flex-col gap-8">
             {awards.map((award, index) => (
