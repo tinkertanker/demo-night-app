@@ -1,4 +1,6 @@
 #!/bin/bash
+# Manual fallback for production deploys. Prefer pushing a v* tag so
+# .github/workflows/release.yml merges the tag into main and deploys.
 set -euo pipefail
 
 REMOTE_HOST="tinkertanker@dev.tk.sg"
@@ -9,6 +11,7 @@ ENV_FILE=".env.production"
 
 PULL=true
 SHOW_LOGS=false
+TAG=""
 
 for arg in "$@"; do
   case "$arg" in
@@ -18,9 +21,12 @@ for arg in "$@"; do
     --logs)
       SHOW_LOGS=true
       ;;
+    v*)
+      TAG="$arg"
+      ;;
     *)
       echo "Unknown option: $arg"
-      echo "Usage: ./deploy.sh [--no-pull] [--logs]"
+      echo "Usage: ./deploy.sh [--no-pull] [--logs] [vYYYY.MM.DD]"
       exit 1
       ;;
   esac
@@ -29,11 +35,16 @@ done
 ssh "$REMOTE_HOST" "mkdir -p Docker"
 
 if ssh "$REMOTE_HOST" "[ -d '$REMOTE_DIR/.git' ]"; then
-  if [ "$PULL" = true ]; then
+  if [ -n "$TAG" ]; then
+    ssh "$REMOTE_HOST" "cd '$REMOTE_DIR' && git fetch origin --tags --force && git checkout -f 'refs/tags/$TAG'"
+  elif [ "$PULL" = true ]; then
     ssh "$REMOTE_HOST" "cd '$REMOTE_DIR' && git pull"
   fi
 else
   ssh "$REMOTE_HOST" "git clone '$REPO_URL' '$REMOTE_DIR'"
+  if [ -n "$TAG" ]; then
+    ssh "$REMOTE_HOST" "cd '$REMOTE_DIR' && git fetch origin --tags --force && git checkout -f 'refs/tags/$TAG'"
+  fi
 fi
 
 if ! ssh "$REMOTE_HOST" "[ -f '$REMOTE_DIR/$ENV_FILE' ]"; then
@@ -42,7 +53,10 @@ if ! ssh "$REMOTE_HOST" "[ -f '$REMOTE_DIR/$ENV_FILE' ]"; then
   exit 1
 fi
 
-scp "$COMPOSE_FILE" "$REMOTE_HOST:$REMOTE_DIR/"
+# Keep the tagged compose file when deploying a tag; otherwise copy the local one.
+if [ -z "$TAG" ]; then
+  scp "$COMPOSE_FILE" "$REMOTE_HOST:$REMOTE_DIR/"
+fi
 
 ssh "$REMOTE_HOST" "cd '$REMOTE_DIR' && docker compose --env-file '$ENV_FILE' -f '$COMPOSE_FILE' build"
 ssh "$REMOTE_HOST" "cd '$REMOTE_DIR' && docker compose --env-file '$ENV_FILE' -f '$COMPOSE_FILE' up -d"
