@@ -942,6 +942,10 @@ describe("voting modes and shared postcards", () => {
       where: { id: attendeeId },
       data: { name: "Ada Lovelace" },
     });
+    const secondAward = await admin.award.upsert.mutate({
+      eventId,
+      name: "Second award",
+    });
     for (const config of [
       { isPitchNight: false },
       { template: "pitching" as const, votingMode: "awards" as const },
@@ -961,6 +965,32 @@ describe("voting modes and shared postcards", () => {
         votes.map((vote) => [vote.awardId, vote.demoId]),
         [[awardId, secondDemoId]],
       );
+      // A new award takes the project from the old award, just like the UI.
+      await caller.vote.upsert.mutate({
+        eventId,
+        attendeeId,
+        awardId: secondAward.id,
+        demoId: secondDemoId,
+      });
+      assert.deepEqual(
+        (await caller.vote.all.query({ eventId, attendeeId })).map((vote) => [
+          vote.awardId,
+          vote.demoId,
+        ]),
+        [[secondAward.id, secondDemoId]],
+      );
+      await Promise.all([
+        caller.vote.upsert.mutate({ eventId, attendeeId, awardId, demoId }),
+        caller.vote.upsert.mutate({
+          eventId,
+          attendeeId,
+          awardId: secondAward.id,
+          demoId,
+        }),
+      ]);
+      const concurrent = await caller.vote.all.query({ eventId, attendeeId });
+      assert.equal(concurrent.length, 1);
+      assert.equal(concurrent[0]!.demoId, demoId);
     }
   });
 
