@@ -1,130 +1,125 @@
-# Demo Night App 🧬
+# Demo Night App
 
-**The [Demo Night App (DNA)](https://demos.aicollective.com) is an open-source, community-led project we use to maximize value for all involved at our flagship demo night events!**
+Tinkercademy's app for demo and pitch events: project submissions, live
+presentations, attendee feedback, and award voting.
 
-![App Screenshots](./assets/App.png)
+Originally based on [The AI Collective's Demo Night App](https://github.com/the-ai-collective/demo-night-app),
+with thanks to its creators and contributors. This project is now independently
+maintained and is no longer in the original repository's GitHub fork network.
 
-<a href="https://www.loom.com/share/20bb08ab431040cf878a8a654860efab">
-  <img src="https://cdn.loom.com/sessions/thumbnails/20bb08ab431040cf878a8a654860efab-29f338a04a89eb3c-full-play.gif">
-</a>
+Configured deployment: [demo-night.tk.sg](https://demo-night.tk.sg).
 
-## 🚀 What is Demo Night?
+## Features
 
-_An evening of live demos and collaboration with the innovators shaping tomorrow_. Here's an [example event](https://lu.ma/demo-night)!
+- Manage events, submissions, projects, awards, and voter moderation.
+- Run multiple live events, each with a four-character join code and presenter
+  view. Attendees join on `/` or at `/<CODE>`.
+- Choose **Pitching** (allocations, the default), **Categories** (one choice per
+  award), or **No Leaderboard** (favourite stickers without public totals or
+  winners). Templates and voting settings are editable until votes exist.
+- Collect feedback postcards with prompts, comments, and appreciation badges,
+  plus optional personal feedback goals. Badges never consume votes.
+- Reveal winners and show recaps and Hall-of-Fame results where settings allow.
 
-## 🧑‍💻 Contributing
+Admins use `/admin`, with per-event presentations at `/admin/[eventId]/present`.
+Submission forms are at `/[eventId]/submit`, past winners at `/hall-of-fame`, and
+API documentation at `/api`.
 
-If you'd like to contribute to this community project, check out our [issues](https://github.com/the-ai-collective/demo-night-app/issues) to find tasks you can help with!
+## Local development
 
-Feel free to reach out to us at [engineering@aicollective.com](mailto:engineering@aicollective.com)! 😄
-
-## ⚙️ Getting Started
-
-### 1. Install the packages
+Requires Node.js 22, Yarn Classic 1.22.21, Docker with Compose, and Google OAuth
+credentials for admin sign-in. `dotenv-cli` is included; no global install needed.
 
 ```bash
-yarn install
-yarn global add dotenv-cli
+git clone https://github.com/tinkertanker/demo-night-app.git
+cd demo-night-app
+yarn install --frozen-lockfile
+cp .env.example .env.development.local
 ```
 
-### 2. Set up environment variables
+Edit `.env.development.local`:
 
-For `.env` key/value pairs, see `.env.example`.
+- Keep both database URLs pointed at local PostgreSQL.
+- Set `NEXTAUTH_URL`, `NEXT_PUBLIC_URL`, and `NEXT_PUBLIC_BASE_URL` to
+  `http://localhost:3000` (replace the example's upstream base URL).
+- Generate `NEXTAUTH_SECRET` with `openssl rand -base64 32`.
+- Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, with OAuth redirect URI
+  `http://localhost:3000/api/auth/callback/google`.
 
-### 3. Start the local DB Docker Compose service
+Copy the configured file for Prisma, then start the services and app:
 
 ```bash
+cp .env.development.local .env
 ./start-database.sh
-```
-
-### 4. Push the schema and seed the local DB with a "<test@example.com>" example account and test event
-
-```bash
 yarn db:push
 yarn db:seed
-```
-
-### 5. Start the development server
-
-```bash
 yarn dev
 ```
 
-- The local app should now be available at `localhost:3000` and `localhost:3000/admin`!
-- You can log in with "<test@example.com>"
+Keep both environment files in sync; they are gitignored. Never commit secrets.
+Compose starts PostgreSQL 16, Redis, and a Redis HTTP bridge. Live event state
+uses PostgreSQL. Production Docker Compose still requires Redis compatibility
+services and both `KV_REST_API_TOKEN` and `KV_REST_API_READ_ONLY_TOKEN` settings.
 
-### Tests
+On your local machine, open `http://localhost:3000` or
+`http://localhost:3000/admin`. To sign in, use `yarn db:studio` to add your Google
+account's lowercase email to the `Admin` table. Seeding adds `test@example.com`
+and sample event `DEMO`, but provides **no login bypass**. Make the event live in
+the dashboard before joining by code.
 
-Run `yarn test` for unit tests. With the development server and local database
-running, run `yarn test:voters` for voting/moderation integration tests. Set
-`TEST_BASE_URL` if the server uses a port other than 3000. These tests create and
-clean up their own events and admin session, and refuse remote databases or URLs.
+For Amp orbs, `.agents/setup` prepares dependencies and sample data;
+`amp orb services ensure` starts supervised services and returns a portal URL.
+The setup's placeholder Google credentials do not enable real sign-in.
 
-With `agent-browser` installed, `yarn test:postcard-drafts` uses the same local
-server/database to exercise a delayed postcard save across a live phase change
-and reload, then checks that the newer draft is restored and saved.
-
-Voter exclusions require the `20260916093000_event_voter_exclusions` migration
-before deploying the updated app. Exclusion keeps allocations but removes them
-from totals and automatic winners for that event; Restore includes them again.
-This is name-based moderation, not identity verification: a new browser can still
-join as a new attendee.
-
-### Voting units and postcards
-
-New events default to the editable **Pitching** template with money allocation.
-**Categories** starts with three editable named awards, one choice per category,
-independent tallies and one winner/reveal per category (the same project can win
-multiple categories). It can also use allocations per category. **No Leaderboard**
-starts with favourite stickers and suppresses public rankings, winner reveals,
-recap awards, Hall-of-Fame winners and public vote totals, even if older winner
-records remain. Organiser moderation and private totals remain available.
-Organisers can choose thumbs-ups, stars, points, or dollars for allocation.
-Allocation mechanics stay at 100,000 per attendee per votable award,
-with 1,000-unit precision and 5,000/25,000 buttons. Changing the displayed unit
-does not rescale stored allocations. Configs without the new fields retain
-legacy dollar allocations for Pitch Night and award choices for Demo Night.
-
-School-friendly favourite stickers are a separate mode: five per attendee by
-default (organiser-configurable 1–10), shared across the event, at most one per
-project, on the first-place award (or first votable award if none is first-place).
-Stickers can be taken back. The one-per-project
-cap follows the app's existing distinct-favourite convention.
-Templates, mechanics and allowance cannot change once votes exist; changing a
-template never replaces existing awards, votes or postcards. Existing categories
-can be edited in Awards & Voting. Displayed units and feedback goals
-can still change.
-
-Feedback postcards work during demo/pitch sessions and voting, with every
-template and voting mode, including after allowances
-run out. Any optional prompt, additional comment, or free appreciation badge is
-enough. Badges never consume votes or enter winner totals. Personal passport
-progress counts distinct projects with text or badges, including legacy comments;
-empty drafts and reaction-only entries do not count. Goals are optional and there
-is no leaderboard or required watch/comment/vote sequence.
-
-Apply `20261015000000_feedback_postcards` before running the updated app. It adds
-nullable prompt columns and an empty badge-array default, preserving comments,
-ratings and reactions. Run `yarn test` and `yarn test:voters` for the unit and local
-API contracts. No production migration or deployment is performed by these tests.
-
-## 📊 Data Ops
-
-### Dev Data Studio
-
-To manipulate the data and relations directly via Prisma during local development:
+## Checks
 
 ```bash
-yarn db:studio
+yarn lint
+yarn test
+yarn build
 ```
 
-### Migration
+With the local server and database running, `yarn test:voters` checks voting,
+moderation, and postcard APIs. `yarn test:postcard-drafts` also needs
+`agent-browser` and checks draft recovery across delayed saves, phase changes,
+and reloads. Both create and clean up fixtures and refuse remote targets.
+Set `TEST_BASE_URL` for a local server port other than 3000.
 
-To alter the data schema (adding/removing/editing columns, changing unique/compound/primary keys, etc.), make changes in `schema.prisma` file, save, and run:
+## Voting and feedback
 
-```bash
-yarn db:migrate
-```
+Allocations give each attendee 100,000 units per votable award, in steps of 1,000.
+Changing display units does not rescale votes. Favourite stickers default to five
+per attendee (configurable 1–10), shared across projects with at most one per
+project; stickers can be taken back. Categories have independent winners.
 
-- Fixing failed migrations:
-  <https://www.prisma.io/docs/orm/prisma-migrate/workflows/patching-and-hotfixing>
+Once votes exist, templates, mechanics, and allowances are locked; display units
+and feedback goals remain editable. No Leaderboard hides public totals and winners,
+including recaps and Hall of Fame, but keeps private organiser totals.
+Voter exclusion retains allocations while removing them from totals and automatic
+winners; restoration includes them again. This is name-based moderation, not
+identity verification—a new browser can join as a new attendee.
+
+Postcards work during presentations and voting, even after vote allowances run
+out. Personal progress counts distinct projects with text or badges, not empty
+drafts or reactions alone.
+
+## Development and deployment
+
+Built with Next.js 14, React, TypeScript, tRPC, Prisma/PostgreSQL, NextAuth (Google),
+and Tailwind/shadcn/ui.
+
+Use `yarn db:studio` to edit local data and `yarn db:migrate` for schema migrations
+(`yarn db:migrate:create` creates without applying). `db:push` is for local setup;
+existing deployments need all committed migrations via `yarn db:migrate:deploy`.
+Do not apply migrations to shared databases without deployment approval.
+
+Cloudflare Worker settings and required secrets are listed in `wrangler.jsonc`;
+`src/server/db.ts` selects the Neon or PostgreSQL adapter using `DATABASE_URL`.
+OpenNext is configured in `open-next.config.ts`.
+`yarn cf:build` builds and `yarn cf:preview` previews. **`yarn cf:deploy` applies
+database migrations, adds admin allowlist entries, and deploys**, requiring
+database and Cloudflare credentials. Docker deployment files are also included.
+
+Report bugs and propose changes in [Issues](https://github.com/tinkertanker/demo-night-app/issues).
+Robot mascot assets are from [tkrobot-stickers](https://github.com/tinkertanker/tkrobot-stickers),
+copied into `public/images/stickers`.
