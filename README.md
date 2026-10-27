@@ -58,7 +58,8 @@ yarn dev
 
 Keep both environment files in sync; they are gitignored. Never commit secrets.
 Compose starts PostgreSQL 16, Redis, and a Redis HTTP bridge. Live event state
-now uses PostgreSQL; Redis and the example's `KV_*` settings are legacy.
+uses PostgreSQL. Production Docker Compose still requires Redis compatibility
+services and both `KV_REST_API_TOKEN` and `KV_REST_API_READ_ONLY_TOKEN` settings.
 
 On your local machine, open `http://localhost:3000` or
 `http://localhost:3000/admin`. To sign in, use `yarn db:studio` to add your Google
@@ -105,15 +106,16 @@ drafts or reactions alone.
 ## Development and deployment
 
 Built with Next.js 14, React, TypeScript, tRPC, Prisma/PostgreSQL, NextAuth (Google),
-and Tailwind/shadcn/ui. See [AGENTS.md](./AGENTS.md) for the code layout and guidance.
+and Tailwind/shadcn/ui.
 
 Use `yarn db:studio` to edit local data and `yarn db:migrate` for schema migrations
 (`yarn db:migrate:create` creates without applying). `db:push` is for local setup;
 existing deployments need all committed migrations via `yarn db:migrate:deploy`.
 Do not apply migrations to shared databases without deployment approval.
 
-Cloudflare Workers/OpenNext and Neon are configured in `wrangler.jsonc` and
-`open-next.config.ts`; Worker secrets are listed in `wrangler.jsonc`.
+Cloudflare Worker settings and required secrets are listed in `wrangler.jsonc`;
+`src/server/db.ts` selects the Neon or PostgreSQL adapter using `DATABASE_URL`.
+OpenNext is configured in `open-next.config.ts`.
 `yarn cf:build` builds and `yarn cf:preview` previews. **`yarn cf:deploy` applies
 database migrations, adds admin allowlist entries, and deploys**, requiring
 database and Cloudflare credentials. Docker deployment files are also included.
