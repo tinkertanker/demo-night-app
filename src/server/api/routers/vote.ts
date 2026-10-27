@@ -127,13 +127,23 @@ export const voteRouter = createTRPCRouter({
           }
 
           if (!settings.weighted) {
-            // Every one-choice ballot replaces this person's previous pick.
+            // Replace the award's pick and, outside Categories, move this
+            // project from any other award in the same locked transaction.
             await prisma.vote.deleteMany({
               where: {
                 eventId: input.eventId,
                 attendeeId: input.attendeeId,
-                awardId: input.awardId,
-                demoId: { not: input.demoId },
+                OR: [
+                  { awardId: input.awardId, demoId: { not: input.demoId } },
+                  ...(!settings.categories
+                    ? [
+                        {
+                          awardId: { not: input.awardId },
+                          demoId: input.demoId,
+                        },
+                      ]
+                    : []),
+                ],
               },
             });
           }

@@ -29,7 +29,13 @@ export const adminRouter = createTRPCRouter({
             message: "Cannot remove the last admin",
           });
         }
-        return prisma.admin.delete({ where: { id: input.id } });
+        const removed = await prisma.admin.delete({ where: { id: input.id } });
+        await prisma.session.deleteMany({
+          where: {
+            user: { email: { equals: removed.email, mode: "insensitive" } },
+          },
+        });
+        return removed;
       });
     }),
 });

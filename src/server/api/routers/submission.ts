@@ -1,5 +1,7 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { toSingaporeMidnight } from "~/lib/singaporeDate";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -31,6 +33,16 @@ export const submissionRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
+      const event = await db.event.findUniqueOrThrow({
+        where: { id: input.eventId },
+        select: { date: true },
+      });
+      if (new Date() > toSingaporeMidnight(event.date)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Submissions closed",
+        });
+      }
       try {
         const result = await db.submission.create({
           data: input,
@@ -134,7 +146,7 @@ export const submissionRouter = createTRPCRouter({
         throw new Error("Unauthorized");
       }
       return db.submission.update({
-        where: { id: input.id },
+        where: { id: input.id, eventId: input.eventId },
         data: {
           status: input.status,
           flagged: input.flagged,
