@@ -33,10 +33,13 @@ export const submissionRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      const event = await db.event.findUniqueOrThrow({
+      const event = await db.event.findUnique({
         where: { id: input.eventId },
         select: { date: true },
       });
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+      }
       if (new Date() > toSingaporeMidnight(event.date)) {
         throw new TRPCError({
           code: "BAD_REQUEST",

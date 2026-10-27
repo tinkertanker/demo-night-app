@@ -1,6 +1,7 @@
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
+import { Client } from "pg";
 import SuperJSON from "superjson";
 
 import { AUTH_SESSION_COOKIE } from "~/lib/auth-cookies";
@@ -18,8 +19,8 @@ assert.ok(
 const baseUrl = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 assert.ok(["localhost", "127.0.0.1"].includes(new URL(baseUrl).hostname));
 const prefix = `boundary-test-${crypto.randomUUID()}`;
-const ownerEmail = `${prefix}-owner@example.com`;
-const removedEmail = `${prefix}-removed@example.com`;
+const ownerEmail = `${prefix}-revokedxadmin@example.com`;
+const removedEmail = `${prefix}-revoked_admin@example.com`;
 const ownerToken = crypto.randomUUID();
 const removedToken = crypto.randomUUID();
 const futureEventId = `${prefix}-future`;
@@ -53,13 +54,18 @@ const submission = {
 };
 
 before(async () => {
+  assert.equal(
+    await db.admin.count(),
+    0,
+    "API boundary tests require an unseeded disposable local database to test the last-admin invariant",
+  );
   for (const [email, sessionToken] of [
     [ownerEmail, ownerToken],
     [removedEmail, removedToken],
   ] as const) {
     await db.user.create({
       data: {
-        email,
+        email: email === removedEmail ? email.toUpperCase() : email,
         sessions: {
           create: { sessionToken, expires: new Date(Date.now() + 3_600_000) },
         },
@@ -88,7 +94,7 @@ after(async () => {
     where: { id: { in: [pastEventId, futureEventId] } },
   });
   await db.user.deleteMany({
-    where: { email: { in: [ownerEmail, removedEmail] } },
+    where: { email: { in: [ownerEmail, removedEmail.toUpperCase()] } },
   });
   await db.admin.deleteMany({
     where: { email: { in: [ownerEmail, removedEmail] } },
@@ -98,6 +104,13 @@ after(async () => {
 
 describe("submission API boundaries", () => {
   it("rejects closed intake without writing, while accepting a future event", async () => {
+    await assert.rejects(
+      publicClient.submission.create.mutate({
+        ...submission,
+        eventId: `${prefix}-missing`,
+      }),
+      { message: "Event not found" },
+    );
     await assert.rejects(
       publicClient.submission.create.mutate({
         ...submission,
@@ -196,8 +209,36 @@ describe("administrator revocation", () => {
     const sessions = [client(removedToken), client(removedToken, true)];
     for (const session of sessions)
       assert.ok((await session.admin.all.query()).length >= 2);
+    const page = `${baseUrl}/admin/${futureEventId}/submissions`;
+    const pageOptions = {
+      redirect: "manual" as const,
+      headers: {
+        RSC: "1",
+        cookie: `${AUTH_SESSION_COOKIE}=${removedToken}; __Secure-${AUTH_SESSION_COOKIE}=${removedToken}`,
+      },
+    };
+    const allowed = await fetch(page, pageOptions);
+    assert.equal(allowed.status, 200);
+    const adminPayload = await allowed.text();
+    assert.ok(adminPayload.includes(secret));
+    assert.match(adminPayload, /"isAdmin":true/);
     await db.admin.delete({ where: { email: removedEmail } });
     try {
+      const denied = await fetch(page, {
+        redirect: "manual",
+        headers: { cookie: pageOptions.headers.cookie },
+      });
+      assert.equal(denied.status, 307);
+      assert.ok(
+        denied.headers.get("location")?.endsWith("/404?type=invalid-secret"),
+      );
+      assert.ok(!(await denied.text()).includes(secret));
+      // The intentionally shareable review link still grants guest access.
+      const guest = await fetch(`${page}?secret=${secret}`, pageOptions);
+      assert.equal(guest.status, 200);
+      const guestPayload = await guest.text();
+      assert.ok(guestPayload.includes(secret));
+      assert.match(guestPayload, /"isAdmin":false/);
       for (const session of sessions) {
         await assert.rejects(session.admin.all.query(), /FORBIDDEN/);
         await assert.rejects(
@@ -224,7 +265,7 @@ describe("administrator revocation", () => {
       where: { email: removedEmail },
     });
     const user = await db.user.findUniqueOrThrow({
-      where: { email: removedEmail },
+      where: { email: removedEmail.toUpperCase() },
     });
     await db.session.create({
       data: {
@@ -242,5 +283,77 @@ describe("administrator revocation", () => {
       client(removedToken).admin.add.mutate({ email: removedEmail }),
       /UNAUTHORIZED/,
     );
+  });
+
+  it("keeps one usable administrator when the last two remove themselves concurrently", async () => {
+    for (const [email, token] of [
+      [ownerEmail, ownerToken],
+      [removedEmail, removedToken],
+    ] as const) {
+      await db.admin.upsert({
+        where: { email },
+        create: { email },
+        update: {},
+      });
+      const user = await db.user.findUniqueOrThrow({
+        where: { email: email === removedEmail ? email.toUpperCase() : email },
+      });
+      await db.session.upsert({
+        where: { sessionToken: token },
+        create: {
+          userId: user.id,
+          sessionToken: token,
+          expires: new Date(Date.now() + 3_600_000),
+        },
+        update: {},
+      });
+    }
+    const admins = await db.admin.findMany();
+    assert.equal(admins.length, 2);
+    // Hold the rows until both HTTP requests reach a database lock. Without
+    // serialization both requests can count two admins before either deletes.
+    const blocker = new Client({ connectionString: process.env.DATABASE_URL });
+    await blocker.connect();
+    await blocker.query("BEGIN");
+    await blocker.query('SELECT id FROM "Admin" FOR UPDATE');
+    const removals = Promise.allSettled(
+      admins.map((admin) =>
+        client(
+          admin.email === ownerEmail ? ownerToken : removedToken,
+        ).admin.remove.mutate({ id: admin.id }),
+      ),
+    );
+    try {
+      let waiting = 0;
+      for (let attempt = 0; attempt < 100 && waiting < 2; attempt++) {
+        const result = await db.$queryRaw<{ count: bigint }[]>`
+          SELECT count(*) FROM pg_stat_activity
+          WHERE datname = current_database() AND wait_event_type = 'Lock'
+        `;
+        waiting = Number(result[0]!.count);
+        if (waiting < 2)
+          await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      assert.equal(
+        waiting,
+        2,
+        "Both removals must be in flight before releasing the rows",
+      );
+    } finally {
+      await blocker.query("COMMIT");
+      await blocker.end();
+      await removals;
+    }
+    const results = await removals;
+    assert.equal(
+      results.filter((result) => result.status === "fulfilled").length,
+      1,
+    );
+    const remaining = await db.admin.findMany();
+    assert.equal(remaining.length, 1);
+    const survivor = client(
+      remaining[0]!.email === ownerEmail ? ownerToken : removedToken,
+    );
+    assert.equal((await survivor.admin.all.query()).length, 1);
   });
 });

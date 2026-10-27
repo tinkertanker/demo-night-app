@@ -85,6 +85,12 @@ moderation, and postcard APIs. `yarn test:postcard-drafts` also needs
 and reloads. Both create and clean up fixtures and refuse remote targets.
 Set `TEST_BASE_URL` for a local server port other than 3000.
 
+`yarn test:api-boundaries` checks submission access and administrator revocation,
+including concurrent removal of the last two admins. Point both the server and
+test environment at a separate disposable local database with the schema applied
+but **without seeding**; this suite refuses to run if any admins already exist.
+It creates and removes its own fixtures. Do not clear an existing database to run it.
+
 ## Voting and feedback
 
 Allocations give each attendee 100,000 units per votable award, in steps of 1,000.
