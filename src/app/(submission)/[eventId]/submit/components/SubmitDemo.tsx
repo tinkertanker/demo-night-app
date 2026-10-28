@@ -234,8 +234,8 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             )}
           />
           <span className="text-sm text-gray-500">
-            If your demo is accepted, attendees will see this email so they can
-            follow up with you.
+            If your demo is accepted, this email is shown publicly on the event
+            page so attendees can follow up with you.
           </span>
           {errors.email && (
             <span className="text-red-500">{errors.email.message}</span>

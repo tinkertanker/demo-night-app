@@ -3,6 +3,7 @@
 import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
 import { type Award } from "@prisma/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 import { votingSettings } from "~/lib/types/eventConfig";
@@ -24,6 +25,9 @@ export default function InvestmentAmountSelect({
   const settings = votingSettings(config);
   const utils = api.useUtils();
   const queryClient = useQueryClient();
+  // Amounts the attendee has tapped but the server has not confirmed yet.
+  // Clicks in the same frame read the same render, so build on these instead.
+  const intended = useRef<Record<string, number>>({});
   const {
     data: votes,
     isLoading,
@@ -58,6 +62,7 @@ export default function InvestmentAmountSelect({
     onError: (error) => toast.error(error.message),
     onSettled: async () => {
       if (queryClient.isMutating() <= 1) {
+        intended.current = {};
         await utils.vote.all.invalidate({ eventId, attendeeId });
       }
     },
@@ -74,8 +79,23 @@ export default function InvestmentAmountSelect({
   );
   const total = allocations.reduce((sum, vote) => sum + (vote.amount ?? 0), 0);
   const remaining = settings.budget - total;
-  const update = (demoId: string, amount: number) =>
+  const latest = (demoId: string) =>
+    intended.current[demoId] ??
+    allocations.find((vote) => vote.demoId === demoId)?.amount ??
+    0;
+  const update = (demoId: string, next: (current: number) => number) => {
+    const latestTotal = allocations.reduce(
+      (sum, vote) => sum + (vote.demoId ? latest(vote.demoId) : 0),
+      Object.keys(intended.current)
+        .filter((id) => !allocations.some((vote) => vote.demoId === id))
+        .reduce((sum, id) => sum + latest(id), 0),
+    );
+    const current = latest(demoId);
+    const amount = next(current);
+    if (amount < 0 || latestTotal - current + amount > settings.budget) return;
+    intended.current[demoId] = amount;
     mutation.mutate({ eventId, attendeeId, awardId: award.id, demoId, amount });
+  };
   return (
     <section className="w-full space-y-3">
       {settings.categories && (
@@ -141,7 +161,9 @@ export default function InvestmentAmountSelect({
                   aria-pressed={amount > 0}
                   disabled={!amount && remaining < 1}
                   className="rounded-lg bg-white px-4 py-3 font-semibold disabled:opacity-50"
-                  onClick={() => update(demo.id, amount ? 0 : 1)}
+                  onClick={() =>
+                    update(demo.id, (current) => (current ? 0 : 1))
+                  }
                 >
                   {amount
                     ? "⭐ Favourite — take back"
@@ -151,7 +173,7 @@ export default function InvestmentAmountSelect({
                 <button
                   disabled={amount === 0}
                   className="rounded-lg bg-white px-4 py-3 font-semibold disabled:opacity-50"
-                  onClick={() => update(demo.id, 0)}
+                  onClick={() => update(demo.id, () => 0)}
                 >
                   Take back {settings.format(amount)}
                 </button>
@@ -164,7 +186,9 @@ export default function InvestmentAmountSelect({
                         aria-label={`Take back ${settings.format(step)} from ${demo.name}`}
                         disabled={amount < step}
                         className="min-h-11 rounded-lg bg-white px-3 py-2 disabled:opacity-40"
-                        onClick={() => update(demo.id, amount - step)}
+                        onClick={() =>
+                          update(demo.id, (current) => current - step)
+                        }
                       >
                         −{settings.format(step)}
                       </button>
@@ -178,7 +202,9 @@ export default function InvestmentAmountSelect({
                         aria-label={`${settings.financial ? "Invest" : "Give"} ${settings.format(step)} to ${demo.name}`}
                         disabled={remaining < step}
                         className="min-h-11 rounded-lg bg-primary px-3 py-2 text-white disabled:opacity-40"
-                        onClick={() => update(demo.id, amount + step)}
+                        onClick={() =>
+                          update(demo.id, (current) => current + step)
+                        }
                       >
                         +{settings.format(step)}
                       </button>

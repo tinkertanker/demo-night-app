@@ -140,9 +140,9 @@ export function UpdateAttendeeForm({
           id={`${nameId}-hint`}
           className="text-sm font-normal text-gray-600"
         >
-          Please use your real name. The organiser uses it to check that each
-          person votes only once. Presenters will see your name next to any
-          feedback you give them.
+          Please use your real name so the organiser can recognise you.
+          Presenters will see it next to your feedback, and the organiser next
+          to your votes, including anything you gave earlier on this device.
         </span>
         {errors.name && (
           <span
