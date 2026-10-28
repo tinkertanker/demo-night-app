@@ -2,6 +2,7 @@
 
 import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
 import { type Award } from "@prisma/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { votingSettings } from "~/lib/types/eventConfig";
@@ -22,17 +23,44 @@ export default function InvestmentAmountSelect({
   const { config } = useWorkspaceContext();
   const settings = votingSettings(config);
   const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const {
     data: votes,
     isLoading,
     isError,
     refetch,
   } = api.vote.all.useQuery({ eventId, attendeeId });
+  // Taps queue one after another (same scope) and show immediately, so a quick
+  // second tap is never dropped while the first one saves.
   const mutation = api.vote.upsert.useMutation({
-    onSuccess: async () => {
-      await utils.vote.all.invalidate({ eventId, attendeeId });
+    scope: { id: `allocation:${eventId}:${attendeeId}` },
+    onMutate: (vote) => {
+      utils.vote.all.setData({ eventId, attendeeId }, (old) => {
+        const others = (old ?? []).filter(
+          (v) => !(v.awardId === vote.awardId && v.demoId === vote.demoId),
+        );
+        const existing = (old ?? []).find(
+          (v) => v.awardId === vote.awardId && v.demoId === vote.demoId,
+        );
+        return [
+          ...others,
+          {
+            id: existing?.id ?? `pending-${vote.demoId}`,
+            createdAt: existing?.createdAt ?? new Date(),
+            updatedAt: new Date(),
+            ...vote,
+            demoId: vote.demoId ?? null,
+            amount: vote.amount ?? null,
+          },
+        ];
+      });
     },
     onError: (error) => toast.error(error.message),
+    onSettled: async () => {
+      if (queryClient.isMutating() <= 1) {
+        await utils.vote.all.invalidate({ eventId, attendeeId });
+      }
+    },
   });
   if (isLoading) return <p>Loading your allowance…</p>;
   if (isError)
@@ -56,10 +84,13 @@ export default function InvestmentAmountSelect({
           <p className="text-gray-600">{award.description}</p>
         </div>
       )}
-      <div className="rounded-xl bg-primary p-4 text-white" role="status">
+      <div
+        className="sticky top-20 z-10 rounded-xl bg-primary p-4 text-white shadow-md"
+        role="status"
+      >
         <h2 className="text-xl font-bold">
           {settings.financial
-            ? "Your Scout Fund"
+            ? "Your pretend investment money"
             : settings.mode === "stickers"
               ? "Your favourite stickers"
               : "Your support allowance"}
@@ -67,6 +98,13 @@ export default function InvestmentAmountSelect({
         <p>
           {settings.format(total)} {settings.financial ? "invested" : "given"} ·
           Remaining: {settings.format(remaining)}
+        </p>
+        <p className="mt-1 text-sm">
+          {mutation.isPending
+            ? "Saving…"
+            : remaining < 1 && settings.mode !== "stickers"
+              ? "✓ All spent and saved. Tap − to move money to another project."
+              : "Each tap saves automatically. There is no submit button."}
         </p>
         {settings.mode === "stickers" && (
           <p className="mt-2 text-sm">
@@ -101,7 +139,7 @@ export default function InvestmentAmountSelect({
               {settings.mode === "stickers" ? (
                 <button
                   aria-pressed={amount > 0}
-                  disabled={mutation.isPending || (!amount && remaining < 1)}
+                  disabled={!amount && remaining < 1}
                   className="rounded-lg bg-white px-4 py-3 font-semibold disabled:opacity-50"
                   onClick={() => update(demo.id, amount ? 0 : 1)}
                 >
@@ -111,7 +149,7 @@ export default function InvestmentAmountSelect({
                 </button>
               ) : !demo.votable ? (
                 <button
-                  disabled={mutation.isPending}
+                  disabled={amount === 0}
                   className="rounded-lg bg-white px-4 py-3 font-semibold disabled:opacity-50"
                   onClick={() => update(demo.id, 0)}
                 >
@@ -124,8 +162,8 @@ export default function InvestmentAmountSelect({
                       <button
                         key={step}
                         aria-label={`Take back ${settings.format(step)} from ${demo.name}`}
-                        disabled={mutation.isPending || amount < step}
-                        className="rounded-lg bg-white px-3 py-2 disabled:opacity-40"
+                        disabled={amount < step}
+                        className="min-h-11 rounded-lg bg-white px-3 py-2 disabled:opacity-40"
                         onClick={() => update(demo.id, amount - step)}
                       >
                         −{settings.format(step)}
@@ -138,8 +176,8 @@ export default function InvestmentAmountSelect({
                       <button
                         key={step}
                         aria-label={`${settings.financial ? "Invest" : "Give"} ${settings.format(step)} to ${demo.name}`}
-                        disabled={mutation.isPending || remaining < step}
-                        className="rounded-lg bg-primary px-3 py-2 text-white disabled:opacity-40"
+                        disabled={remaining < step}
+                        className="min-h-11 rounded-lg bg-primary px-3 py-2 text-white disabled:opacity-40"
                         onClick={() => update(demo.id, amount + step)}
                       >
                         +{settings.format(step)}
@@ -152,8 +190,9 @@ export default function InvestmentAmountSelect({
           );
         })}
       <p className="text-sm text-gray-600">
-        Voting never requires a postcard. Feedback and appreciation stay
-        available even when your allowance runs out.
+        You do not need to write feedback before you vote. You can still write
+        feedback after you have used all your{" "}
+        {settings.financial ? "money" : "votes"}.
       </p>
     </section>
   );

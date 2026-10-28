@@ -1,5 +1,6 @@
 .rc-slider-mark-text {
-  font-size: 20px;
+  font-size: 28px;
+  padding: 6px 4px;
   user-select: none;
 }
 

@@ -56,7 +56,12 @@ export function useVotes(
     upsertMutation.mutate(vote);
   };
 
-  return { votes, setVote };
+  return {
+    votes,
+    setVote,
+    saving: upsertMutation.isPending,
+    saveFailed: upsertMutation.isError,
+  };
 }
 
 function emptyVote(

@@ -3,7 +3,8 @@ import { z } from "zod";
 export const attendeeNameSchema = z
   .string()
   .trim()
-  .min(1, "Please enter your name");
+  .min(1, "Please enter your name")
+  .max(100, "Please use a shorter name");
 
 export function duplicateVoterIds(
   voters: { id: string; name: string | null }[],

@@ -15,7 +15,11 @@ import { useModal } from "~/components/modal/provider";
 import { ActionButtons } from "./ActionButtons";
 import { DemoSelectionHeader } from "./DemoSelectionHeader";
 import InfoModal from "./InfoModal";
-import { FeedbackSaveStatus, useFeedback } from "./hooks/useFeedback";
+import {
+  FeedbackSaveStatus,
+  type LocalFeedback,
+  useFeedback,
+} from "./hooks/useFeedback";
 
 export default function DemosWorkspace() {
   const { currentEvent, event, attendee, config } = useWorkspaceContext();
@@ -96,19 +100,25 @@ export default function DemosWorkspace() {
               </p>
             )}
           </div>
+          <p className="-mb-3 text-sm font-semibold text-gray-600">
+            Tap to react. You can tap as many times as you like.
+          </p>
           <ActionButtons feedback={feedback} setFeedback={setFeedback} />
-          <div className="w-full px-4 pb-6 pt-4">
+          <div className="w-full px-4 pb-6">
+            <p className="pb-2 text-center text-sm font-semibold text-gray-600">
+              How much did you like this demo? (😐 a little … 🤩 a lot)
+            </p>
             <RatingSlider feedback={feedback} setFeedback={setFeedback} />
           </div>
           <div className="flex w-full flex-col items-end gap-1">
             <section className="w-full space-y-3 rounded-xl border-2 border-amber-200 bg-amber-50/90 p-4">
               <h2 className="text-xl font-bold">Feedback postcard</h2>
               <p className="text-sm text-gray-600">
-                Any prompt or badge is enough. Appreciation is free and never
-                uses favourite votes.
+                Write a short note to the presenter. Fill in any one box or tap
+                any one badge — that is enough. This does not use your votes.
               </p>
               <p role="status" className="text-sm font-semibold">
-                Your feedback passport: {progress} distinct{" "}
+                You have given feedback to {progress}{" "}
                 {progress === 1 ? "project" : "projects"}
                 {config.feedbackGoal ? ` · Goal: ${config.feedbackGoal}` : ""}
               </p>
@@ -174,7 +184,10 @@ export default function DemosWorkspace() {
               className="z-10 mt-4 block w-full resize-none rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg font-medium backdrop-blur"
               placeholder="Additional comment (optional)"
             />
-            <SaveStatusIndicator status={saveStatus} />
+            {(hasFeedbackContent(feedback) ||
+              saveStatus !== FeedbackSaveStatus.SAVED) && (
+              <SaveStatusIndicator status={saveStatus} />
+            )}
             {saveStatus === FeedbackSaveStatus.UNSAVED && (
               <button
                 className="text-sm font-semibold underline"
@@ -217,6 +230,21 @@ export default function DemosWorkspace() {
   );
 }
 
+// Feedback saves automatically; only claim "Saved!" once there is something saved.
+function hasFeedbackContent(feedback: LocalFeedback | null) {
+  if (!feedback) return false;
+  const reacted =
+    (feedback.rating ?? 0) > 0 ||
+    feedback.claps + feedback.cheers + feedback.confetti > 0 ||
+    feedback.badges.length > 0;
+  return (
+    reacted ||
+    [feedback.comment, feedback.liked, feedback.wonder, feedback.tryNext].some(
+      (text) => !!text?.trim(),
+    )
+  );
+}
+
 function SaveStatusIndicator({ status }: { status: FeedbackSaveStatus }) {
   return (
     <p
@@ -227,7 +255,8 @@ function SaveStatusIndicator({ status }: { status: FeedbackSaveStatus }) {
     >
       {status === FeedbackSaveStatus.UNSAVED && "Not saved yet"}
       {status === FeedbackSaveStatus.SAVING && "Saving..."}
-      {status === FeedbackSaveStatus.SAVED && "Saved!"}
+      {status === FeedbackSaveStatus.SAVED &&
+        "Saved! Your feedback saves automatically."}
     </p>
   );
 }

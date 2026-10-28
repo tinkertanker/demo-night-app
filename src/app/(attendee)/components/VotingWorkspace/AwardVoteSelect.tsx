@@ -2,7 +2,7 @@ import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
 import { type FeedbackByDemoId } from "../DemosWorkspace/hooks/useFeedback";
 import { type Award } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
-import { CircleCheck, Expand } from "lucide-react";
+import { ChevronDown, CircleCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { votingSettings } from "~/lib/types/eventConfig";
@@ -51,8 +51,10 @@ export default function AwardVoteSelect({
 
   return (
     <>
-      <div
+      <button
+        type="button"
         onClick={toggleExpand}
+        aria-haspopup="dialog"
         className={cn(
           "flex w-full cursor-pointer flex-row items-center justify-between rounded-lg border px-4 py-3 text-center text-lg font-semibold shadow-md backdrop-blur transition-all duration-300 ease-in-out",
           vote?.demoId
@@ -70,8 +72,8 @@ export default function AwardVoteSelect({
         >
           <p>{selectedDemo?.name ?? "Pick your winner..."}</p>
         </motion.div>
-        <Expand size={22} strokeWidth={2.25} color={"black"} />
-      </div>
+        <ChevronDown size={24} strokeWidth={2.25} color={"black"} />
+      </button>
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -101,6 +103,18 @@ export default function AwardVoteSelect({
                   <p className="pb-2 text-lg font-semibold italic leading-6 text-gray-200">
                     {award.description}
                   </p>
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <p className="text-base font-semibold text-white">
+                    Tap a project to vote for it.
+                  </p>
+                  <button
+                    type="button"
+                    className="rounded-lg bg-white px-4 py-2 font-semibold"
+                    onClick={() => setIsExpanded(false)}
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
               <div className="left-0 z-20 flex max-h-[calc(100vh-4rem)] w-full flex-col gap-2 overflow-y-auto p-4 pb-[60vh]">

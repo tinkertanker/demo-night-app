@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { toSingaporeMidnight } from "~/lib/singaporeDate";
+import { submissionInputSchema } from "~/lib/submission";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -20,18 +21,7 @@ const submissionStatus = z.enum([
 
 export const submissionRouter = createTRPCRouter({
   create: publicProcedure
-    .input(
-      z.object({
-        eventId: z.string(),
-        name: z.string(),
-        tagline: z.string(),
-        description: z.string(),
-        email: z.string().email(),
-        url: z.string().url(),
-        pocName: z.string(),
-        demoUrl: z.string().optional(),
-      }),
-    )
+    .input(submissionInputSchema)
     .mutation(async ({ input }) => {
       const event = await db.event.findUnique({
         where: { id: input.eventId },
@@ -53,7 +43,10 @@ export const submissionRouter = createTRPCRouter({
         return result;
       } catch (error: any) {
         if (error.code === "P2002") {
-          throw new Error("A submission with this email already exists.");
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A submission with this email already exists.",
+          });
         }
         throw new Error("Failed to create submission.");
       }

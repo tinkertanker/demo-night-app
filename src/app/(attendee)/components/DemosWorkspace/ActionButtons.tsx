@@ -77,6 +77,9 @@ function ReactionButton({
         </span>
         <span className="mt-1 text-sm font-bold">{count}</span>
       </motion.button>
+      <span aria-hidden="true" className="text-sm font-semibold text-gray-600">
+        {label}
+      </span>
     </div>
   );
 }

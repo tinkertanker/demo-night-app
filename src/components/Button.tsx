@@ -25,11 +25,12 @@ export default function Button({
       className={cn(
         `z-30 flex h-12 w-full items-center justify-center gap-2 space-x-2 rounded-lg px-4 py-2 text-lg font-semibold text-white shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]`,
         pending
-          ? "cursor-not-allowed"
+          ? "cursor-not-allowed bg-primary/70"
           : "bg-primary hover:bg-primary-dark",
         className,
       )}
       disabled={pending}
+      aria-busy={pending}
       onClick={onClick}
     >
       {pending ? <LoadingDots color="#fff" /> : children}

@@ -27,7 +27,11 @@ export async function generateMetadata({ params }: Props) {
 export default async function JoinedEventPage({ params }: Props) {
   const liveEvent = await api.event.getLiveByCode(params.eventId);
   if (!liveEvent) {
-    return <HomePage invalidCode={normalizeJoinCode(params.eventId)} />;
+    let typed = params.eventId;
+    try {
+      typed = decodeURIComponent(typed);
+    } catch {}
+    return <HomePage invalidCode={normalizeJoinCode(typed)} />;
   }
   return (
     <main className="m-auto flex size-full max-w-xl flex-col text-black">

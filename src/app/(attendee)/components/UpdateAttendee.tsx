@@ -125,6 +125,7 @@ export function UpdateAttendeeForm({
           type="text"
           placeholder="Ada Lovelace"
           autoComplete="name"
+          maxLength={100}
           aria-required="true"
           aria-invalid={!!errors.name}
           aria-describedby={errors.name ? `${nameId}-error` : `${nameId}-hint`}
@@ -139,7 +140,9 @@ export function UpdateAttendeeForm({
           id={`${nameId}-hint`}
           className="text-sm font-normal text-gray-600"
         >
-          Please use your real name so the organiser can recognise you.
+          Please use your real name. The organiser uses it to check that each
+          person votes only once. Presenters will see your name next to any
+          feedback you give them.
         </span>
         {errors.name && (
           <span

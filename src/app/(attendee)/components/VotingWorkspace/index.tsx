@@ -9,6 +9,7 @@ import { liveQueryOptions } from "~/lib/liveQuery";
 import { stickerAwardId } from "~/lib/types/award";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { votingSettings } from "~/lib/types/eventConfig";
+import { cn } from "~/lib/utils";
 import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
 
@@ -82,7 +83,7 @@ function VotingContent() {
   });
   const config = event.config as EventConfig;
   const settings = votingSettings(config);
-  const { votes, setVote } = useVotes(
+  const { votes, setVote, saving, saveFailed } = useVotes(
     currentEvent.id,
     attendee,
     settings.categories,
@@ -111,14 +112,14 @@ function VotingContent() {
     <div className="w-full max-w-xl">
       <div className="flex justify-center gap-2 p-3">
         <button
-          className="rounded-lg border bg-white px-4 py-2"
+          className={tabClass(!showPostcards)}
           aria-pressed={!showPostcards}
           onClick={() => setShowPostcards(false)}
         >
-          Voting
+          {settings.financial ? "Investing" : "Voting"}
         </button>
         <button
-          className="rounded-lg border bg-white px-4 py-2"
+          className={tabClass(showPostcards)}
           aria-pressed={showPostcards}
           onClick={() => setShowPostcards(true)}
         >
@@ -146,15 +147,27 @@ function VotingContent() {
                     : `Give your support! ${settings.symbol}`}
             </h1>
             <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">
-              {settings.weighted
-                ? `You have ${settings.format(settings.budget)} ${settings.name} ${settings.mode === "stickers" ? "to give to your favourite projects" : "to allocate to your favourites"}.`
-                : settings.categories
-                  ? "Choose one project per category. The same project can win more than one category. Each category is tallied independently."
-                  : settings.showResults
-                    ? "Who gets immortalized in the Demo Night Hall of Fame? You decide! Note that you can only vote for each demoist once so choose wisely!"
-                    : "Choose your favourite project. There are no public rankings or winners."}
+              {settings.financial
+                ? `You have ${settings.format(settings.budget)} of pretend money (not real money) to invest in your favourite pitches. Split it however you like.`
+                : settings.weighted
+                  ? `You have ${settings.format(settings.budget)} ${settings.name} ${settings.mode === "stickers" ? "to give to your favourite projects" : "to give to your favourites"}.`
+                  : settings.categories
+                    ? "Choose one project in each category. The same project can win more than one category."
+                    : settings.showResults
+                      ? "Who gets immortalized in the Demo Night Hall of Fame? You decide! Note that you can only vote for each demoist once so choose wisely!"
+                      : "Choose your favourite project. There are no public rankings or winners."}
             </p>
           </div>
+          {!settings.weighted && (
+            <VoteProgress
+              chosen={
+                votableAwards.filter((award) => votes[award.id]?.demoId).length
+              }
+              total={votableAwards.length}
+              saving={saving}
+              saveFailed={saveFailed}
+            />
+          )}
           <div className="flex w-full flex-col gap-8">
             {settings.weighted
               ? // Allocation and sticker votes share amount-based results.
@@ -189,6 +202,48 @@ function VotingContent() {
         </div>
       </div>
     </div>
+  );
+}
+
+function tabClass(selected: boolean) {
+  return cn(
+    "rounded-lg border px-4 py-2 font-semibold",
+    selected ? "border-primary bg-primary text-white" : "bg-white",
+  );
+}
+
+function VoteProgress({
+  chosen,
+  total,
+  saving,
+  saveFailed,
+}: {
+  chosen: number;
+  total: number;
+  saving: boolean;
+  saveFailed: boolean;
+}) {
+  const done = chosen === total && total > 0;
+  return (
+    <p
+      role="status"
+      className={cn(
+        "w-full rounded-lg px-4 py-2 text-center text-sm font-semibold",
+        saveFailed
+          ? "bg-red-50 text-red-700"
+          : done && !saving
+            ? "bg-green-50 text-green-800"
+            : "bg-gray-100 text-gray-700",
+      )}
+    >
+      {saving
+        ? "Saving your vote…"
+        : saveFailed
+          ? "Your last vote did not save. Please choose it again."
+          : done
+            ? "✓ All your votes are saved. You can change them until voting closes."
+            : `${chosen} of ${total} chosen. Each vote saves as soon as you choose it.`}
+    </p>
   );
 }
 

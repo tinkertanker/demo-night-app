@@ -2,6 +2,7 @@ import { type Demo, type Feedback } from "@prisma/client";
 import { cache } from "react";
 import { z } from "zod";
 
+import { webUrlSchema } from "~/lib/submission";
 import { votingSettings } from "~/lib/types/eventConfig";
 import {
   createTRPCRouter,
@@ -91,7 +92,7 @@ export const demoRouter = createTRPCRouter({
         name: z.string(),
         description: z.string().optional(),
         email: z.string().email().optional().or(z.literal("")),
-        url: z.string().url().optional().or(z.literal("")),
+        url: webUrlSchema.optional().or(z.literal("")),
       }),
     )
     .mutation(async ({ input }) => {
