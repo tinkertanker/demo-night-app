@@ -104,7 +104,10 @@ export default function InvestmentAmountSelect({
           <p className="text-gray-600">{award.description}</p>
         </div>
       )}
-      <div className="rounded-xl bg-primary p-4 text-white" role="status">
+      <div
+        className="sticky top-20 z-10 rounded-xl bg-primary p-4 text-white shadow-md"
+        role="status"
+      >
         <h2 className="text-xl font-bold">
           {settings.financial
             ? "Your Scout Fund"
@@ -116,6 +119,15 @@ export default function InvestmentAmountSelect({
           {settings.format(total)} {settings.financial ? "invested" : "given"} ·
           Remaining: {settings.format(remaining)}
         </p>
+        {settings.mode !== "stickers" && (
+          <p className="text-sm">
+            {mutation.isPending
+              ? "Saving…"
+              : remaining < 1
+                ? "✓ All spent and saved"
+                : "Each tap saves automatically"}
+          </p>
+        )}
         {settings.mode === "stickers" && (
           <p className="mt-2 text-sm">
             One favourite sticker per project. You can take it back and choose
@@ -168,14 +180,14 @@ export default function InvestmentAmountSelect({
                   Take back {settings.format(amount)}
                 </button>
               ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex gap-2">
+                <div className="flex items-center justify-between gap-1 sm:gap-2">
+                  <div className="flex gap-1 sm:gap-2">
                     {[25000, 5000].map((step) => (
                       <button
                         key={step}
                         aria-label={`Take back ${settings.format(step)} from ${demo.name}`}
                         disabled={amount < step}
-                        className="rounded-lg bg-white px-3 py-2 disabled:opacity-40"
+                        className="min-h-11 whitespace-nowrap rounded-lg bg-white px-2 py-2 text-sm disabled:opacity-40 sm:px-3 sm:text-base"
                         onClick={() =>
                           update(demo.id, (current) => current - step)
                         }
@@ -185,13 +197,13 @@ export default function InvestmentAmountSelect({
                     ))}
                   </div>
                   <strong>{settings.format(amount)}</strong>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 sm:gap-2">
                     {[5000, 25000].map((step) => (
                       <button
                         key={step}
                         aria-label={`${settings.financial ? "Invest" : "Give"} ${settings.format(step)} to ${demo.name}`}
                         disabled={remaining < step}
-                        className="rounded-lg bg-primary px-3 py-2 text-white disabled:opacity-40"
+                        className="min-h-11 whitespace-nowrap rounded-lg bg-primary px-2 py-2 text-sm text-white disabled:opacity-40 sm:px-3 sm:text-base"
                         onClick={() =>
                           update(demo.id, (current) => current + step)
                         }
