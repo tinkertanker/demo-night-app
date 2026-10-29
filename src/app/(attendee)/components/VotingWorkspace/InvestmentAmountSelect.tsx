@@ -104,13 +104,10 @@ export default function InvestmentAmountSelect({
           <p className="text-gray-600">{award.description}</p>
         </div>
       )}
-      <div
-        className="sticky top-20 z-10 rounded-xl bg-primary p-4 text-white shadow-md"
-        role="status"
-      >
+      <div className="rounded-xl bg-primary p-4 text-white" role="status">
         <h2 className="text-xl font-bold">
           {settings.financial
-            ? "Your fund (pretend money)"
+            ? "Your Scout Fund"
             : settings.mode === "stickers"
               ? "Your favourite stickers"
               : "Your support allowance"}
@@ -118,13 +115,6 @@ export default function InvestmentAmountSelect({
         <p>
           {settings.format(total)} {settings.financial ? "invested" : "given"} ·
           Remaining: {settings.format(remaining)}
-        </p>
-        <p className="mt-1 text-sm">
-          {mutation.isPending
-            ? "Saving…"
-            : remaining < 1 && settings.mode !== "stickers"
-              ? "✓ All spent and saved. Tap − to move money to another project."
-              : "Each tap saves automatically. There is no submit button."}
         </p>
         {settings.mode === "stickers" && (
           <p className="mt-2 text-sm">
@@ -185,7 +175,7 @@ export default function InvestmentAmountSelect({
                         key={step}
                         aria-label={`Take back ${settings.format(step)} from ${demo.name}`}
                         disabled={amount < step}
-                        className="min-h-11 rounded-lg bg-white px-3 py-2 disabled:opacity-40"
+                        className="rounded-lg bg-white px-3 py-2 disabled:opacity-40"
                         onClick={() =>
                           update(demo.id, (current) => current - step)
                         }
@@ -201,7 +191,7 @@ export default function InvestmentAmountSelect({
                         key={step}
                         aria-label={`${settings.financial ? "Invest" : "Give"} ${settings.format(step)} to ${demo.name}`}
                         disabled={remaining < step}
-                        className="min-h-11 rounded-lg bg-primary px-3 py-2 text-white disabled:opacity-40"
+                        className="rounded-lg bg-primary px-3 py-2 text-white disabled:opacity-40"
                         onClick={() =>
                           update(demo.id, (current) => current + step)
                         }
@@ -216,9 +206,8 @@ export default function InvestmentAmountSelect({
           );
         })}
       <p className="text-sm text-gray-600">
-        You do not need to write feedback before you vote. You can still write
-        feedback after you have used all your{" "}
-        {settings.financial ? "money" : "votes"}.
+        Voting never requires a postcard. Feedback and appreciation stay
+        available even when your allowance runs out.
       </p>
     </section>
   );

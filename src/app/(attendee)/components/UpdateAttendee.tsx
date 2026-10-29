@@ -141,9 +141,7 @@ export function UpdateAttendeeForm({
           id={`${nameId}-hint`}
           className="text-sm font-normal text-gray-600"
         >
-          Please use your real name so the organiser can recognise you.
-          Presenters will see it next to your feedback at this event, and the
-          organiser next to your votes. This browser remembers it for next time.
+          Use your real name so the organiser can recognise you.
         </span>
         {errors.name && (
           <span

@@ -106,7 +106,7 @@ export default function AwardVoteSelect({
                 </div>
                 <div className="flex items-center justify-between gap-2 pt-2">
                   <p className="text-base font-semibold text-white">
-                    Tap a project to vote for it.
+                    Tap to vote.
                   </p>
                   <button
                     type="button"

@@ -148,7 +148,7 @@ function VotingContent() {
             </h1>
             <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">
               {settings.financial
-                ? `You have ${settings.format(settings.budget)} (pretend money) to invest in your favourite pitches. Split it however you like.`
+                ? `You have ${settings.format(settings.budget)} (pretend money) to invest.`
                 : settings.weighted
                   ? `You have ${settings.format(settings.budget)} ${settings.name} ${settings.mode === "stickers" ? "to give to your favourite projects" : "to give to your favourites"}.`
                   : settings.categories
@@ -237,12 +237,12 @@ function VoteProgress({
       )}
     >
       {saving
-        ? "Saving your vote…"
+        ? "Saving…"
         : saveFailed
-          ? "Your last vote did not save. Please choose it again."
+          ? "Vote not saved. Please try again."
           : done
-            ? "✓ All your votes are saved. You can change them until voting closes."
-            : `${chosen} of ${total} chosen. Each vote saves as soon as you choose it.`}
+            ? "✓ All votes saved"
+            : `${chosen} of ${total} chosen`}
     </p>
   );
 }

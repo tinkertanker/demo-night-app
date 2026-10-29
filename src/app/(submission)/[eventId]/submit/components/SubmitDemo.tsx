@@ -234,7 +234,7 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             )}
           />
           <span className="text-sm text-gray-500">
-            Only the organisers see this email. It is not shown to attendees.
+            Only organisers see this.
           </span>
           {errors.email && (
             <span className="text-red-500">{errors.email.message}</span>

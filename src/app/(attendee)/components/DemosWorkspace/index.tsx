@@ -100,13 +100,10 @@ export default function DemosWorkspace() {
               </p>
             )}
           </div>
-          <p className="-mb-3 text-sm font-semibold text-gray-600">
-            Tap to react. You can tap as many times as you like.
-          </p>
           <ActionButtons feedback={feedback} setFeedback={setFeedback} />
           <div className="w-full px-4 pb-6">
             <p className="pb-2 text-center text-sm font-semibold text-gray-600">
-              How much did you like this demo? (😐 a little … 🤩 a lot)
+              How much did you like it?
             </p>
             <RatingSlider feedback={feedback} setFeedback={setFeedback} />
           </div>
@@ -114,8 +111,7 @@ export default function DemosWorkspace() {
             <section className="w-full space-y-3 rounded-xl border-2 border-amber-200 bg-amber-50/90 p-4">
               <h2 className="text-xl font-bold">Feedback postcard</h2>
               <p className="text-sm text-gray-600">
-                Write a short note to the presenter. Fill in any one box or tap
-                any one badge — that is enough. This does not use your votes.
+                Fill in any box or tap a badge.
               </p>
               <p role="status" className="text-sm font-semibold">
                 You have given feedback to {progress}{" "}
@@ -255,8 +251,7 @@ function SaveStatusIndicator({ status }: { status: FeedbackSaveStatus }) {
     >
       {status === FeedbackSaveStatus.UNSAVED && "Not saved yet"}
       {status === FeedbackSaveStatus.SAVING && "Saving..."}
-      {status === FeedbackSaveStatus.SAVED &&
-        "Saved! Your feedback saves automatically."}
+      {status === FeedbackSaveStatus.SAVED && "Saved!"}
     </p>
   );
 }
