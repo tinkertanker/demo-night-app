@@ -148,7 +148,7 @@ function VotingContent() {
             </h1>
             <p className="text-md max-w-[330px] pt-2 text-center font-medium leading-5 text-gray-500">
               {settings.financial
-                ? `You have ${settings.format(settings.budget)} of pretend money (not real money) to invest in your favourite pitches. Split it however you like.`
+                ? `You have ${settings.format(settings.budget)} (pretend money) to invest in your favourite pitches. Split it however you like.`
                 : settings.weighted
                   ? `You have ${settings.format(settings.budget)} ${settings.name} ${settings.mode === "stickers" ? "to give to your favourite projects" : "to give to your favourites"}.`
                   : settings.categories

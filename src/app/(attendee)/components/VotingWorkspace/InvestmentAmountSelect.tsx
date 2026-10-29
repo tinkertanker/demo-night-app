@@ -110,7 +110,7 @@ export default function InvestmentAmountSelect({
       >
         <h2 className="text-xl font-bold">
           {settings.financial
-            ? "Your pretend investment money"
+            ? "Your fund (pretend money)"
             : settings.mode === "stickers"
               ? "Your favourite stickers"
               : "Your support allowance"}

@@ -49,9 +49,10 @@ export type CompleteEvent = Event & {
   eventFeedback: EventFeedback[];
 };
 
+// Presenter emails stay with organisers; public event reads never include them.
 export type PublicDemo = Omit<
   Demo,
-  "eventId" | "secret" | "createdAt" | "updatedAt"
+  "eventId" | "secret" | "email" | "createdAt" | "updatedAt"
 >;
 
 const liveEventSchema = z.object({
@@ -863,7 +864,6 @@ const completeEventSelect: Prisma.EventSelect = {
       index: true,
       name: true,
       description: true,
-      email: true,
       url: true,
       votable: true,
     },

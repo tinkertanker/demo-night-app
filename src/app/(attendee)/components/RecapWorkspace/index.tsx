@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import { type AwardWinnerDisplay, getAwardWinner } from "~/lib/awardWinner";
 import { votingSettings } from "~/lib/types/eventConfig";
@@ -232,20 +231,10 @@ function PartnerItem({
 }
 
 function DemoItem({ demo }: { demo: PublicDemo }) {
-  const copyEmailToClipboard = () => {
-    if (!demo.email) return;
-    navigator.clipboard.writeText(demo.email);
-    toast.success("Email copied to clipboard!");
-  };
-
-  const hasEmail = Boolean(demo.email);
   const hasUrl = Boolean(demo.url);
 
   return (
-    <div
-      className={`group z-10 flex w-full flex-col gap-1 rounded-lg bg-gray-300/50 p-4 font-medium leading-6 shadow-xl backdrop-blur ${hasEmail ? "cursor-pointer" : ""}`}
-      onClick={hasEmail ? copyEmailToClipboard : undefined}
-    >
+    <div className="group z-10 flex w-full flex-col gap-1 rounded-lg bg-gray-300/50 p-4 font-medium leading-6 shadow-xl backdrop-blur">
       <div className="flex w-full items-center justify-between gap-2">
         {hasUrl ? (
           <Link
@@ -264,11 +253,6 @@ function DemoItem({ demo }: { demo: PublicDemo }) {
           </Link>
         ) : (
           <h3 className="line-clamp-1 text-xl font-bold">{demo.name}</h3>
-        )}
-        {hasEmail && (
-          <p className="flex-shrink-0 truncate text-gray-500">
-            📬 <span className="group-hover:underline">{demo.email}</span>
-          </p>
         )}
       </div>
       {demo.description && (

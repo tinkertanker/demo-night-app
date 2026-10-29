@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceContext } from "../contexts/WorkspaceContext";
+import { rememberedName } from "../hooks/useAttendee";
 import { type Attendee } from "@prisma/client";
 import { CircleUserRoundIcon } from "lucide-react";
 import { useId } from "react";
@@ -85,7 +86,7 @@ export function UpdateAttendeeForm({
     formState: { errors, isSubmitting },
   } = useForm({
     values: {
-      name: attendee?.name ?? "",
+      name: attendee?.name ?? rememberedName(),
     },
   });
 
@@ -141,8 +142,8 @@ export function UpdateAttendeeForm({
           className="text-sm font-normal text-gray-600"
         >
           Please use your real name so the organiser can recognise you.
-          Presenters will see it next to your feedback, and the organiser next
-          to your votes, including anything you gave earlier on this device.
+          Presenters will see it next to your feedback at this event, and the
+          organiser next to your votes. This browser remembers it for next time.
         </span>
         {errors.name && (
           <span
