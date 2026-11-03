@@ -19,7 +19,11 @@ export function useVotes(
     attendeeId: attendee.id,
   });
   const utils = api.useUtils();
-  const upsertMutation = api.vote.upsert.useMutation();
+  // Saves run one at a time in tap order, so an older pick can never
+  // commit after a newer one.
+  const upsertMutation = api.vote.upsert.useMutation({
+    scope: { id: `votes:${eventId}:${attendee.id}` },
+  });
   // The mutation observer only reflects the latest call, so count writes
   // ourselves: a quick second pick must not hide an earlier failure.
   const [pending, setPending] = useState(0);
