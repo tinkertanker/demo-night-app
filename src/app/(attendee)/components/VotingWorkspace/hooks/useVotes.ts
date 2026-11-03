@@ -28,7 +28,6 @@ export function useVotes(
   // ourselves: a quick second pick must not hide an earlier failure.
   const [pending, setPending] = useState(0);
   const inFlight = useRef(0);
-  const refetchWhenIdle = useRef(false);
   const [failedAwardIds, setFailedAwardIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -46,17 +45,14 @@ export function useVotes(
           return next;
         }),
       )
-      .catch(() => {
-        setFailedAwardIds((ids) => new Set(ids).add(awardId));
-        refetchWhenIdle.current = true;
-      })
+      .catch(() => setFailedAwardIds((ids) => new Set(ids).add(awardId)))
       .finally(() => {
         setPending((n) => n - 1);
         inFlight.current -= 1;
-        // Resync with the server only once no other pick is still saving,
-        // so a refetch cannot overwrite a selection that is on its way.
-        if (inFlight.current === 0 && refetchWhenIdle.current) {
-          refetchWhenIdle.current = false;
+        // Resync with the server once no other pick is still saving, so a
+        // refetch cannot overwrite a selection on its way. This also cancels
+        // any older refetch that would otherwise land after a newer pick.
+        if (inFlight.current === 0) {
           void utils.vote.all.invalidate({ eventId, attendeeId: attendee.id });
         }
       });
