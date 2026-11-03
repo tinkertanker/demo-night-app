@@ -59,7 +59,11 @@ export default function InvestmentAmountSelect({
         ];
       });
     },
-    onError: (error) => toast.error(error.message),
+    onError: async (error, vote) => {
+      toast.error(error.message);
+      if (vote.demoId) delete intended.current[vote.demoId];
+      await utils.vote.all.invalidate({ eventId, attendeeId });
+    },
     onSettled: async () => {
       if (queryClient.isMutating() <= 1) {
         intended.current = {};

@@ -80,16 +80,8 @@ function getLocalAttendee(eventId: string): Attendee {
   if (typeof window !== "undefined") {
     const stored = localStorage.getItem(attendeeKey(eventId));
     if (stored) return JSON.parse(stored) as Attendee;
-    // One-off migration from the old device-wide attendee: keep it for the
-    // event in progress so its votes and feedback stay, then retire it.
-    const legacy = localStorage.getItem(LEGACY_ATTENDEE_KEY);
-    if (legacy) {
-      localStorage.removeItem(LEGACY_ATTENDEE_KEY);
-      const attendee = JSON.parse(legacy) as Attendee;
-      rememberName(attendee.name);
-      setLocalAttendee(eventId, attendee);
-      return attendee;
-    }
+    const legacy = migrateLegacyAttendee(eventId);
+    if (legacy) return legacy;
   }
   const attendee = {
     id: crypto.randomUUID(),
@@ -100,6 +92,38 @@ function getLocalAttendee(eventId: string): Attendee {
   };
   setLocalAttendee(eventId, attendee);
   return attendee;
+}
+
+// One-off migration from the old device-wide attendee. It keeps that id for
+// this event and for every event it already has local votes or feedback for,
+// so earlier participation is not orphaned. The legacy key is removed only
+// after the per-event copies are written.
+function migrateLegacyAttendee(eventId: string): Attendee | null {
+  try {
+    const legacy = localStorage.getItem(LEGACY_ATTENDEE_KEY);
+    if (!legacy) return null;
+    const attendee = JSON.parse(legacy) as Attendee;
+    const suffix = `:${attendee.id}`;
+    const eventIds = new Set([eventId]);
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      const match = key?.endsWith(suffix)
+        ? /^(?:votes|feedback|feedback-drafts):(.+)$/.exec(
+            key.slice(0, -suffix.length),
+          )
+        : null;
+      if (match?.[1]) eventIds.add(match[1]);
+    }
+    for (const id of eventIds) {
+      if (!localStorage.getItem(attendeeKey(id)))
+        setLocalAttendee(id, attendee);
+    }
+    rememberName(attendee.name);
+    localStorage.removeItem(LEGACY_ATTENDEE_KEY);
+    return attendee;
+  } catch {
+    return null;
+  }
 }
 
 function setLocalAttendee(eventId: string, attendee: Attendee) {

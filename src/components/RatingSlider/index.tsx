@@ -23,6 +23,7 @@ export default function RatingSlider({
     <Slider
       min={1}
       max={5}
+      ariaLabelledByForHandle={setFeedback ? "rating-prompt" : undefined}
       marks={RATING_EMOJIS}
       // @ts-ignore
       value={feedback?.rating}

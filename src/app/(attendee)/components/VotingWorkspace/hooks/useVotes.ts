@@ -18,7 +18,34 @@ export function useVotes(
     eventId,
     attendeeId: attendee.id,
   });
+  const utils = api.useUtils();
   const upsertMutation = api.vote.upsert.useMutation();
+  // The mutation observer only reflects the latest call, so count writes
+  // ourselves: a quick second pick must not hide an earlier failure.
+  const [pending, setPending] = useState(0);
+  const [failedAwardIds, setFailedAwardIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const save = (vote: LocalVote) => {
+    const awardId = vote.awardId;
+    setPending((n) => n + 1);
+    upsertMutation
+      .mutateAsync(vote)
+      .then(() =>
+        setFailedAwardIds((ids) => {
+          const next = new Set(ids);
+          next.delete(awardId);
+          return next;
+        }),
+      )
+      .catch(() => {
+        setFailedAwardIds((ids) => new Set(ids).add(awardId));
+        // Show what the server actually has for the failed award.
+        void utils.vote.all.invalidate({ eventId, attendeeId: attendee.id });
+      })
+      .finally(() => setPending((n) => n - 1));
+  };
 
   useEffect(() => {
     setLocalVotes(eventId, attendee.id, votes);
@@ -46,21 +73,21 @@ export function useVotes(
       Object.keys(updatedVotes).forEach((key) => {
         if (key !== awardId && updatedVotes[key]?.demoId === demoId) {
           updatedVotes[key]!.demoId = null;
-          upsertMutation.mutate(updatedVotes[key]!);
+          save(updatedVotes[key]!);
         }
       });
     }
 
     updatedVotes[awardId] = vote;
     setVotes(updatedVotes);
-    upsertMutation.mutate(vote);
+    save(vote);
   };
 
   return {
     votes,
     setVote,
-    saving: upsertMutation.isPending,
-    saveFailed: upsertMutation.isError,
+    saving: pending > 0,
+    saveFailed: failedAwardIds.size > 0,
   };
 }
 

@@ -11,7 +11,20 @@ export const webUrlSchema = z
   .url("Please enter a website address, like https://example.com")
   .refine((url) => /^https?:\/\//i.test(url), {
     message: "Website addresses must start with http:// or https://",
+  })
+  .refine(hasDottedHost, {
+    message: "Please enter a full website address, like example.com",
   });
+
+// Zod runs refinements even after .url() fails; unparsable input passes here
+// and is reported by .url() instead.
+function hasDottedHost(url: string) {
+  try {
+    return new URL(url).hostname.includes(".");
+  } catch {
+    return true;
+  }
+}
 
 // "example.com" -> "https://example.com". Anything that already names a
 // scheme (https:, javascript:, ...) is left alone for validation to judge.

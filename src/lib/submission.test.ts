@@ -24,6 +24,7 @@ describe("submission input", () => {
     for (const url of [
       "javascript:alert(1)",
       "data:text/html,x",
+      "https://demo",
       "example.com",
     ])
       assert.equal(

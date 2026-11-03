@@ -102,7 +102,10 @@ export default function DemosWorkspace() {
           </div>
           <ActionButtons feedback={feedback} setFeedback={setFeedback} />
           <div className="w-full px-4 pb-6">
-            <p className="pb-2 text-center text-sm font-semibold text-gray-600">
+            <p
+              id="rating-prompt"
+              className="pb-2 text-center text-sm font-semibold text-gray-600"
+            >
               How much did you like it?
             </p>
             <RatingSlider feedback={feedback} setFeedback={setFeedback} />
@@ -114,8 +117,7 @@ export default function DemosWorkspace() {
                 Fill in any box or tap a badge.
               </p>
               <p role="status" className="text-sm font-semibold">
-                You have given feedback to {progress}{" "}
-                {progress === 1 ? "project" : "projects"}
+                Postcards sent: {progress}
                 {config.feedbackGoal ? ` · Goal: ${config.feedbackGoal}` : ""}
               </p>
               {(
