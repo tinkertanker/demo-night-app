@@ -117,7 +117,7 @@ export default function DemosWorkspace() {
                 Fill in any box or tap a badge.
               </p>
               <p role="status" className="text-sm font-semibold">
-                Postcards sent: {progress}
+                Postcards filled: {progress}
                 {config.feedbackGoal ? ` · Goal: ${config.feedbackGoal}` : ""}
               </p>
               {(

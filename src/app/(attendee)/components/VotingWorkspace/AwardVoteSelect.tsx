@@ -33,6 +33,7 @@ export default function AwardVoteSelect({
   const selectedDemo = demos.find((d) => d.id === vote?.demoId);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const firstChoiceRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const toggleExpand = () => setIsExpanded(!isExpanded);
   const close = useCallback(() => {
     setIsExpanded(false);
@@ -45,7 +46,30 @@ export default function AwardVoteSelect({
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isExpanded) close();
+      if (!isExpanded) return;
+      if (e.key === "Escape") close();
+      // Keep Tab and Shift+Tab inside the open dialog.
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = Array.from(
+          dialogRef.current.querySelectorAll<HTMLElement>(
+            'button, [tabindex="0"]',
+          ),
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!first || !last) return;
+        const inside = dialogRef.current.contains(document.activeElement);
+        if (e.shiftKey && (document.activeElement === first || !inside)) {
+          e.preventDefault();
+          last.focus();
+        } else if (
+          !e.shiftKey &&
+          (document.activeElement === last || !inside)
+        ) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     },
     [isExpanded, close],
   );
@@ -93,6 +117,7 @@ export default function AwardVoteSelect({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[15] h-full w-full bg-black/30 backdrop-blur"
+            ref={dialogRef}
             onClick={close}
             role="dialog"
             aria-modal="true"

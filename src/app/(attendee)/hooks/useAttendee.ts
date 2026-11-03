@@ -82,6 +82,9 @@ function getLocalAttendee(eventId: string): Attendee {
     if (stored) return JSON.parse(stored) as Attendee;
     const legacy = migrateLegacyAttendee(eventId);
     if (legacy) return legacy;
+    // Another tab may have created this event's attendee meanwhile.
+    const current = localStorage.getItem(attendeeKey(eventId));
+    if (current) return JSON.parse(current) as Attendee;
   }
   const attendee = {
     id: crypto.randomUUID(),
@@ -94,17 +97,18 @@ function getLocalAttendee(eventId: string): Attendee {
   return attendee;
 }
 
-// One-off migration from the old device-wide attendee. It keeps that id for
-// this event and for every event it already has local votes or feedback for,
-// so earlier participation is not orphaned. The legacy key is removed only
-// after the per-event copies are written.
+// One-off migration from the old device-wide attendee. Every event it already
+// has local votes or feedback for keeps that id, so earlier participation is
+// not orphaned. The current event reuses it only if it is one of those events,
+// or if there are none; otherwise it gets a fresh id so events stay separate.
+// The legacy key is removed only after the per-event copies are written.
 function migrateLegacyAttendee(eventId: string): Attendee | null {
   try {
     const legacy = localStorage.getItem(LEGACY_ATTENDEE_KEY);
     if (!legacy) return null;
     const attendee = JSON.parse(legacy) as Attendee;
     const suffix = `:${attendee.id}`;
-    const eventIds = new Set([eventId]);
+    const eventIds = new Set<string>();
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       const match = key?.endsWith(suffix)
@@ -114,13 +118,14 @@ function migrateLegacyAttendee(eventId: string): Attendee | null {
         : null;
       if (match?.[1]) eventIds.add(match[1]);
     }
+    if (eventIds.size === 0) eventIds.add(eventId);
     for (const id of eventIds) {
       if (!localStorage.getItem(attendeeKey(id)))
         setLocalAttendee(id, attendee);
     }
     rememberName(attendee.name);
     localStorage.removeItem(LEGACY_ATTENDEE_KEY);
-    return attendee;
+    return eventIds.has(eventId) ? attendee : null;
   } catch {
     return null;
   }

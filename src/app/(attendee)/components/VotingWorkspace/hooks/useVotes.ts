@@ -1,5 +1,5 @@
 import { type Attendee, type Vote } from "@prisma/client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api } from "~/trpc/react";
 
@@ -23,12 +23,15 @@ export function useVotes(
   // The mutation observer only reflects the latest call, so count writes
   // ourselves: a quick second pick must not hide an earlier failure.
   const [pending, setPending] = useState(0);
+  const inFlight = useRef(0);
+  const refetchWhenIdle = useRef(false);
   const [failedAwardIds, setFailedAwardIds] = useState<Set<string>>(
     () => new Set(),
   );
 
   const save = (vote: LocalVote) => {
     const awardId = vote.awardId;
+    inFlight.current += 1;
     setPending((n) => n + 1);
     upsertMutation
       .mutateAsync(vote)
@@ -41,10 +44,18 @@ export function useVotes(
       )
       .catch(() => {
         setFailedAwardIds((ids) => new Set(ids).add(awardId));
-        // Show what the server actually has for the failed award.
-        void utils.vote.all.invalidate({ eventId, attendeeId: attendee.id });
+        refetchWhenIdle.current = true;
       })
-      .finally(() => setPending((n) => n - 1));
+      .finally(() => {
+        setPending((n) => n - 1);
+        inFlight.current -= 1;
+        // Resync with the server only once no other pick is still saving,
+        // so a refetch cannot overwrite a selection that is on its way.
+        if (inFlight.current === 0 && refetchWhenIdle.current) {
+          refetchWhenIdle.current = false;
+          void utils.vote.all.invalidate({ eventId, attendeeId: attendee.id });
+        }
+      });
   };
 
   useEffect(() => {
@@ -68,12 +79,13 @@ export function useVotes(
       updatedVotes[awardId] ?? emptyVote(eventId, attendee.id, awardId);
     vote.demoId = demoId;
 
-    // Ensure no other award is voting for the same demoId
+    // Ensure no other award is voting for the same demoId. Only clear it
+    // locally: the server moves the project in the same transaction as the
+    // new pick, so a failed pick never loses the old vote.
     if (demoId !== null && !categories) {
       Object.keys(updatedVotes).forEach((key) => {
         if (key !== awardId && updatedVotes[key]?.demoId === demoId) {
-          updatedVotes[key]!.demoId = null;
-          save(updatedVotes[key]!);
+          updatedVotes[key] = { ...updatedVotes[key]!, demoId: null };
         }
       });
     }
