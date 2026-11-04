@@ -4,14 +4,7 @@ Demo Night App (DNA) is a Next.js 14 (App Router) app for running demo night eve
 
 ## Local development
 
-```bash
-yarn install
-yarn global add dotenv-cli   # required: the db:* scripts load .env.development.local through it
-./start-database.sh          # local database via Docker
-yarn db:push
-yarn db:seed                 # seeds the test@example.com account used for local testing
-yarn dev
-```
+Follow the README's local setup, including the `.env.development.local` and `.env` copies before `yarn db:push`. `dotenv-cli` is a dev dependency; do not install it globally. `yarn db:seed` creates the `test@example.com` account used for local testing.
 
 - Database changes require migrations via `yarn db:migrate` (`yarn db:migrate:create` to create without applying).
 - tRPC procedures need Zod input validation.
