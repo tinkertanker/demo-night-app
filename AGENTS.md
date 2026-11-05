@@ -1,108 +1,23 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+Demo Night App (DNA) is a Next.js 14 (App Router) app for running demo night events: demo submissions, attendee feedback, award voting and live event administration. Prisma on PostgreSQL, tRPC, NextAuth with Google OAuth, Tailwind and shadcn/ui.
 
-## Project Overview
+## Local development
 
-Demo Night App (DNA) is a Next.js application built for managing demo night events. It allows for demo submissions, attendee feedback, voting on awards, and real-time event administration.
+Follow the README's local setup, including the `.env.development.local` and `.env` copies before `yarn db:push`. `dotenv-cli` is a dev dependency; do not install it globally. `yarn db:seed` creates the `test@example.com` account used for local testing.
 
-## Development Commands
+- Database changes require migrations via `yarn db:migrate` (`yarn db:migrate:create` to create without applying).
+- Use absolute imports with the `~/` prefix.
+- APIs are tRPC routers: `publicProcedure` for unauthenticated endpoints, `protectedProcedure` for endpoints that require an authenticated administrator (a session whose email has an `Admin` row; other signed-in users get `FORBIDDEN`). Procedures need Zod input validation.
 
-### Setup & Dependencies
+## Live events
 
-```bash
-yarn install                  # Install dependencies
-yarn global add dotenv-cli   # Install global dotenv-cli (required for local dev)
-./start-database.sh          # Start PostgreSQL and Redis via Docker
-yarn db:push                 # Push schema to database
-yarn db:seed                 # Seed with test data (test@example.com account)
-```
+Several events can be live at once. Each event has a 4-character `joinCode`; attendees join at `/<CODE>` (or type it on `/`), and each live event has its own presenter view at `/admin/[eventId]/present`. Live presentation state (phase, current demo/award) is stored per event in the `LiveEvent` table (a row exists only while the event is live), with the durable phase in `Event.livePhase`.
 
-### Development
+## Hosting
 
-```bash
-yarn dev                     # Start development server (http://localhost:3000)
-yarn lint                    # Run ESLint
-yarn build                   # Production build
-```
+Production runs on Cloudflare Workers (OpenNext) at https://demo-night.tk.sg with Neon Postgres (project `demo-night`, AWS Singapore). Deploy with `DATABASE_URL_NON_POOLING=<direct Neon URL> yarn cf:deploy`, which applies migrations, ensures admins and deploys. The old Docker setup on dev.tk.sg (`deploy.sh`, `docker-compose.prod.yml`) is retired.
 
-### Database Operations
+## Icons and mascot
 
-```bash
-yarn db:migrate              # Create and apply migrations
-yarn db:migrate:create       # Create migration without applying
-yarn db:studio               # Open Prisma Studio GUI
-yarn db:push                 # Push schema without migration
-```
-
-## Architecture
-
-### Tech Stack
-
-- **Framework**: Next.js 14 (App Router)
-- **Database**: PostgreSQL with Prisma ORM
-- **API**: tRPC for type-safe APIs
-- **Cache**: Redis/Vercel KV
-- **Auth**: NextAuth.js with Google OAuth
-- **UI**: Tailwind CSS + shadcn/ui components
-- **State Management**: React Query (via tRPC)
-
-### Directory Structure
-
-- `/src/app/` - Next.js App Router pages and layouts
-  - `(attendee)/` - Attendee-facing event pages
-  - `(demoist)/` - Demo presenter pages
-  - `(submission)/` - Demo submission flow
-  - `admin/` - Event administration dashboard
-  - `hall-of-fame/` - Past event winners display
-  - `api/` - API routes for tRPC and NextAuth
-- `/src/server/` - Backend logic
-  - `api/routers/` - tRPC router definitions (event, demo, attendee, etc.)
-  - `auth.ts` - NextAuth configuration
-  - `db.ts` - Prisma client instance
-- `/src/components/` - Reusable React components
-  - `ui/` - shadcn/ui base components
-- `/prisma/` - Database schema and migrations
-
-### Key Models (Prisma Schema)
-
-- **Event** - Core event with demos, attendees, awards, and configuration
-- **Demo** - Individual demo with feedback and voting capabilities
-- **Submission** - Demo submission requests with approval workflow
-- **Attendee** - Event participants who can provide feedback and vote
-- **Award** - Votable awards that can be won by demos
-- **Feedback** - Attendee feedback on demos (ratings, claps, comments)
-- **Vote** - Attendee votes for awards
-
-### API Pattern
-
-All APIs are defined as tRPC routers in `/src/server/api/routers/`. The app uses:
-
-- `publicProcedure` for unauthenticated endpoints
-- `protectedProcedure` for authenticated endpoints requiring login
-
-### Environment Variables
-
-Required environment variables are defined in `.env.example` and validated in `/src/env.js`. Key variables:
-
-- Database URLs (PostgreSQL)
-- Redis/KV store configuration
-- NextAuth secret and OAuth credentials
-- Public URLs for the application
-
-### Event Workflow
-
-1. **Pre-Event**: Admins create event, demos submit via submission form
-2. **During Event**: Attendees provide feedback on demos, vote for awards
-3. **Post-Event**: View results, hall of fame for past winners
-
-Several events can be live at once. Each event has a 4-character `joinCode`; attendees join at `/<CODE>` (or type it on `/`), and each live event has its own presenter view at `/admin/[eventId]/present`. Live presentation state (phase, current demo/award) is stored per event in KV (`liveEventIds`, `liveEvent:{id}` in `src/lib/types/currentEvent.ts`), with the durable phase in `Event.livePhase`.
-
-### Development Notes
-
-- Use absolute imports with `~/` prefix (configured in tsconfig.json)
-- Follow existing component patterns in `/src/components/ui/`
-- tRPC procedures should include proper Zod validation
-- Database changes require migrations via `yarn db:migrate`
-- Test with `test@example.com` account in local development
-- Icons / mascot stickers: use assets from [tinkertanker/tkrobot-stickers](https://github.com/tinkertanker/tkrobot-stickers) (local copies live in `public/images/stickers/`). Prefer `Sticker` / `MascotLogo` over the old Pitch Night / Demo Night logos. Default chrome icon is `face`; event lists use a seeded positive pose via `MascotLogo`.
+Use assets from [tinkertanker/tkrobot-stickers](https://github.com/tinkertanker/tkrobot-stickers) (local copies in `public/images/stickers/`). Prefer `Sticker` / `MascotLogo` over the old Pitch Night / Demo Night logos. The default chrome icon is `face`; event lists use a seeded positive pose via `MascotLogo`.
