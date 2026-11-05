@@ -7,7 +7,8 @@ Demo Night App (DNA) is a Next.js 14 (App Router) app for running demo night eve
 Follow the README's local setup, including the `.env.development.local` and `.env` copies before `yarn db:push`. `dotenv-cli` is a dev dependency; do not install it globally. `yarn db:seed` creates the `test@example.com` account used for local testing.
 
 - Database changes require migrations via `yarn db:migrate` (`yarn db:migrate:create` to create without applying).
-- tRPC procedures need Zod input validation.
+- Use absolute imports with the `~/` prefix.
+- APIs are tRPC routers: `publicProcedure` for unauthenticated endpoints, `protectedProcedure` for endpoints that require login. Procedures need Zod input validation.
 
 ## Live events
 
