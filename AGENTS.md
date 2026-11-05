@@ -8,7 +8,7 @@ Follow the README's local setup, including the `.env.development.local` and `.en
 
 - Database changes require migrations via `yarn db:migrate` (`yarn db:migrate:create` to create without applying).
 - Use absolute imports with the `~/` prefix.
-- APIs are tRPC routers: `publicProcedure` for unauthenticated endpoints, `protectedProcedure` for endpoints that require login. Procedures need Zod input validation.
+- APIs are tRPC routers: `publicProcedure` for unauthenticated endpoints, `protectedProcedure` for endpoints that require an authenticated administrator (a session whose email has an `Admin` row; other signed-in users get `FORBIDDEN`). Procedures need Zod input validation.
 
 ## Live events
 
