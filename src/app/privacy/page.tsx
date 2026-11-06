@@ -35,7 +35,9 @@ export default function PrivacyPage() {
               browser gets a random ID for each event, linked to the name you
               enter, your feedback (ratings, claps, cheers, confetti, postcards,
               badges and comments), your votes or investments, any comment about
-              the event and whether you opened the event survey.
+              the event and whether you opened the event survey. Entries from
+              older events may also hold an email, LinkedIn profile or attendee
+              type, which an earlier version of the form asked for.
             </li>
             <li>
               <strong>Presenters</strong> who submit a demo give their name,
@@ -67,15 +69,18 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Presenters</strong> get a private link to their demo that
-              shows every piece of feedback on it with the name you entered, and
-              lets them download it. On the event screen, feedback is shown
-              without your name.
+              shows every piece of feedback on it with the name you entered (and
+              any email, LinkedIn or attendee type on older entries), and lets
+              them download it. On the event screen, feedback is shown without
+              your name.
             </li>
             <li>
               <strong>Organisers</strong> can see everything above, including
               who voted for what, so they can check for duplicate or unfair
               votes. Submissions, including presenter emails, are seen only by
               organisers and the reviewers they share the submissions link with.
+              If a submission becomes a demo, its email is also shown on that
+              demo&apos;s private presenter link.
             </li>
           </ul>
         </section>
@@ -107,11 +112,12 @@ export default function PrivacyPage() {
         <section>
           <h2>Keeping and deleting your data</h2>
           <p>
-            We haven&apos;t set a fixed period: data stays with its event until
-            an organiser deletes it. Organisers can delete an attendee (with
-            their feedback and votes), a piece of feedback, a submission or a
-            whole event. To ask what we hold about you, correct it or delete it,
-            email{" "}
+            We haven&apos;t set a fixed period: data stays until an organiser
+            deletes it. Deleting an event does not delete its attendee entries,
+            so names can remain after an event is gone. Organisers can delete an
+            attendee (with their feedback and votes), a piece of feedback, a
+            submission or a whole event. To ask what we hold about you, correct
+            it or delete it, email{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="font-semibold text-blue-600 underline"

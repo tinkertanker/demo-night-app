@@ -268,7 +268,8 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             )}
           />
           <span className="text-sm text-gray-500">
-            Only organisers and their reviewers see this.
+            Never public: only organisers, their reviewers and your private
+            presenter link show it.
           </span>
           {errors.email && (
             <span className="text-red-500">{errors.email.message}</span>
