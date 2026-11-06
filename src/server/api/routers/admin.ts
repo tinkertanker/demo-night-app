@@ -36,11 +36,7 @@ export const adminRouter = createTRPCRouter({
         }
         const removed = await prisma.admin.delete({ where: { id: input.id } });
         await prisma.session.deleteMany({
-          where: {
-            // IN uses literal case-insensitive equality; equals compiles to
-            // ILIKE, where valid email characters such as _ are wildcards.
-            user: { email: { in: [removed.email], mode: "insensitive" } },
-          },
+          where: { user: { email: removed.email } },
         });
         return removed;
       });

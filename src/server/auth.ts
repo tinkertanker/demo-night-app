@@ -41,8 +41,17 @@ const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith(
   "https://",
 );
 
+const prismaAdapter = PrismaAdapter(db) as Adapter;
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db) as Adapter,
+  // Emails are stored lowercase (the database rejects anything else).
+  adapter: {
+    ...prismaAdapter,
+    createUser: (user) =>
+      prismaAdapter.createUser!({ ...user, email: user.email.toLowerCase() }),
+    getUserByEmail: (email) =>
+      prismaAdapter.getUserByEmail!(email.toLowerCase()),
+  },
   providers: [
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,
