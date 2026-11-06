@@ -65,7 +65,7 @@ before(async () => {
   ] as const) {
     await db.user.create({
       data: {
-        email: email === removedEmail ? email.toUpperCase() : email,
+        email,
         sessions: {
           create: { sessionToken, expires: new Date(Date.now() + 3_600_000) },
         },
@@ -94,7 +94,7 @@ after(async () => {
     where: { id: { in: [pastEventId, futureEventId] } },
   });
   await db.user.deleteMany({
-    where: { email: { in: [ownerEmail, removedEmail.toUpperCase()] } },
+    where: { email: { in: [ownerEmail, removedEmail] } },
   });
   await db.admin.deleteMany({
     where: { email: { in: [ownerEmail, removedEmail] } },
@@ -265,7 +265,7 @@ describe("administrator revocation", () => {
       where: { email: removedEmail },
     });
     const user = await db.user.findUniqueOrThrow({
-      where: { email: removedEmail.toUpperCase() },
+      where: { email: removedEmail },
     });
     await db.session.create({
       data: {
@@ -296,7 +296,7 @@ describe("administrator revocation", () => {
         update: {},
       });
       const user = await db.user.findUniqueOrThrow({
-        where: { email: email === removedEmail ? email.toUpperCase() : email },
+        where: { email },
       });
       await db.session.upsert({
         where: { sessionToken: token },
