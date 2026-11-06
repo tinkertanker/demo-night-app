@@ -36,6 +36,13 @@ const emptyForm = {
   demoUrl: "",
 };
 
+// Storage can be blocked or full; a draft must never break editing or submit.
+function bestEffort(write: () => void) {
+  try {
+    write();
+  } catch {}
+}
+
 export default function SubmitDemoPage({ event }: { event: CompleteEvent }) {
   return (
     <>
@@ -77,10 +84,10 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
           ...(JSON.parse(draft) as Partial<typeof emptyForm>),
         });
     } catch {
-      localStorage.removeItem(draftKey);
+      bestEffort(() => localStorage.removeItem(draftKey));
     }
     const subscription = watch((values) =>
-      localStorage.setItem(draftKey, JSON.stringify(values)),
+      bestEffort(() => localStorage.setItem(draftKey, JSON.stringify(values))),
     );
     return () => subscription.unsubscribe();
   }, [draftKey, reset, watch]);
@@ -101,7 +108,7 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             demoUrl: withWebScheme(data.demoUrl),
           })
           .then(() => {
-            localStorage.removeItem(draftKey);
+            bestEffort(() => localStorage.removeItem(draftKey));
             toast.success(
               `Successfully submitted ${branding.isPitchNight ? "pitch" : "demo"}!`,
             );
