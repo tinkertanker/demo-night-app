@@ -124,8 +124,8 @@ export default function PrivacyPage() {
             >
               {CONTACT_EMAIL}
             </a>
-            . Attendee entries aren&apos;t tied to an email, so tell us the
-            event and the name you used.
+            . To help us find your attendee entry, tell us the event and the
+            name you used.
           </p>
         </section>
       </div>
