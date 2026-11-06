@@ -4,6 +4,7 @@ import { useWorkspaceContext } from "../contexts/WorkspaceContext";
 import { rememberedName } from "../hooks/useAttendee";
 import { type Attendee } from "@prisma/client";
 import { CircleUserRoundIcon } from "lucide-react";
+import Link from "next/link";
 import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -141,7 +142,11 @@ export function UpdateAttendeeForm({
           id={`${nameId}-hint`}
           className="text-sm font-normal text-gray-600"
         >
-          Use your real name so the organiser can recognise you.
+          Use your real name so the organiser can recognise you. Presenters see
+          it with your feedback.{" "}
+          <Link href="/privacy" target="_blank" className="underline">
+            Privacy
+          </Link>
         </span>
         {errors.name && (
           <span

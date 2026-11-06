@@ -114,7 +114,11 @@ export default function DemosWorkspace() {
             <section className="w-full space-y-3 rounded-xl border-2 border-amber-200 bg-amber-50/90 p-4">
               <h2 className="text-xl font-bold">Feedback postcard</h2>
               <p className="text-sm text-gray-600">
-                Fill in any box or tap a badge.
+                Fill in any box or tap a badge. The presenter sees it with your
+                name; the event screen shows it without.{" "}
+                <Link href="/privacy" target="_blank" className="underline">
+                  Privacy
+                </Link>
               </p>
               <p role="status" className="text-sm font-semibold">
                 Postcards filled: {progress}
