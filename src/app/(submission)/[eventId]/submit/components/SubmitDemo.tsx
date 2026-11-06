@@ -1,11 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { getBrandingClient } from "~/lib/branding";
 import { addSingaporeDays, formatEventDate } from "~/lib/singaporeDate";
-import { submissionInputSchema, withWebScheme } from "~/lib/submission";
+import {
+  DESCRIPTION_MAX_LENGTH,
+  submissionInputSchema,
+  withWebScheme,
+} from "~/lib/submission";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { TAGLINE_MAX_LENGTH } from "~/lib/types/taglineMaxLength";
 import { cn } from "~/lib/utils";
@@ -20,6 +25,23 @@ const DEMO_GUIDELINES_URL =
   "https://theaicollective.notion.site/demo-night-guidelines";
 const PITCH_GUIDELINES_URL =
   "https://theaicollective.notion.site/pitch-night-guidelines";
+
+const emptyForm = {
+  name: "",
+  tagline: "",
+  description: "",
+  email: "",
+  url: "",
+  pocName: "",
+  demoUrl: "",
+};
+
+// Storage can be blocked or full; a draft must never break editing or submit.
+function bestEffort(write: () => void) {
+  try {
+    write();
+  } catch {}
+}
 
 export default function SubmitDemoPage({ event }: { event: CompleteEvent }) {
   return (
@@ -48,17 +70,28 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
     formState: { errors },
     watch,
     setError,
-  } = useForm({
-    values: {
-      name: "",
-      tagline: "",
-      description: "",
-      email: "",
-      url: "",
-      pocName: "",
-      demoUrl: "",
-    },
-  });
+    reset,
+  } = useForm({ defaultValues: emptyForm });
+
+  // Keep a draft on this device so a reload does not lose what was typed.
+  const draftKey = `submissionDraft:${event.id}`;
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem(draftKey);
+      if (draft)
+        reset({
+          ...emptyForm,
+          ...(JSON.parse(draft) as Partial<typeof emptyForm>),
+        });
+    } catch {
+      bestEffort(() => localStorage.removeItem(draftKey));
+    }
+    const subscription = watch((values) =>
+      bestEffort(() => localStorage.setItem(draftKey, JSON.stringify(values))),
+    );
+    return () => subscription.unsubscribe();
+  }, [draftKey, reset, watch]);
+  const descriptionLength = watch("description")?.trim().length ?? 0;
 
   return (
     <form
@@ -75,6 +108,7 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             demoUrl: withWebScheme(data.demoUrl),
           })
           .then(() => {
+            bestEffort(() => localStorage.removeItem(draftKey));
             toast.success(
               `Successfully submitted ${branding.isPitchNight ? "pitch" : "demo"}!`,
             );
@@ -283,11 +317,23 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
         )}
       </label>
       <label className="flex w-full flex-col gap-1">
-        <span className="text-lg font-semibold">
-          {branding.isPitchNight
-            ? "Pitch Description 🧑‍💻"
-            : "Demo Description 🧑‍💻"}
-        </span>
+        <div className="flex w-full flex-row items-center justify-start gap-1 font-semibold">
+          <span className="text-lg">
+            {branding.isPitchNight
+              ? "Pitch Description 🧑‍💻"
+              : "Demo Description 🧑‍💻"}
+          </span>
+          <span
+            className={cn(
+              "text-sm italic",
+              descriptionLength > DESCRIPTION_MAX_LENGTH
+                ? "text-red-500"
+                : "text-gray-400",
+            )}
+          >
+            {`(${descriptionLength} / ${DESCRIPTION_MAX_LENGTH})`}
+          </span>
+        </div>
         <span className="italic text-gray-400">
           {branding.isPitchNight
             ? "What does your startup do? What will you pitch during your five minutes? What feedback would you like from investors and the community?"
@@ -297,11 +343,14 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
           placeholder="Tell us more!"
           {...register("description", {
             required: `${branding.isPitchNight ? "Pitch" : "Demo"} description is required`,
+            // Checked here instead of a maxLength attribute, which silently
+            // cuts pasted text. Trimmed, like the server checks it.
             validate: (value) =>
-              !!value.trim() ||
-              `${branding.isPitchNight ? "Pitch" : "Demo"} description is required`,
+              !value.trim()
+                ? `${branding.isPitchNight ? "Pitch" : "Demo"} description is required`
+                : value.trim().length <= DESCRIPTION_MAX_LENGTH ||
+                  `Please keep this under ${DESCRIPTION_MAX_LENGTH} characters`,
           })}
-          maxLength={2000}
           className={cn(
             "z-30 max-h-96 min-h-24 rounded-lg border-2 bg-white/60 p-2 text-lg backdrop-blur",
             errors.description ? "border-red-500" : "border-gray-200",

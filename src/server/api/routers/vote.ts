@@ -51,28 +51,28 @@ export const voteRouter = createTRPCRouter({
           });
           const settings = votingSettings(event.config);
           if (settings.weighted && input.demoId && input.amount == null) {
-            throw new Error("An allocation amount is required");
+            throw badRequest("An allocation amount is required");
           }
           if (!settings.weighted && input.amount != null) {
-            throw new Error("This event uses award votes, not allocations");
+            throw badRequest("This event uses award votes, not allocations");
           }
           if (
             settings.mode === "stickers" &&
             input.amount != null &&
             input.amount > 1
           ) {
-            throw new Error("Give at most one favourite sticker per project");
+            throw badRequest("Give at most one favourite sticker per project");
           }
 
           // Validate investment amount if provided
           if (input.amount !== null && input.amount !== undefined) {
             if (input.amount % settings.step !== 0) {
-              throw new Error(
+              throw badRequest(
                 `Use increments of ${settings.format(settings.step)}`,
               );
             }
             if (input.amount < 0) {
-              throw new Error("Investment amount cannot be negative");
+              throw badRequest("Investment amount cannot be negative");
             }
 
             // Check total allocated doesn't exceed $100k for this award
@@ -94,8 +94,8 @@ export const voteRouter = createTRPCRouter({
 
             if (totalAllocated + input.amount > settings.budget) {
               const remaining = settings.budget - totalAllocated;
-              throw new Error(
-                `Your allowance is ${settings.format(settings.budget)}. Remaining: ${settings.format(remaining)}.`,
+              throw badRequest(
+                `That would go over your allowance of ${settings.format(settings.budget)}. You have ${settings.format(remaining)} left.`,
               );
             }
           }
@@ -219,6 +219,12 @@ export const voteRouter = createTRPCRouter({
     });
   }),
 });
+
+// Rejected input is the voter's mistake, so report it as a 400 with a
+// message the ballot can show, not a 500.
+function badRequest(message: string) {
+  return new TRPCError({ code: "BAD_REQUEST", message });
+}
 
 async function assertVotingIsOpen(
   prisma: Parameters<typeof lockVotingEvent>[0],

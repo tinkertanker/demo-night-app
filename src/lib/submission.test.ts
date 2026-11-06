@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { submissionInputSchema, withWebScheme } from "~/lib/submission";
+import {
+  DESCRIPTION_MAX_LENGTH,
+  submissionInputSchema,
+  withWebScheme,
+} from "~/lib/submission";
 
 const valid = {
   eventId: "event",
@@ -36,6 +40,14 @@ describe("submission input", () => {
 
   it("normalises email case so one person cannot submit twice", () => {
     assert.equal(submissionInputSchema.parse(valid).email, "ada@example.com");
+  });
+
+  it("caps descriptions at the limit the form counts, after trimming", () => {
+    const parse = (description: string) =>
+      submissionInputSchema.safeParse({ ...valid, description }).success;
+    assert.equal(parse("x".repeat(DESCRIPTION_MAX_LENGTH)), true);
+    assert.equal(parse(` ${"x".repeat(DESCRIPTION_MAX_LENGTH)}\n`), true);
+    assert.equal(parse("x".repeat(DESCRIPTION_MAX_LENGTH + 1)), false);
   });
 
   it("adds https:// to bare domains but leaves explicit schemes for validation", () => {

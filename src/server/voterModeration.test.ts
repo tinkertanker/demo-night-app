@@ -1,4 +1,8 @@
-import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
+import {
+  type TRPCClientError,
+  createTRPCProxyClient,
+  httpBatchLink,
+} from "@trpc/client";
 import assert from "node:assert/strict";
 import { after, afterEach, before, beforeEach, describe, it } from "node:test";
 import SuperJSON from "superjson";
@@ -466,7 +470,12 @@ describe("voting modes and shared postcards", () => {
         demoId,
         amount: 61000,
       }),
-      /allowance/i,
+      (error: TRPCClientError<AppRouter>) => {
+        assert.equal(error.data?.httpStatus, 400);
+        assert.equal(error.data?.code, "BAD_REQUEST");
+        assert.match(error.message, /over your allowance/i);
+        return true;
+      },
     );
     await assert.rejects(
       caller.vote.upsert.mutate({

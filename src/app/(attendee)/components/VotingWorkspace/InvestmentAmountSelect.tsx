@@ -60,7 +60,13 @@ export default function InvestmentAmountSelect({
       });
     },
     onError: async (error, vote) => {
-      toast.error(error.message);
+      // Rejected allocations (4xx) explain themselves; a server or network
+      // failure is not the attendee's fault, so offer a retry instead.
+      toast.error(
+        (error.data?.httpStatus ?? 500) < 500
+          ? error.message
+          : "Could not save that. Please try again.",
+      );
       if (vote.demoId) delete intended.current[vote.demoId];
       await utils.vote.all.invalidate({ eventId, attendeeId });
     },

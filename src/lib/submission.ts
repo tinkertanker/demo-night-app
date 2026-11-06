@@ -34,6 +34,9 @@ export function withWebScheme(value: string) {
   return `https://${url}`;
 }
 
+// Shared with the submission form's counter so client and server agree.
+export const DESCRIPTION_MAX_LENGTH = 2000;
+
 const requiredText = (max: number, message: string) =>
   z
     .string()
@@ -45,7 +48,7 @@ export const submissionInputSchema = z.object({
   eventId: z.string(),
   name: requiredText(100, "Name is required"),
   tagline: requiredText(TAGLINE_MAX_LENGTH, "Tagline is required"),
-  description: requiredText(2000, "Description is required"),
+  description: requiredText(DESCRIPTION_MAX_LENGTH, "Description is required"),
   email: z
     .string()
     .trim()
