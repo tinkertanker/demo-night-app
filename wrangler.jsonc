@@ -1,7 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "demo-night-app",
-  "main": ".open-next/worker.js",
+  // Wraps .open-next/worker.js to add the scheduled handler
+  "main": "worker.ts",
   "account_id": "b8b1032c61d9475cd00229c74db7ec72",
   "routes": [
     {
@@ -24,6 +25,10 @@
   // Run next to the Neon database (AWS Singapore) whoever is calling
   "placement": {
     "region": "aws:ap-southeast-1"
+  },
+  // Daily at 02:00 Singapore time: clear emails 30 days after each event
+  "triggers": {
+    "crons": ["0 18 * * *"]
   },
   "observability": {
     "enabled": true

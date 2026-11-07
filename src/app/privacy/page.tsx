@@ -4,8 +4,6 @@ import Sticker from "~/components/Sticker";
 
 export const metadata = { title: "Privacy notice" };
 
-// Tinkertanker's published general contact; confirm it is the right inbox for
-// privacy requests.
 const CONTACT_EMAIL = "hello@tk.sg";
 
 // Keep this notice in step with what the code stores and shows: the Prisma
@@ -17,7 +15,7 @@ export default function PrivacyPage() {
         <Sticker name="face" size={64} />
       </Link>
       <h1 className="pt-4 text-3xl font-bold tracking-tight">Privacy notice</h1>
-      <p className="pt-1 text-sm text-gray-500">Last updated 6 November 2026</p>
+      <p className="pt-1 text-sm text-gray-500">Last updated 7 November 2026</p>
 
       <div className="space-y-8 pt-6 leading-7 text-gray-800 [&_h2]:pb-2 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-black [&_li]:pl-1 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
         <p>
@@ -35,14 +33,14 @@ export default function PrivacyPage() {
               browser gets a random ID for each event, linked to the name you
               enter, your feedback (ratings, claps, cheers, confetti, postcards,
               badges and comments), your votes or investments, any comment about
-              the event and whether you opened the event survey. Entries from
-              older events may also hold an email, LinkedIn profile or attendee
-              type, which an earlier version of the form asked for.
+              the event and whether you opened the event survey. We don&apos;t
+              ask attendees for an email.
             </li>
             <li>
               <strong>Presenters</strong> who submit a demo give their name,
               email, project name, website, tagline, description and an optional
-              demo link. Organisers add a review status, rating and notes.
+              demo link. Organisers add a review status, rating and notes. We
+              use your email only for event logistics, never for marketing.
             </li>
             <li>
               <strong>Organisers</strong> sign in with Google. We store the
@@ -51,8 +49,8 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Everyone:</strong> our host, Cloudflare, receives your IP
-              address and browser details to serve pages, and its request logs
-              are switched on so we can fix problems.
+              address and browser details to serve pages, and keeps request logs
+              for 7 days so we can fix problems.
             </li>
           </ul>
         </section>
@@ -69,10 +67,9 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Presenters</strong> get a private link to their demo that
-              shows every piece of feedback on it with the name you entered (and
-              any email, LinkedIn or attendee type on older entries), and lets
-              them download it. On the event screen, feedback is shown without
-              your name.
+              shows every piece of feedback on it with the name you entered, and
+              lets them download it. On the event screen, feedback is shown
+              without your name.
             </li>
             <li>
               <strong>Organisers</strong> can see everything above, including
@@ -112,20 +109,21 @@ export default function PrivacyPage() {
         <section>
           <h2>Keeping and deleting your data</h2>
           <p>
-            We haven&apos;t set a fixed period: data stays until an organiser
-            deletes it. Deleting an event does not delete its attendee entries,
-            so names can remain after an event is gone. Organisers can delete an
-            attendee (with their feedback and votes), a piece of feedback, a
-            submission or a whole event. To ask what we hold about you, correct
-            it or delete it, email{" "}
+            Emails given for an event, such as presenter emails, are deleted
+            automatically 30 days after it. Everything else, including names,
+            feedback and votes, stays until an organiser deletes it, and
+            deleting an event does not delete its attendee entries, so names can
+            remain. Organisers&apos; sign-in details are kept. There&apos;s no
+            self-service delete: to see, correct or delete what we hold about
+            you, email{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="font-semibold text-blue-600 underline"
             >
               {CONTACT_EMAIL}
-            </a>
-            . To help us find your attendee entry, tell us the event and the
-            name you used.
+            </a>{" "}
+            and an organiser will do it. To help us find your attendee entry,
+            tell us the event and the name you used.
           </p>
         </section>
       </div>

@@ -31,7 +31,7 @@ export function useAttendee(eventId: string) {
 
   async function updateAttendee(next: Attendee) {
     const saved = await updateMutation.mutateAsync({
-      ...next,
+      id: next.id,
       name: attendeeNameSchema.parse(next.name),
     });
     utils.attendee.upsert.setData({ id: saved.id, eventId }, saved);

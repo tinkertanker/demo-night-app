@@ -268,8 +268,9 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             )}
           />
           <span className="text-sm text-gray-500">
-            Never public: only organisers, their reviewers and your private
-            presenter link show it.
+            Used only for event logistics and deleted 30 days after the event.
+            Never public: organisers, their reviewers and your private presenter
+            link show it.
           </span>
           {errors.email && (
             <span className="text-red-500">{errors.email.message}</span>

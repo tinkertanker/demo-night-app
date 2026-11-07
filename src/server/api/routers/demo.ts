@@ -25,13 +25,9 @@ type BaseFeedback = {
   badges: string[];
 };
 
+// Presenters see who gave feedback by the name they entered, nothing else.
 type FeedbackAttribution = {
-  attendee: {
-    name: string | null;
-    email: string | null;
-    linkedin: string | null;
-    type: string | null;
-  };
+  attendee: { name: string | null };
 };
 
 export type DemoFeedback = BaseFeedback & Partial<FeedbackAttribution>;
@@ -74,12 +70,7 @@ export const demoRouter = createTRPCRouter({
           tryNext: feedback.tryNext,
           badges: feedback.badges,
           rating: feedback.rating,
-          attendee: {
-            name: feedback.attendee?.name,
-            email: feedback.attendee?.email,
-            linkedin: feedback.attendee?.linkedin,
-            type: feedback.attendee.type,
-          },
+          attendee: { name: feedback.attendee.name },
         });
       }
       return { ...demo, feedback: allFeedback };
@@ -91,7 +82,13 @@ export const demoRouter = createTRPCRouter({
         secret: z.string(),
         name: z.string(),
         description: z.string().optional(),
-        email: z.string().trim().toLowerCase().email().optional().or(z.literal("")),
+        email: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .email()
+          .optional()
+          .or(z.literal("")),
         url: webUrlSchema.optional().or(z.literal("")),
       }),
     )
@@ -127,7 +124,13 @@ export const demoRouter = createTRPCRouter({
         eventId: z.string(),
         name: z.string(),
         description: z.string().optional(),
-        email: z.string().trim().toLowerCase().email().optional().or(z.literal("")),
+        email: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .email()
+          .optional()
+          .or(z.literal("")),
         url: z.string().url().optional().or(z.literal("")),
         votable: z.boolean(),
       }),
@@ -337,14 +340,7 @@ const readDemoWithFeedback = cache(async (id: string, secret: string) => {
           wonder: true,
           tryNext: true,
           badges: true,
-          attendee: {
-            select: {
-              name: true,
-              email: true,
-              linkedin: true,
-              type: true,
-            },
-          },
+          attendee: { select: { name: true } },
         },
       },
     },

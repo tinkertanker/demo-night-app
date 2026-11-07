@@ -135,9 +135,6 @@ function ActionButtons({
       { label: "You could try", key: "tryNext" },
       { label: "Appreciation badges", key: "badges" },
       { label: "Attendee name", key: "attendee.name" },
-      { label: "Attendee email", key: "attendee.email" },
-      { label: "Attendee linkedin", key: "attendee.linkedin" },
-      { label: "Attendee type", key: "attendee.type" },
     ],
     [],
   );
@@ -151,12 +148,7 @@ function ActionButtons({
     wonder: escapeCsvField(feedback.wonder),
     tryNext: escapeCsvField(feedback.tryNext),
     badges: escapeCsvField(feedback.badges.join("; ")),
-    attendee: {
-      name: escapeCsvField(feedback.attendee?.name),
-      email: escapeCsvField(feedback.attendee?.email),
-      linkedin: escapeCsvField(feedback.attendee?.linkedin),
-      type: escapeCsvField(feedback.attendee?.type),
-    },
+    attendee: { name: escapeCsvField(feedback.attendee?.name) },
   }));
 
   return (
