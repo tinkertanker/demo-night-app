@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 // the shared secret rather than adding another production secret.
 export async function POST(req: Request) {
   const secret = env.NEXTAUTH_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+  const header = req.headers.get("authorization") ?? "";
+  if (!secret || !constantTimeEqual(header, `Bearer ${secret}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
@@ -23,4 +24,13 @@ export async function POST(req: Request) {
   } finally {
     releaseRequestDb();
   }
+}
+
+function constantTimeEqual(a: string, b: string) {
+  const left = new TextEncoder().encode(a);
+  const right = new TextEncoder().encode(b);
+  if (left.length !== right.length) return false;
+  let diff = 0;
+  for (let i = 0; i < left.length; i++) diff |= left[i]! ^ right[i]!;
+  return diff === 0;
 }

@@ -87,11 +87,13 @@ export default function PrivacyPage() {
           <p>
             As an attendee, the app keeps your event ID and name, your last join
             code, and copies or drafts of your feedback and votes in your
-            browser&apos;s local storage, so you can carry on if you reload.
-            Clearing your site data removes them from your browser but not from
-            our database. Cookies are used only for organiser sign-in and an
-            admin layout setting. There are no analytics or advertising
-            trackers.
+            browser&apos;s local storage, so you can carry on if you reload. The
+            demo submission form keeps a draft, including your email, until you
+            submit it; if you leave without submitting, it stays until you clear
+            your site data. Clearing your site data removes them from your
+            browser but not from our database. Cookies are used only for
+            organiser sign-in and an admin layout setting. There are no
+            analytics or advertising trackers.
           </p>
         </section>
 

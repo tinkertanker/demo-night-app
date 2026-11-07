@@ -10,6 +10,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { emailScrubCutoff } from "~/server/emailScrub";
 import { countedVotesWhere } from "~/server/voterEligibility";
 
 type BaseFeedback = {
@@ -93,12 +94,20 @@ export const demoRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
+      const demo = await db.demo.findUnique({
+        where: { id: input.id, secret: input.secret },
+        select: { event: { select: { date: true } } },
+      });
+      if (!demo) throw new Error("Demo not found");
+      // Past the retention cutoff, don't store an email the scrub would only
+      // clear on its next run.
+      const expired = demo.event.date <= emailScrubCutoff(new Date());
       return db.demo.update({
         where: { id: input.id, secret: input.secret },
         data: {
           ...input,
           description: input.description ?? null,
-          email: input.email ?? null,
+          email: expired ? null : input.email ?? null,
           url: input.url ?? null,
         },
       });

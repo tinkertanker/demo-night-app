@@ -14,7 +14,11 @@ import { db } from "~/server/db";
 // re-imports must accept a missing one ("" in a CSV).
 const storedEmail = z
   .union([
-    z.literal("").transform(() => null),
+    z
+      .string()
+      .trim()
+      .length(0)
+      .transform(() => null),
     z.string().trim().toLowerCase().email(),
   ])
   .nullable();
