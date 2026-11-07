@@ -144,5 +144,8 @@ function migrateLegacyAttendee(eventId: string): Attendee | null {
 
 function setLocalAttendee(eventId: string, attendee: Attendee) {
   if (typeof window === "undefined") return; // SSR guard
-  localStorage.setItem(attendeeKey(eventId), JSON.stringify(attendee));
+  localStorage.setItem(
+    attendeeKey(eventId),
+    JSON.stringify({ id: attendee.id, name: attendee.name }),
+  );
 }
