@@ -10,6 +10,19 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
+// Emails are cleared 30 days after the event, so organiser edits and CSV
+// re-imports must accept a missing one ("" in a CSV).
+const storedEmail = z
+  .union([
+    z
+      .string()
+      .trim()
+      .length(0)
+      .transform(() => null),
+    z.string().trim().toLowerCase().email(),
+  ])
+  .nullable();
+
 const submissionStatus = z.enum([
   "PENDING",
   "WAITLISTED",
@@ -81,7 +94,7 @@ export const submissionRouter = createTRPCRouter({
         name: z.string().optional(),
         tagline: z.string().optional(),
         description: z.string().optional(),
-        email: z.string().trim().toLowerCase().email().optional(),
+        email: storedEmail.optional(),
         url: z.string().url().optional(),
         pocName: z.string().optional(),
         demoUrl: z.string().nullable().optional(),
@@ -161,7 +174,7 @@ export const submissionRouter = createTRPCRouter({
             name: z.string(),
             tagline: z.string(),
             description: z.string(),
-            email: z.string().trim().toLowerCase().email(),
+            email: storedEmail,
             url: z.string().url(),
             pocName: z.string(),
             demoUrl: z.string().nullable(),

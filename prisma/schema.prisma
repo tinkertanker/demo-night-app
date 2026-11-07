@@ -126,7 +126,8 @@ model Submission {
   name        String
   tagline     String
   description String
-  email       String
+  // Cleared 30 days after the event (src/server/emailScrub.ts)
+  email       String?
   url         String
   pocName     String
   demoUrl     String?
@@ -151,6 +152,7 @@ model Demo {
 
   name        String
   description String?
+  // Cleared 30 days after the event (src/server/emailScrub.ts)
   email       String?
   url         String?
   votable     Boolean @default(true)
@@ -168,6 +170,8 @@ model Attendee {
   excludedFromEvents Event[] @relation("ExcludedVoters")
 
   name     String?
+  // No longer collected; existing values were cleared and the email scrub
+  // clears any that reappear (src/server/emailScrub.ts)
   email    String?
   linkedin String?
   type     String?

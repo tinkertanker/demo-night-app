@@ -268,7 +268,9 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             )}
           />
           <span className="text-sm text-gray-500">
-            Only organisers see this.
+            Used only for event logistics and deleted 30 days after the event.
+            Never public: organisers, their reviewers and your private presenter
+            link show it.
           </span>
           {errors.email && (
             <span className="text-red-500">{errors.email.message}</span>
@@ -393,6 +395,13 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
           <span className="text-red-500">{errors.demoUrl.message}</span>
         )}
       </label>
+      <p className="w-full text-sm text-gray-500">
+        If you present, your {branding.isPitchNight ? "startup" : "demo"} name,
+        tagline and website are shown publicly.{" "}
+        <a href="/privacy" target="_blank" className="text-blue-500 underline">
+          Privacy notice
+        </a>
+      </p>
       <Button
         pending={createMutation.isPending}
         isPitchNight={branding.isPitchNight}

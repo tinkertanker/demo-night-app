@@ -10,6 +10,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { emailScrubCutoff } from "~/server/emailScrub";
 import { countedVotesWhere } from "~/server/voterEligibility";
 
 type BaseFeedback = {
@@ -25,13 +26,9 @@ type BaseFeedback = {
   badges: string[];
 };
 
+// Presenters see who gave feedback by the name they entered, nothing else.
 type FeedbackAttribution = {
-  attendee: {
-    name: string | null;
-    email: string | null;
-    linkedin: string | null;
-    type: string | null;
-  };
+  attendee: { name: string | null };
 };
 
 export type DemoFeedback = BaseFeedback & Partial<FeedbackAttribution>;
@@ -74,12 +71,7 @@ export const demoRouter = createTRPCRouter({
           tryNext: feedback.tryNext,
           badges: feedback.badges,
           rating: feedback.rating,
-          attendee: {
-            name: feedback.attendee?.name,
-            email: feedback.attendee?.email,
-            linkedin: feedback.attendee?.linkedin,
-            type: feedback.attendee.type,
-          },
+          attendee: { name: feedback.attendee.name },
         });
       }
       return { ...demo, feedback: allFeedback };
@@ -91,17 +83,31 @@ export const demoRouter = createTRPCRouter({
         secret: z.string(),
         name: z.string(),
         description: z.string().optional(),
-        email: z.string().trim().toLowerCase().email().optional().or(z.literal("")),
+        email: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .email()
+          .optional()
+          .or(z.literal("")),
         url: webUrlSchema.optional().or(z.literal("")),
       }),
     )
     .mutation(async ({ input }) => {
+      const demo = await db.demo.findUnique({
+        where: { id: input.id, secret: input.secret },
+        select: { event: { select: { date: true } } },
+      });
+      if (!demo) throw new Error("Demo not found");
+      // Past the retention cutoff, don't store an email the scrub would only
+      // clear on its next run.
+      const expired = demo.event.date <= emailScrubCutoff(new Date());
       return db.demo.update({
         where: { id: input.id, secret: input.secret },
         data: {
           ...input,
           description: input.description ?? null,
-          email: input.email ?? null,
+          email: expired ? null : input.email ?? null,
           url: input.url ?? null,
         },
       });
@@ -127,7 +133,13 @@ export const demoRouter = createTRPCRouter({
         eventId: z.string(),
         name: z.string(),
         description: z.string().optional(),
-        email: z.string().trim().toLowerCase().email().optional().or(z.literal("")),
+        email: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .email()
+          .optional()
+          .or(z.literal("")),
         url: z.string().url().optional().or(z.literal("")),
         votable: z.boolean(),
       }),
@@ -337,14 +349,7 @@ const readDemoWithFeedback = cache(async (id: string, secret: string) => {
           wonder: true,
           tryNext: true,
           badges: true,
-          attendee: {
-            select: {
-              name: true,
-              email: true,
-              linkedin: true,
-              type: true,
-            },
-          },
+          attendee: { select: { name: true } },
         },
       },
     },

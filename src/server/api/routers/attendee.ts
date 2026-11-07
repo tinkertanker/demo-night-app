@@ -33,15 +33,14 @@ export const attendeeRouter = createTRPCRouter({
       z.object({
         id: z.string(),
         name: attendeeNameSchema,
-        email: z.string().trim().toLowerCase().nullable(),
-        linkedin: z.string().nullable(),
-        type: z.string().nullable(),
       }),
     )
+    // Attendees give only a name; email, LinkedIn and type are no longer
+    // collected (see the privacy notice).
     .mutation(async ({ input }) => {
       return db.attendee.update({
         where: { id: input.id },
-        data: { ...input },
+        data: { name: input.name },
       });
     }),
   votingStatus: publicProcedure

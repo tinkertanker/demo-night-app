@@ -31,7 +31,7 @@ export function useAttendee(eventId: string) {
 
   async function updateAttendee(next: Attendee) {
     const saved = await updateMutation.mutateAsync({
-      ...next,
+      id: next.id,
       name: attendeeNameSchema.parse(next.name),
     });
     utils.attendee.upsert.setData({ id: saved.id, eventId }, saved);
@@ -60,6 +60,13 @@ const LEGACY_ATTENDEE_KEY = "attendee";
 
 const attendeeKey = (eventId: string) => `attendee:${eventId}`;
 
+// Keep only what the app still collects; older records may also hold an
+// email, LinkedIn and attendee type.
+function parseLocalAttendee(json: string): Attendee {
+  const { id, name } = JSON.parse(json) as Attendee;
+  return { id, name, email: null, linkedin: null, type: null };
+}
+
 export function rememberedName(): string {
   if (typeof window === "undefined") return "";
   try {
@@ -79,12 +86,16 @@ function rememberName(name: string | null) {
 function getLocalAttendee(eventId: string): Attendee {
   if (typeof window !== "undefined") {
     const stored = localStorage.getItem(attendeeKey(eventId));
-    if (stored) return JSON.parse(stored) as Attendee;
+    if (stored) {
+      const attendee = parseLocalAttendee(stored);
+      setLocalAttendee(eventId, attendee);
+      return attendee;
+    }
     const legacy = migrateLegacyAttendee(eventId);
     if (legacy) return legacy;
     // Another tab may have created this event's attendee meanwhile.
     const current = localStorage.getItem(attendeeKey(eventId));
-    if (current) return JSON.parse(current) as Attendee;
+    if (current) return parseLocalAttendee(current);
   }
   const attendee = {
     id: crypto.randomUUID(),
@@ -106,7 +117,7 @@ function migrateLegacyAttendee(eventId: string): Attendee | null {
   try {
     const legacy = localStorage.getItem(LEGACY_ATTENDEE_KEY);
     if (!legacy) return null;
-    const attendee = JSON.parse(legacy) as Attendee;
+    const attendee = parseLocalAttendee(legacy);
     const suffix = `:${attendee.id}`;
     const eventIds = new Set<string>();
     for (let i = 0; i < localStorage.length; i++) {
@@ -133,5 +144,8 @@ function migrateLegacyAttendee(eventId: string): Attendee | null {
 
 function setLocalAttendee(eventId: string, attendee: Attendee) {
   if (typeof window === "undefined") return; // SSR guard
-  localStorage.setItem(attendeeKey(eventId), JSON.stringify(attendee));
+  localStorage.setItem(
+    attendeeKey(eventId),
+    JSON.stringify({ id: attendee.id, name: attendee.name }),
+  );
 }

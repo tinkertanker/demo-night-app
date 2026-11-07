@@ -112,9 +112,6 @@ async function nameAndInvest() {
   const attendee = await caller.attendee.update.mutate({
     id: attendeeId,
     name: "  Ada Lovelace  ",
-    email: null,
-    linkedin: null,
-    type: null,
   });
   assert.equal(attendee.name, "Ada Lovelace");
   return caller.vote.upsert.mutate({
@@ -204,9 +201,6 @@ describe("investor eligibility", () => {
     await caller.attendee.update.mutate({
       id: attendeeId,
       name: "Another name",
-      email: null,
-      linkedin: null,
-      type: null,
     });
     assert.deepEqual(
       await caller.attendee.votingStatus.query({ eventId, attendeeId }),
@@ -443,9 +437,6 @@ describe("investor eligibility", () => {
       caller.attendee.update.mutate({
         id: attendeeId,
         name: " \t ",
-        email: null,
-        linkedin: null,
-        type: null,
       }),
       /enter your name/i,
     );

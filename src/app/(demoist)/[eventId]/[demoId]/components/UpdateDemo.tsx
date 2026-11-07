@@ -129,7 +129,8 @@ export function UpdateDemoForm({
           <span className="text-sm italic text-gray-400">(Optional)</span>
         </span>
         <span className="italic text-gray-400">
-          This is made public so attendees can connect with you after the event!
+          Never public. Used only for event logistics and deleted 30 days after
+          the event.
         </span>
         <input
           type="email"
