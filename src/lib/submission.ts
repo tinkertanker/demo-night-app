@@ -45,16 +45,12 @@ const requiredText = (max: number, message: string) =>
     .max(max, `Please keep this under ${max} characters`);
 
 export const submissionInputSchema = z.object({
+  // A random request token, not a person identifier. Retried requests reuse it.
+  id: z.string().uuid(),
   eventId: z.string(),
   name: requiredText(100, "Name is required"),
   tagline: requiredText(TAGLINE_MAX_LENGTH, "Tagline is required"),
   description: requiredText(DESCRIPTION_MAX_LENGTH, "Description is required"),
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .max(254)
-    .email("Please enter a valid email address, like ada@example.com"),
   url: webUrlSchema,
   pocName: requiredText(100, "Your name is required"),
   demoUrl: webUrlSchema.optional().or(z.literal("")),

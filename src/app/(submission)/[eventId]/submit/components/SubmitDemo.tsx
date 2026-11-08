@@ -27,10 +27,10 @@ const PITCH_GUIDELINES_URL =
   "https://theaicollective.notion.site/pitch-night-guidelines";
 
 const emptyForm = {
+  id: "",
   name: "",
   tagline: "",
   description: "",
-  email: "",
   url: "",
   pocName: "",
   demoUrl: "",
@@ -76,16 +76,27 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
   // Keep a draft on this device so a reload does not lose what was typed.
   const draftKey = `submissionDraft:${event.id}`;
   useEffect(() => {
+    const values = { ...emptyForm, id: crypto.randomUUID() };
     try {
       const draft = localStorage.getItem(draftKey);
-      if (draft)
-        reset({
-          ...emptyForm,
-          ...(JSON.parse(draft) as Partial<typeof emptyForm>),
-        });
+      if (draft) {
+        const stored: unknown = JSON.parse(draft);
+        if (stored && typeof stored === "object") {
+          for (const key of Object.keys(
+            emptyForm,
+          ) as (keyof typeof emptyForm)[]) {
+            const value: unknown = Reflect.get(stored, key);
+            if (typeof value === "string") values[key] = value;
+          }
+        }
+      }
     } catch {
       bestEffort(() => localStorage.removeItem(draftKey));
     }
+    if (!submissionInputSchema.shape.id.safeParse(values.id).success)
+      values.id = crypto.randomUUID();
+    reset(values);
+    bestEffort(() => localStorage.setItem(draftKey, JSON.stringify(values)));
     const subscription = watch((values) =>
       bestEffort(() => localStorage.setItem(draftKey, JSON.stringify(values))),
     );
@@ -96,31 +107,37 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
   return (
     <form
       onSubmit={handleSubmit(async (data) => {
+        const received = () => {
+          bestEffort(() => localStorage.removeItem(draftKey));
+          toast.success(
+            `Successfully submitted ${branding.isPitchNight ? "pitch" : "demo"}!`,
+          );
+          window.location.href = `${window.location.pathname}?success=true`;
+        };
         await createMutation
           .mutateAsync({
+            id: data.id,
             eventId: event.id,
             name: data.name,
             tagline: data.tagline,
             description: data.description,
-            email: data.email,
             url: withWebScheme(data.url),
             pocName: data.pocName,
             demoUrl: withWebScheme(data.demoUrl),
           })
-          .then(() => {
-            bestEffort(() => localStorage.removeItem(draftKey));
-            toast.success(
-              `Successfully submitted ${branding.isPitchNight ? "pitch" : "demo"}!`,
-            );
-            window.location.href = `${window.location.pathname}?success=true`;
-          })
+          .then(received)
           .catch((error: { message: string; data?: unknown }) => {
+            const details = error.data as {
+              code?: string;
+              zodError?: { fieldErrors?: Record<string, string[]> };
+            } | null;
+            // A retry can arrive after the original response was lost.
+            if (details?.code === "CONFLICT") {
+              received();
+              return;
+            }
             // Show server validation next to the field instead of raw JSON.
-            const fieldErrors = (
-              error.data as {
-                zodError?: { fieldErrors?: Record<string, string[]> };
-              } | null
-            )?.zodError?.fieldErrors;
+            const fieldErrors = details?.zodError?.fieldErrors;
             const fields = Object.entries(fieldErrors ?? {});
             if (fields.length) {
               for (const [field, messages] of fields) {
@@ -250,32 +267,6 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             <span className="text-red-500">{errors.pocName.message}</span>
           )}
         </label>
-        <label className="flex w-full flex-col gap-1">
-          <span className="text-lg font-semibold">Your Email</span>
-          <input
-            type="email"
-            placeholder="ada@aicollective.com"
-            autoComplete="email"
-            {...register("email", {
-              required: "Your email is required",
-              validate: (value) =>
-                submissionInputSchema.shape.email.safeParse(value).success ||
-                "Please enter a valid email address, like ada@example.com",
-            })}
-            className={cn(
-              "z-10 rounded-lg border-2 bg-white/60 p-2 text-lg backdrop-blur",
-              errors.email ? "border-red-500" : "border-gray-200",
-            )}
-          />
-          <span className="text-sm text-gray-500">
-            Used only for event logistics and deleted 30 days after the event.
-            Never public: organisers, their reviewers and your private presenter
-            link show it.
-          </span>
-          {errors.email && (
-            <span className="text-red-500">{errors.email.message}</span>
-          )}
-        </label>
       </div>
       <label className="flex w-full flex-col gap-1">
         <div className="flex w-full flex-row items-center justify-start gap-1 font-semibold">
@@ -397,7 +388,7 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
       </label>
       <p className="w-full text-sm text-gray-500">
         If you present, your {branding.isPitchNight ? "startup" : "demo"} name,
-        tagline and website are shown publicly.{" "}
+        tagline and website are shown publicly. No contact email is collected.{" "}
         <a href="/privacy" target="_blank" className="text-blue-500 underline">
           Privacy notice
         </a>

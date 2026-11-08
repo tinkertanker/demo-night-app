@@ -14,6 +14,7 @@ export default async function SubmissionsPage({
 }) {
   const event = await db.event.findUnique({
     where: { id: params.eventId },
+    select: { id: true, name: true, date: true, url: true, secret: true },
   });
 
   if (!event) {

@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         <Sticker name="face" size={64} />
       </Link>
       <h1 className="pt-4 text-3xl font-bold tracking-tight">Privacy notice</h1>
-      <p className="pt-1 text-sm text-gray-500">Last updated 7 November 2026</p>
+      <p className="pt-1 text-sm text-gray-500">Last updated 8 November 2026</p>
 
       <div className="space-y-8 pt-6 leading-7 text-gray-800 [&_h2]:pb-2 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-black [&_li]:pl-1 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
         <p>
@@ -38,9 +38,10 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Presenters</strong> who submit a demo give their name,
-              email, project name, website, tagline, description and an optional
-              demo link. Organisers add a review status, rating and notes. We
-              use your email only for event logistics, never for marketing.
+              project name, website, tagline, description and an optional demo
+              link. Organisers add a review status, rating and notes. We
+              don&apos;t ask for or store presenter or attendee contact emails.
+              Please don&apos;t put contact emails in descriptions or feedback.
             </li>
             <li>
               <strong>Organisers</strong> sign in with Google. We store the
@@ -74,10 +75,8 @@ export default function PrivacyPage() {
             <li>
               <strong>Organisers</strong> can see everything above, including
               who voted for what, so they can check for duplicate or unfair
-              votes. Submissions, including presenter emails, are seen only by
-              organisers and the reviewers they share the submissions link with.
-              If a submission becomes a demo, its email is also shown on that
-              demo&apos;s private presenter link.
+              votes. Submissions are seen only by organisers and the reviewers
+              they share the submissions link with.
             </li>
           </ul>
         </section>
@@ -88,12 +87,16 @@ export default function PrivacyPage() {
             As an attendee, the app keeps your event ID and name, your last join
             code, and copies or drafts of your feedback and votes in your
             browser&apos;s local storage, so you can carry on if you reload. The
-            demo submission form keeps a draft, including your email, until you
-            submit it; if you leave without submitting, it stays until you clear
-            your site data. Clearing your site data removes them from your
-            browser but not from our database. Cookies are used only for
-            organiser sign-in and an admin layout setting. There are no
-            analytics or advertising trackers.
+            demo submission form keeps a draft and a random submission token
+            until you submit it; if you leave without submitting, it stays until
+            you clear your site data. The token prevents duplicate sends, not
+            repeat submissions by the same person. Legacy contact email fields
+            in drafts and attendee records are removed when you visit with the
+            updated app. We cannot remotely clear an offline browser or an old
+            tab; reload the app or clear its site data. Clearing your site data
+            removes browser copies, not submissions, votes or feedback already
+            sent to us. Cookies are used only for organiser sign-in and an admin
+            layout setting. There are no analytics or advertising trackers.
           </p>
         </section>
 
@@ -111,13 +114,16 @@ export default function PrivacyPage() {
         <section>
           <h2>Keeping and deleting your data</h2>
           <p>
-            Emails given for an event, such as presenter emails, are deleted
-            automatically 30 days after it. Everything else, including names,
-            feedback and votes, stays until an organiser deletes it, and
-            deleting an event does not delete its attendee entries, so names can
-            remain. Organisers&apos; sign-in details are kept. There&apos;s no
-            self-service delete: to see, correct or delete what we hold about
-            you, email{" "}
+            Event-contact email collection has stopped. Previously collected
+            contact addresses are being removed from the live database as part
+            of this rollout; the previous 30-day retention policy no longer
+            applies. Existing exports and database recovery copies are separate
+            from the live database and are not erased by this cleanup.
+            Everything else, including names, feedback and votes, stays until an
+            organiser deletes it, and deleting an event does not delete its
+            attendee entries, so names can remain. Organisers&apos; sign-in
+            details are kept. There&apos;s no self-service delete: to see,
+            correct or delete what we hold about you, email{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="font-semibold text-blue-600 underline"

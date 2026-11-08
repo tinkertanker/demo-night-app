@@ -194,12 +194,10 @@ function AwardWinnerItem({
 function PartnerItem({
   name,
   url,
-  email,
   description,
 }: {
   name: string;
   url: string;
-  email?: string;
   description: string;
 }) {
   return (
@@ -219,11 +217,6 @@ function PartnerItem({
             className="h-5 w-5 flex-none rounded-md bg-gray-300/50 p-[2px] text-gray-500 group-hover:bg-gray-400/50 group-hover:text-gray-700"
           />
         </div>
-        {email && (
-          <p className="flex-shrink-0 truncate text-gray-500">
-            📬 <span>{email}</span>
-          </p>
-        )}
       </div>
       <p className="italic leading-5 text-gray-700">{description}</p>
     </Link>

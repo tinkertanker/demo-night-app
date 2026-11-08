@@ -57,7 +57,6 @@ const CSV_HEADERS = [
   "name",
   "tagline",
   "description",
-  "email",
   "url",
   "pocName",
   "demoUrl",
@@ -158,7 +157,6 @@ export default function SubmissionsDashboard({
     name: escapeCsvField(submission.name),
     tagline: escapeCsvField(submission.tagline),
     description: escapeCsvField(submission.description),
-    email: escapeCsvField(submission.email),
     url: escapeCsvField(submission.url),
     pocName: escapeCsvField(submission.pocName),
     demoUrl: escapeCsvField(submission.demoUrl),
@@ -169,10 +167,30 @@ export default function SubmissionsDashboard({
   }));
 
   const onUploadSubmissions = (rows: Record<string, string>[]) => {
+    if (
+      rows.some((row) =>
+        ["name", "tagline", "description", "url", "pocName"].some(
+          (column) => !(column in row),
+        ),
+      )
+    ) {
+      toast.error(
+        "CSV must include name, tagline, description, url and pocName columns.",
+      );
+      return;
+    }
     setSubmissionsMutation
       .mutateAsync({
         eventId: initialEvent.id,
-        submissions: rows as any,
+        submissions: rows.map((row) => ({
+          id: row.id === "" ? undefined : row.id,
+          name: row.name!,
+          tagline: row.tagline!,
+          description: row.description!,
+          url: row.url!,
+          pocName: row.pocName!,
+          demoUrl: row.demoUrl === "" ? null : row.demoUrl ?? null,
+        })),
       })
       .then(() => {
         toast.success("Submissions updated!");

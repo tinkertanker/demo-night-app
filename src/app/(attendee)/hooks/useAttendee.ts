@@ -64,7 +64,7 @@ const attendeeKey = (eventId: string) => `attendee:${eventId}`;
 // email, LinkedIn and attendee type.
 function parseLocalAttendee(json: string): Attendee {
   const { id, name } = JSON.parse(json) as Attendee;
-  return { id, name, email: null, linkedin: null, type: null };
+  return { id, name, linkedin: null, type: null };
 }
 
 export function rememberedName(): string {
@@ -100,7 +100,6 @@ function getLocalAttendee(eventId: string): Attendee {
   const attendee = {
     id: crypto.randomUUID(),
     name: null,
-    email: null,
     linkedin: null,
     type: null,
   };

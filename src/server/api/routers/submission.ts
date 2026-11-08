@@ -10,19 +10,6 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
-// Emails are cleared 30 days after the event, so organiser edits and CSV
-// re-imports must accept a missing one ("" in a CSV).
-const storedEmail = z
-  .union([
-    z
-      .string()
-      .trim()
-      .length(0)
-      .transform(() => null),
-    z.string().trim().toLowerCase().email(),
-  ])
-  .nullable();
-
 const submissionStatus = z.enum([
   "PENDING",
   "WAITLISTED",
@@ -54,11 +41,18 @@ export const submissionRouter = createTRPCRouter({
           data: input,
         });
         return result;
-      } catch (error: any) {
-        if (error.code === "P2002") {
+      } catch (error: unknown) {
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "P2002"
+        ) {
+          // Do not return an existing submission (or overwrite it): knowing a
+          // request token is not permission to read or edit a proposal.
           throw new TRPCError({
             code: "CONFLICT",
-            message: "A submission with this email already exists.",
+            message: "This submission has already been received.",
           });
         }
         throw new Error("Failed to create submission.");
@@ -94,7 +88,6 @@ export const submissionRouter = createTRPCRouter({
         name: z.string().optional(),
         tagline: z.string().optional(),
         description: z.string().optional(),
-        email: storedEmail.optional(),
         url: z.string().url().optional(),
         pocName: z.string().optional(),
         demoUrl: z.string().nullable().optional(),
@@ -129,7 +122,6 @@ export const submissionRouter = createTRPCRouter({
           index,
           name: submission.name,
           description: submission.tagline,
-          email: submission.email,
           url: submission.url,
         },
       });
@@ -174,7 +166,6 @@ export const submissionRouter = createTRPCRouter({
             name: z.string(),
             tagline: z.string(),
             description: z.string(),
-            email: storedEmail,
             url: z.string().url(),
             pocName: z.string(),
             demoUrl: z.string().nullable(),

@@ -60,7 +60,6 @@ export function UpdateDemoForm({
     values: {
       name: demo?.name ?? "",
       description: demo?.description ?? "",
-      email: demo?.email ?? "",
       url: demo?.url ?? "",
     },
   });
@@ -73,7 +72,6 @@ export function UpdateDemoForm({
           secret,
           name: data.name,
           description: data.description,
-          email: data.email,
           url: data.url,
         });
         toast.success("Successfully updated demo!");
@@ -121,28 +119,6 @@ export function UpdateDemoForm({
         />
         {errors.url && (
           <span className="text-sm text-red-500">{errors.url.message}</span>
-        )}
-      </label>
-      <label className="flex w-full flex-col gap-1">
-        <span className="text-lg font-semibold">
-          Email 📧{" "}
-          <span className="text-sm italic text-gray-400">(Optional)</span>
-        </span>
-        <span className="italic text-gray-400">
-          Never public. Used only for event logistics and deleted 30 days after
-          the event.
-        </span>
-        <input
-          type="email"
-          placeholder="hello@aicollective.com"
-          {...register("email")}
-          className={cn(
-            "z-10 rounded-lg border-2 bg-white/60 p-2 text-lg backdrop-blur",
-            errors.email ? "border-red-500" : "border-gray-200",
-          )}
-        />
-        {errors.email && (
-          <span className="text-sm text-red-500">{errors.email.message}</span>
         )}
       </label>
       <label className="flex w-full flex-col gap-1">

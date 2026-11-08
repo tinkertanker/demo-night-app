@@ -45,10 +45,10 @@ function client(token?: string, secure = false) {
 const publicClient = client();
 const owner = client(ownerToken);
 const submission = {
+  id: crypto.randomUUID(),
   name: "A project",
   tagline: "A tagline",
   description: "Description",
-  email: `${prefix}@example.com`,
   url: "https://example.com",
   pocName: "Presenter",
 };
@@ -93,6 +93,7 @@ after(async () => {
   await db.event.deleteMany({
     where: { id: { in: [pastEventId, futureEventId] } },
   });
+  await db.attendee.deleteMany({ where: { id: { startsWith: prefix } } });
   await db.user.deleteMany({
     where: { email: { in: [ownerEmail, removedEmail] } },
   });
@@ -149,15 +150,37 @@ describe("submission API boundaries", () => {
         ...submission,
         eventId: futureEventId,
       }),
-      /already exists/i,
+      /already been received/i,
     );
+    // Same project/person in a separate draft is allowed. No identity dedup.
+    const other = await publicClient.submission.create.mutate({
+      ...submission,
+      id: crypto.randomUUID(),
+      eventId: futureEventId,
+    });
+    assert.notEqual(other.id, saved.id);
+    const concurrentId = crypto.randomUUID();
+    const concurrent = await Promise.allSettled(
+      [0, 1].map(() =>
+        publicClient.submission.create.mutate({
+          ...submission,
+          id: concurrentId,
+          eventId: futureEventId,
+        }),
+      ),
+    );
+    assert.equal(
+      concurrent.filter((result) => result.status === "fulfilled").length,
+      1,
+    );
+    assert.equal(await db.submission.count({ where: { id: concurrentId } }), 1);
   });
 
   it("binds review credentials to the target submission, including read-only updates", async () => {
     const target = await db.submission.create({
       data: {
         ...submission,
-        email: `${prefix}-target@example.com`,
+        id: crypto.randomUUID(),
         eventId: pastEventId,
       },
     });
@@ -181,7 +204,7 @@ describe("submission API boundaries", () => {
     const own = await db.submission.create({
       data: {
         ...submission,
-        email: `${prefix}-own@example.com`,
+        id: crypto.randomUUID(),
         eventId: futureEventId,
       },
     });
@@ -201,6 +224,168 @@ describe("submission API boundaries", () => {
       flagged: true,
     });
     assert.equal(updated.flagged, true);
+  });
+
+  it("discards legacy contacts on submission, conversion, editing and imports, while retaining admin access", async () => {
+    const legacy = {
+      ...submission,
+      id: crypto.randomUUID(),
+      eventId: futureEventId,
+      email: "legacy@example.com",
+    };
+    const saved = await publicClient.submission.create.mutate(legacy);
+    assert.equal("email" in saved, false);
+    const changed = await owner.submission.adminUpdate.mutate({
+      ...legacy,
+      id: saved.id,
+      pocName: "Retained presenter",
+    });
+    assert.equal(changed.pocName, "Retained presenter");
+    assert.equal("email" in changed, false);
+    // Existing database values must not leak before the post-deploy purge.
+    await db.$executeRaw`UPDATE "Submission" SET email = 'old@example.com' WHERE id = ${saved.id}`;
+    const listed = await publicClient.submission.all.query({
+      eventId: futureEventId,
+      secret,
+    });
+    assert.equal(
+      listed.some((entry) => "email" in entry),
+      false,
+    );
+    const demo = await owner.submission.convertToDemo.mutate(saved.id);
+    assert.equal("email" in demo, false);
+    await db.$executeRaw`UPDATE "Demo" SET email = 'old@example.com' WHERE id = ${demo.id}`;
+    const edit = {
+      id: demo.id,
+      secret: demo.secret,
+      name: "Updated demo",
+      url: "https://example.com",
+      email: "new@example.com",
+    };
+    assert.equal(
+      "email" in (await publicClient.demo.update.mutate(edit)),
+      false,
+    );
+    assert.equal(
+      "email" in
+        (await publicClient.demo.get.query({
+          id: demo.id,
+          secret: demo.secret,
+        })),
+      false,
+    );
+    assert.equal(
+      "email" in (await owner.event.getAdmin.query(futureEventId))!.demos[0]!,
+      false,
+    );
+    await assert.rejects(
+      publicClient.demo.update.mutate({ ...edit, secret: "wrong" }),
+    );
+    const adminDemo = await owner.demo.upsert.mutate({
+      ...edit,
+      originalId: demo.id,
+      eventId: futureEventId,
+      votable: true,
+    });
+    assert.equal(adminDemo.name, "Updated demo");
+    await owner.demo.setDemos.mutate({
+      eventId: futureEventId,
+      demos: [
+        {
+          name: "Imported demo",
+          description: "Kept",
+          url: "https://example.com",
+          votable: true,
+          ...{ email: "csv@example.com" },
+        },
+      ],
+    });
+    await owner.submission.setSubmissions.mutate({
+      eventId: futureEventId,
+      submissions: [
+        {
+          ...submission,
+          id: crypto.randomUUID(),
+          demoUrl: null,
+          ...{ email: "csv@example.com" },
+        },
+      ],
+    });
+    const contacts = await db.$queryRaw<
+      { demos: bigint; submissions: bigint }[]
+    >`
+      SELECT (SELECT count(*) FROM "Demo" WHERE "eventId" = ${futureEventId} AND email IS NOT NULL) AS demos,
+             (SELECT count(*) FROM "Submission" WHERE "eventId" = ${futureEventId} AND email IS NOT NULL) AS submissions`;
+    assert.deepEqual(contacts[0], { demos: 0n, submissions: 0n });
+    const attendeeId = `${prefix}-attendee`;
+    await publicClient.attendee.upsert.query({
+      id: attendeeId,
+      eventId: futureEventId,
+    });
+    await db.$executeRaw`UPDATE "Attendee" SET email = 'legacy@example.com' WHERE id = ${attendeeId}`;
+    const attendee = await publicClient.attendee.update.mutate({
+      id: attendeeId,
+      name: "Retained attendee",
+      ...{ email: "ignored@example.com" },
+    });
+    assert.equal(attendee.name, "Retained attendee");
+    assert.equal("email" in attendee, false);
+    assert.equal(
+      (await owner.attendee.getAnalytics.query(futureEventId)).some(
+        (entry) => "email" in entry,
+      ),
+      false,
+    );
+    const partner = {
+      name: "Partner",
+      url: "https://example.com",
+      description: "Kept partner",
+      email: "partner@example.com",
+    };
+    await db.event.update({
+      where: { id: futureEventId },
+      data: { config: { partners: [partner] } },
+    });
+    for (const event of [
+      await publicClient.event.get.query(futureEventId),
+      await owner.event.getAdmin.query(futureEventId),
+    ]) {
+      assert.ok(!JSON.stringify(event).includes(partner.email));
+    }
+    assert.ok(
+      !JSON.stringify(await owner.event.allAdmin.query()).includes(
+        partner.email,
+      ),
+    );
+    const editedEvent = await owner.event.upsert.mutate({
+      originalId: futureEventId,
+      name: "Retained event",
+    });
+    assert.ok(!JSON.stringify(editedEvent).includes(partner.email));
+    const reimported = await owner.event.upsert.mutate({
+      originalId: futureEventId,
+      config: { partners: [partner], isPitchNight: false },
+    });
+    assert.ok(!JSON.stringify(reimported).includes(partner.email));
+    assert.ok(
+      (await owner.admin.all.query()).some(
+        (admin) => admin.email === ownerEmail,
+      ),
+    );
+    await db.event.update({
+      where: { id: pastEventId },
+      data: { config: { partners: [partner] } },
+    });
+    await assert.rejects(
+      publicClient.event.delete.mutate(pastEventId),
+      /UNAUTHORIZED/,
+    );
+    const deleted = await owner.event.delete.mutate(pastEventId);
+    assert.deepEqual(deleted, { id: pastEventId });
+    assert.equal(
+      await db.event.findUnique({ where: { id: pastEventId } }),
+      null,
+    );
   });
 });
 
