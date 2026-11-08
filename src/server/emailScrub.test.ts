@@ -32,44 +32,41 @@ async function createEvent(name: string, date: Date) {
           name: "Project",
           tagline: "Tagline",
           description: "Description",
-          email: email(`${name}-submission`),
           url: "https://example.com",
           pocName: "Presenter",
         },
       },
       demos: {
-        create: { index: 0, name: "Demo", email: email(`${name}-demo`) },
+        create: { index: 0, name: "Demo" },
       },
       attendees: {
         create: {
           id: `${id}-attendee`,
           name: "Attendee",
-          email: email(`${name}-attendee`),
         },
       },
     },
   });
+  // Legacy values must be written explicitly: application Prisma APIs ignore them.
+  await db.$executeRaw`UPDATE "Submission" SET email = ${email(`${name}-submission`)} WHERE "eventId" = ${id}`;
+  await db.$executeRaw`UPDATE "Demo" SET email = ${email(`${name}-demo`)} WHERE "eventId" = ${id}`;
+  await db.$executeRaw`UPDATE "Attendee" SET email = ${email(`${name}-attendee`)} WHERE id = ${`${id}-attendee`}`;
   return id;
 }
 
 async function emailsOf(eventId: string) {
-  const event = await db.event.findUniqueOrThrow({
-    where: { id: eventId },
-    select: {
-      submissions: { select: { email: true } },
-      demos: { select: { email: true } },
-      attendees: {
-        where: { id: `${eventId}-attendee` },
-        select: { email: true, name: true },
-      },
-    },
-  });
-  return {
-    submission: event.submissions[0]!.email,
-    demo: event.demos[0]!.email,
-    attendee: event.attendees[0]!.email,
-    attendeeName: event.attendees[0]!.name,
-  };
+  const rows = await db.$queryRaw<
+    {
+      submission: string | null;
+      demo: string | null;
+      attendee: string | null;
+      attendeeName: string | null;
+    }[]
+  >`
+    SELECT (SELECT email FROM "Submission" WHERE "eventId" = ${eventId}) AS submission,
+           (SELECT email FROM "Demo" WHERE "eventId" = ${eventId}) AS demo,
+           email AS attendee, name AS "attendeeName" FROM "Attendee" WHERE id = ${`${eventId}-attendee`}`;
+  return rows[0];
 }
 
 describe("scrubExpiredEmails", () => {
@@ -95,10 +92,10 @@ describe("scrubExpiredEmails", () => {
     await db.attendee.create({
       data: {
         id: `${prefix}-shared`,
-        email: email("shared"),
         events: { connect: [{ id: expired }, { id: kept }] },
       },
     });
+    await db.$executeRaw`UPDATE "Attendee" SET email = ${email("shared")} WHERE id = ${`${prefix}-shared`}`;
     await db.admin.create({ data: { email: email("admin") } });
     await db.user.create({ data: { email: email("user") } });
 
@@ -119,10 +116,10 @@ describe("scrubExpiredEmails", () => {
       attendee: email("kept-attendee"),
       attendeeName: "Attendee",
     });
-    const shared = await db.attendee.findUniqueOrThrow({
-      where: { id: `${prefix}-shared` },
-    });
-    assert.equal(shared.email, email("shared"));
+    const shared = await db.$queryRaw<
+      { email: string }[]
+    >`SELECT email FROM "Attendee" WHERE id = ${`${prefix}-shared`}`;
+    assert.equal(shared[0]!.email, email("shared"));
     assert.ok(await db.admin.findUnique({ where: { email: email("admin") } }));
     assert.ok(await db.user.findUnique({ where: { email: email("user") } }));
 

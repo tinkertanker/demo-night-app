@@ -8,11 +8,11 @@ import {
 } from "~/lib/submission";
 
 const valid = {
+  id: "2d57357a-55d0-4e81-8437-254c7fe81885",
   eventId: "event",
   name: "Demo",
   tagline: "Tagline",
   description: "Description",
-  email: "Ada@Example.com",
   url: "https://example.com",
   pocName: "Ada",
 };
@@ -38,8 +38,17 @@ describe("submission input", () => {
       );
   });
 
-  it("normalises email case so one person cannot submit twice", () => {
-    assert.equal(submissionInputSchema.parse(valid).email, "ada@example.com");
+  it("needs no contact address and strips legacy contact input", () => {
+    assert.deepEqual(submissionInputSchema.parse(valid), valid);
+    assert.deepEqual(
+      submissionInputSchema.parse({ ...valid, email: "Ada@Example.com" }),
+      valid,
+    );
+    assert.equal(
+      submissionInputSchema.safeParse({ ...valid, id: "person@example.com" })
+        .success,
+      false,
+    );
   });
 
   it("caps descriptions at the limit the form counts, after trimming", () => {

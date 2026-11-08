@@ -40,16 +40,7 @@ const formSchema = z.object({
       `Tagline must be less than ${TAGLINE_MAX_LENGTH} characters`,
     )
     .optional(),
-  email: z
-    .string()
-    .email("Invalid email address")
-    .optional()
-    .or(z.literal("")),
-  url: z
-    .string()
-    .url("Invalid URL")
-    .optional()
-    .or(z.literal("")),
+  url: z.string().url("Invalid URL").optional().or(z.literal("")),
   votable: z.boolean(),
 });
 
@@ -75,14 +66,12 @@ export default function DemoSheet({
           id: demo.id,
           name: demo.name,
           description: demo.description ?? "",
-          email: demo.email ?? "",
           url: demo.url ?? "",
           votable: demo.votable,
         }
       : {
           name: "",
           description: "",
-          email: "",
           url: "",
           votable: true,
         };
@@ -109,7 +98,6 @@ export default function DemoSheet({
         eventId: eventId,
         name: data.name,
         description: data.description,
-        email: data.email,
         url: data.url,
         votable: data.votable,
       });
@@ -197,26 +185,6 @@ export default function DemoSheet({
                       placeholder="Think different. Inspiring creativity, connecting the world"
                       className="resize-none"
                       rows={2}
-                      {...field}
-                      value={field.value ?? ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="tim@apple.com"
-                      autoComplete="off"
                       {...field}
                       value={field.value ?? ""}
                     />

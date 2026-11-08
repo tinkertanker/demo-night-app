@@ -1,7 +1,8 @@
 import { type PrismaClient } from "@prisma/client";
 
-// Presenter and attendee emails are kept for event logistics only and cleared
-// this many days after the event. Admin and sign-in (User) emails are kept.
+// Legacy scheduled cleanup, retained without changing its schedule or cutoff.
+// Application clients no longer read/write these columns (@ignore). The separate
+// post-deployment purge removes all remaining contacts, regardless of event age.
 export const EMAIL_RETENTION_DAYS = 30;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -18,26 +19,23 @@ export async function scrubExpiredEmails(
   prisma: PrismaClient,
   now = new Date(),
 ) {
-  const expired = { date: { lte: emailScrubCutoff(now) } };
+  const cutoff = emailScrubCutoff(now);
   const [submissions, demos, attendees] = await prisma.$transaction([
-    prisma.submission.updateMany({
-      where: { email: { not: null }, event: expired },
-      data: { email: null },
-    }),
-    prisma.demo.updateMany({
-      where: { email: { not: null }, event: expired },
-      data: { email: null },
-    }),
-    // Attendees belong to one event each (older ones to several); clear once
-    // every event is past, including attendees whose events were deleted.
-    prisma.attendee.updateMany({
-      where: { email: { not: null }, events: { every: expired } },
-      data: { email: null },
-    }),
+    prisma.$executeRaw`UPDATE "Submission" SET email = NULL
+      WHERE email IS NOT NULL AND "eventId" IN
+        (SELECT id FROM "Event" WHERE date <= ${cutoff})`,
+    prisma.$executeRaw`UPDATE "Demo" SET email = NULL
+      WHERE email IS NOT NULL AND "eventId" IN
+        (SELECT id FROM "Event" WHERE date <= ${cutoff})`,
+    prisma.$executeRaw`UPDATE "Attendee" a SET email = NULL
+      WHERE email IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM "_AttendeeToEvent" ae JOIN "Event" e ON e.id = ae."B"
+        WHERE ae."A" = a.id AND e.date > ${cutoff}
+      )`,
   ]);
   return {
-    submissions: submissions.count,
-    demos: demos.count,
-    attendees: attendees.count,
+    submissions,
+    demos,
+    attendees,
   };
 }

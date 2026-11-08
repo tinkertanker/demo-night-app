@@ -49,10 +49,10 @@ export type CompleteEvent = Event & {
   eventFeedback: EventFeedback[];
 };
 
-// Presenter emails stay with organisers; public event reads never include them.
+// Public event reads exclude organiser-only fields.
 export type PublicDemo = Omit<
   Demo,
-  "eventId" | "secret" | "email" | "createdAt" | "updatedAt"
+  "eventId" | "secret" | "createdAt" | "updatedAt"
 >;
 
 const liveEventSchema = z.object({
@@ -226,7 +226,7 @@ export const eventRouter = createTRPCRouter({
                   prisma,
                 );
               });
-              return res;
+              return { ...res, config: eventConfigSchema.parse(res.config) };
             });
         }
         const template =
@@ -291,8 +291,8 @@ export const eventRouter = createTRPCRouter({
         throw error;
       }
     }),
-  allAdmin: protectedProcedure.query(() => {
-    return db.event.findMany({
+  allAdmin: protectedProcedure.query(async () => {
+    const events = await db.event.findMany({
       orderBy: { date: "desc" },
       select: {
         id: true,
@@ -311,11 +311,15 @@ export const eventRouter = createTRPCRouter({
         },
       },
     });
+    return events.map((event) => ({
+      ...event,
+      config: eventConfigSchema.parse(event.config),
+    }));
   }),
   getAdmin: protectedProcedure
     .input(z.string())
     .query(async ({ input }): Promise<AdminEvent | null> => {
-      return db.event.findUnique({
+      const event = await db.event.findUnique({
         where: { id: input },
         include: {
           demos: { orderBy: { index: "asc" } },
@@ -328,6 +332,9 @@ export const eventRouter = createTRPCRouter({
           },
         },
       });
+      return event
+        ? { ...event, config: eventConfigSchema.parse(event.config) }
+        : null;
     }),
   setLive: protectedProcedure
     .input(z.object({ eventId: z.string(), live: z.boolean() }))
@@ -499,23 +506,21 @@ export const eventRouter = createTRPCRouter({
       const attendeesInfo = [
         {
           name: "Chappy Asel",
-          email: "chappy@aicollective.com",
           type: "Founder",
           linkedin: "https://linkedin.com/in/chappyasel",
         },
-        { name: "Tim Cook", email: "tim@apple.com", type: "Founder" },
-        { name: "Elon Musk", email: "elon@x.com", type: "Investor" },
-        { name: "Sam Altman", email: "sam@openai.com", type: "Founder" },
+        { name: "Tim Cook", type: "Founder" },
+        { name: "Elon Musk", type: "Investor" },
+        { name: "Sam Altman", type: "Founder" },
         {
           name: "Satya Nadella",
-          email: "satya@microsoft.com",
           type: "Founder",
         },
-        { name: "Sundar Pichai", email: "sundar@google.com", type: "Founder" },
-        { name: "Mark Zuckerberg", email: "mark@meta.com", type: "Founder" },
-        { name: "Jeff Bezos", email: "jeff@amazon.com", type: "Investor" },
-        { name: "Jensen Huang", email: "jensen@nvidia.com", type: "Founder" },
-        { name: "Marc Andreessen", email: "marc@a16z.com", type: "Investor" },
+        { name: "Sundar Pichai", type: "Founder" },
+        { name: "Mark Zuckerberg", type: "Founder" },
+        { name: "Jeff Bezos", type: "Investor" },
+        { name: "Jensen Huang", type: "Founder" },
+        { name: "Marc Andreessen", type: "Investor" },
       ];
 
       return db.$transaction(async (tx) => {
@@ -526,7 +531,6 @@ export const eventRouter = createTRPCRouter({
               data: {
                 id: `${eventId}-attendee-${index + 1}`,
                 name: attendee.name,
-                email: attendee.email,
                 type: attendee.type,
                 linkedin: attendee.linkedin,
                 events: { connect: { id: eventId } },
@@ -550,7 +554,6 @@ export const eventRouter = createTRPCRouter({
                 name: demoInfo.name,
                 description: demoInfo.description,
                 url: demoInfo.url,
-                email: `${demoInfo.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
               },
             }),
           ),
@@ -703,7 +706,10 @@ export const eventRouter = createTRPCRouter({
     }),
   // Deleting the event also deletes its LiveEvent row (cascade)
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
-    return db.event.delete({ where: { id: input } });
+    return db.event.delete({
+      where: { id: input },
+      select: { id: true },
+    });
   }),
 });
 
@@ -876,6 +882,7 @@ const readStoredLiveEvent = cache(live.getLiveEvent);
 // Keep organiser records intact, but never expose retained winners publicly
 // for a No Leaderboard event (including historical recaps and Hall of Fame).
 function publicEvent(event: CompleteEvent): CompleteEvent {
+  event = { ...event, config: eventConfigSchema.parse(event.config) };
   if (votingSettings(event.config).showResults) return event;
   return {
     ...event,
