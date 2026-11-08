@@ -107,6 +107,13 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
   return (
     <form
       onSubmit={handleSubmit(async (data) => {
+        const received = () => {
+          bestEffort(() => localStorage.removeItem(draftKey));
+          toast.success(
+            `Successfully submitted ${branding.isPitchNight ? "pitch" : "demo"}!`,
+          );
+          window.location.href = `${window.location.pathname}?success=true`;
+        };
         await createMutation
           .mutateAsync({
             id: data.id,
@@ -118,20 +125,19 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             pocName: data.pocName,
             demoUrl: withWebScheme(data.demoUrl),
           })
-          .then(() => {
-            bestEffort(() => localStorage.removeItem(draftKey));
-            toast.success(
-              `Successfully submitted ${branding.isPitchNight ? "pitch" : "demo"}!`,
-            );
-            window.location.href = `${window.location.pathname}?success=true`;
-          })
+          .then(received)
           .catch((error: { message: string; data?: unknown }) => {
+            const details = error.data as {
+              code?: string;
+              zodError?: { fieldErrors?: Record<string, string[]> };
+            } | null;
+            // A retry can arrive after the original response was lost.
+            if (details?.code === "CONFLICT") {
+              received();
+              return;
+            }
             // Show server validation next to the field instead of raw JSON.
-            const fieldErrors = (
-              error.data as {
-                zodError?: { fieldErrors?: Record<string, string[]> };
-              } | null
-            )?.zodError?.fieldErrors;
+            const fieldErrors = details?.zodError?.fieldErrors;
             const fields = Object.entries(fieldErrors ?? {});
             if (fields.length) {
               for (const [field, messages] of fields) {

@@ -94,9 +94,9 @@ export default function PrivacyPage() {
             in drafts and attendee records are removed when you visit with the
             updated app. We cannot remotely clear an offline browser or an old
             tab; reload the app or clear its site data. Clearing your site data
-            removes them from your browser but not from our database. Cookies
-            are used only for organiser sign-in and an admin layout setting.
-            There are no analytics or advertising trackers.
+            removes browser copies, not submissions, votes or feedback already
+            sent to us. Cookies are used only for organiser sign-in and an admin
+            layout setting. There are no analytics or advertising trackers.
           </p>
         </section>
 

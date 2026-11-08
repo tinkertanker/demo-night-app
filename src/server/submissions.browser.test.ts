@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { it } from "node:test";
 
 import { AUTH_SESSION_COOKIE } from "~/lib/auth-cookies";
@@ -16,6 +19,7 @@ it("lets an authenticated admin open and edit submissions without a share secret
   const email = `${id}@example.com`;
   const sessionToken = crypto.randomUUID();
   const session = `sub-${id.slice(-8)}`;
+  const csvDirectory = await mkdtemp(join(tmpdir(), "submissions-csv-"));
   const browser = (...args: string[]) => {
     const output = execFileSync(
       "agent-browser",
@@ -100,6 +104,32 @@ it("lets an authenticated admin open and edit submissions without a share secret
       "Updated regression project",
     );
 
+    const invalidCsv = join(csvDirectory, "missing-columns.csv");
+    await writeFile(invalidCsv, "url\nhttps://example.com\n");
+    browser("find", "role", "button", "click", "--name", "CSV", "--exact");
+    browser("upload", 'input[type="file"]', invalidCsv);
+    browser("wait", "--text", "CSV must include");
+    assert.equal(await db.submission.count({ where: { eventId: id } }), 1);
+    assert.equal(
+      (await db.submission.findUniqueOrThrow({ where: { id } })).name,
+      "Updated regression project",
+    );
+
+    const validCsv = join(csvDirectory, "explicit-empty-cells.csv");
+    await writeFile(
+      validCsv,
+      `id,name,tagline,description,url,pocName\n${id},Updated regression project,,,https://example.com,\n`,
+    );
+    browser("reload");
+    waitForDashboard();
+    browser("find", "role", "button", "click", "--name", "CSV", "--exact");
+    browser("upload", 'input[type="file"]', validCsv);
+    browser("wait", "--text", "Submissions updated!");
+    const imported = await db.submission.findUniqueOrThrow({ where: { id } });
+    assert.equal(imported.tagline, "");
+    assert.equal(imported.description, "");
+    assert.equal(imported.pocName, "");
+
     browser("set", "viewport", "640", "900", "2");
     browser("reload");
     waitForDashboard();
@@ -126,10 +156,15 @@ it("lets an authenticated admin open and edit submissions without a share secret
       false,
     );
   } finally {
-    browser("close");
+    try {
+      browser("close");
+    } catch {
+      // The session may already have ended; still remove database fixtures.
+    }
     await db.event.deleteMany({ where: { id } });
     await db.user.deleteMany({ where: { id } });
     await db.admin.deleteMany({ where: { email } });
     await db.$disconnect();
+    await rm(csvDirectory, { recursive: true, force: true });
   }
 });

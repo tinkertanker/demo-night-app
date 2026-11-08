@@ -167,16 +167,28 @@ export default function SubmissionsDashboard({
   }));
 
   const onUploadSubmissions = (rows: Record<string, string>[]) => {
+    if (
+      rows.some((row) =>
+        ["name", "tagline", "description", "url", "pocName"].some(
+          (column) => !(column in row),
+        ),
+      )
+    ) {
+      toast.error(
+        "CSV must include name, tagline, description, url and pocName columns.",
+      );
+      return;
+    }
     setSubmissionsMutation
       .mutateAsync({
         eventId: initialEvent.id,
         submissions: rows.map((row) => ({
           id: row.id === "" ? undefined : row.id,
-          name: row.name ?? "",
-          tagline: row.tagline ?? "",
-          description: row.description ?? "",
-          url: row.url ?? "",
-          pocName: row.pocName ?? "",
+          name: row.name!,
+          tagline: row.tagline!,
+          description: row.description!,
+          url: row.url!,
+          pocName: row.pocName!,
           demoUrl: row.demoUrl === "" ? null : row.demoUrl ?? null,
         })),
       })

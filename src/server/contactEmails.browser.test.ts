@@ -132,8 +132,42 @@ it("cleans legacy contacts across browser drafts and submits without an email", 
       null,
     );
     assert.equal(await db.submission.count({ where: { eventId: id } }), 1);
+
+    // A lost response leaves the original draft on the device. Retrying must
+    // acknowledge receipt without inserting again or overwriting the proposal.
+    browser("open", `${baseUrl}/privacy`);
+    browser(
+      "eval",
+      `localStorage.setItem(${JSON.stringify(key)}, ${JSON.stringify(JSON.stringify({ ...draft, id: token, name: "Changed retry" }))})`,
+    );
+    browser("open", `${baseUrl}/${id}/submit`);
+    browser("wait", 'input[name="name"]');
+    browser(
+      "find",
+      "role",
+      "button",
+      "click",
+      "--name",
+      "Submit Demo",
+      "--exact",
+    );
+    browser("wait", "--url", "**success=true");
+    assert.equal(await db.submission.count({ where: { eventId: id } }), 1);
+    assert.equal(
+      (await db.submission.findUniqueOrThrow({ where: { id: String(token) } }))
+        .name,
+      "Contact-free project",
+    );
+    assert.equal(
+      browser("eval", `localStorage.getItem(${JSON.stringify(key)})`),
+      null,
+    );
   } finally {
-    browser("close");
+    try {
+      browser("close");
+    } catch {
+      // The session may already have ended; still remove database fixtures.
+    }
     await db.event.deleteMany({ where: { id } });
     await db.$disconnect();
   }
