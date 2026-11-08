@@ -41,7 +41,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "~/components/ui/resizable";
-import { SidebarTrigger } from "~/components/ui/sidebar";
 import {
   Table,
   TableBody,
@@ -200,7 +199,6 @@ export default function SubmissionsDashboard({
                 />
               )}
               <div className="flex items-center justify-start gap-2">
-                {isAdmin && <SidebarTrigger className="md:hidden" />}
                 <h2 className="line-clamp-1 text-2xl font-semibold">
                   Submissions ({submissions?.length ?? 0})
                 </h2>
