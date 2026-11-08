@@ -82,7 +82,9 @@ yarn build
 With the local server and database running, `yarn test:voters` checks voting,
 moderation, and postcard APIs. `yarn test:postcard-drafts` also needs
 `agent-browser` and checks draft recovery across delayed saves, phase changes,
-and reloads. Both create and clean up fixtures and refuse remote targets.
+and reloads. `yarn test:submissions` uses `agent-browser` to check authenticated
+admin submission editing and shared-review access. These checks create and clean
+up fixtures and refuse remote targets.
 Set `TEST_BASE_URL` for a local server port other than 3000.
 
 `yarn test:api-boundaries` checks submission access and administrator revocation,
