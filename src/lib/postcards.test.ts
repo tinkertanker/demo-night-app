@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { it } from "node:test";
 import { z } from "zod";
 
-import { feedbackScore } from "./feedback";
+import { feedbackScore, formatFeedbackForCopy } from "./feedback";
 import { postcardFields, postcardProgress } from "./postcards";
 import { DEFAULT_EVENT_CONFIG, votingSettings } from "./types/eventConfig";
 
@@ -88,5 +88,63 @@ it("orders prompt-only and badge-only postcards with meaningful feedback, not em
   assert.equal(
     feedbackScore({ ...empty, liked: "   ", comment: "\n" }),
     feedbackScore(empty),
+  );
+});
+
+it("copies a presenter's postcards as plain text, counting reaction-only entries only in the summary", () => {
+  const base: Feedback = {
+    id: "feedback",
+    eventId: "event",
+    attendeeId: "attendee",
+    demoId: "demo",
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+    rating: null,
+    claps: 0,
+    cheers: 0,
+    confetti: 0,
+    comment: null,
+    liked: null,
+    wonder: null,
+    tryNext: null,
+    badges: [],
+  };
+  const text = formatFeedbackForCopy("Chloe", [
+    {
+      ...base,
+      liked: "Joining the queue virtually ",
+      wonder: "1. How is the queue live?\n2. What about walk-ins?",
+      attendee: { name: "zshoepph", type: null },
+    },
+    {
+      ...base,
+      rating: 4,
+      claps: 2,
+      tryNext: "Bigger labels",
+      badges: ["Made me smile"],
+      attendee: { name: " ", type: "Engineer" },
+    },
+    {
+      ...base,
+      rating: 1,
+      cheers: 3,
+      confetti: 1,
+      attendee: { name: "Reaction only", type: null },
+    },
+  ]);
+  assert.equal(
+    text,
+    `Feedback for Chloe
+
+3 responses · Average rating 2.5 · 👏 2 · 🥳 3 · 🎉 1
+
+zshoepph
+I liked… Joining the queue virtually
+I wonder… 1. How is the queue live?
+2. What about walk-ins?
+
+Anonymous (Engineer) · Rating 4
+You could try… Bigger labels
+Badges: Made me smile`,
   );
 });

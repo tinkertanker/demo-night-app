@@ -2,10 +2,19 @@ import { useDashboardContext } from "../../contexts/DashboardContext";
 import { LiveIndicator } from "../LiveIndicator";
 import { type Demo } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, EyeIcon, Radio, Trash } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  EyeIcon,
+  Radio,
+  Trash,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { feedbackScore } from "~/lib/feedback";
+import { feedbackScore, formatFeedbackForCopy } from "~/lib/feedback";
 import { liveQueryOptions } from "~/lib/liveQuery";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
@@ -346,14 +355,45 @@ function FeedbackPanel({
   scoredFeedback: FeedbackAndAttendee[];
   onDelete: (id: string) => void;
 }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  const copyFeedback = () => {
+    if (!selectedDemo) return;
+    navigator.clipboard
+      .writeText(formatFeedbackForCopy(selectedDemo.name, scoredFeedback))
+      .then(
+        () => setCopied(true),
+        () => toast.error("Couldn't copy feedback"),
+      );
+  };
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 bg-background md:min-w-[300px]">
       <div className="flex shrink-0 flex-col items-start gap-2">
-        <h2 className="line-clamp-2 text-xl font-semibold md:text-2xl">
-          {selectedDemo?.name
-            ? `Feedback for ${selectedDemo.name}`
-            : "Feedback"}
-        </h2>
+        <div className="flex w-full items-start justify-between gap-2">
+          <h2 className="line-clamp-2 text-xl font-semibold md:text-2xl">
+            {selectedDemo?.name
+              ? `Feedback for ${selectedDemo.name}`
+              : "Feedback"}
+          </h2>
+          {selectedDemo && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              disabled={feedback.length === 0}
+              onClick={copyFeedback}
+            >
+              {copied ? <Check /> : <Copy />}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          )}
+        </div>
         <FeedbackOverview feedback={feedback} />
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
