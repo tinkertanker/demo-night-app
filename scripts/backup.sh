@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Legacy: backs up the self-hosted Docker Compose deployment only.
+# Production now runs on Neon; see "Production backups" in README.md
+# and .github/workflows/nightly-db-backup.yml.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

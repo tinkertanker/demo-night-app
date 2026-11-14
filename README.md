@@ -128,6 +128,48 @@ OpenNext is configured in `open-next.config.ts`.
 database migrations, adds admin allowlist entries, and deploys**, requiring
 database and Cloudflare credentials. Docker deployment files are also included.
 
+### Production backups
+
+Neon's point-in-time restore covers only 6 hours on the Free plan, so the
+[Nightly database backup](.github/workflows/nightly-db-backup.yml) workflow runs
+at 03:00 Singapore time (and on demand via **Run workflow**). As the read-only
+`backup_reader` role, over the direct (non-pooled) connection, it takes a
+`pg_dump -Fc` of the `production` branch and uploads it to the private R2 bucket
+`demo-night-backups` as `nightly/YYYY-MM-DD/postgres.dump` (Singapore date). An
+R2 lifecycle rule deletes objects under `nightly/` after 30 days.
+
+The dump keeps the schema of every table but no rows from `User`, `Account`,
+`Session` or `VerificationToken`, which hold organiser Google OAuth and session
+tokens; `Admin` is kept. The workflow refuses to run until the four contact-email
+guards from [the contact-email removal](docs/contact-email-removal.md) are
+validated, so nightly dumps carry those guards and no contact addresses.
+
+Repository secrets: `NEON_BACKUP_DATABASE_URL`, `R2_BACKUP_ACCESS_KEY_ID`,
+`R2_BACKUP_SECRET_ACCESS_KEY` (an R2 token scoped to that bucket only).
+
+With approval, restore a nightly dump into a newly created, empty database and
+check it before pointing the app at it. A new Neon branch copies its parent's
+data, so create a fresh database on an isolated branch (for example
+`CREATE DATABASE restore_check;`) rather than restoring into the branch's copy of
+`neondb`. If production moves to the restored database, point
+`NEON_BACKUP_DATABASE_URL` at it too, or the nightly job keeps dumping the old
+one; `backup_reader` reads it through `pg_read_all_data`, so it needs no table
+grants. Organisers sign in again afterwards. Never restore the pre-removal
+dumps under `2026-10-12/`: they predate the guards and still hold contact
+addresses.
+
+```bash
+aws s3 cp s3://demo-night-backups/nightly/2026-11-15/postgres.dump . \
+  --endpoint-url https://b8b1032c61d9475cd00229c74db7ec72.r2.cloudflarestorage.com
+pg_restore --list postgres.dump            # inspect
+# TARGET_DATABASE_URL points at the new empty database, not neondb
+pg_restore --no-owner --no-privileges --exit-on-error --single-transaction \
+  -d "$TARGET_DATABASE_URL" postgres.dump
+```
+
+`scripts/backup.sh` is the legacy backup for the retired Docker Compose
+deployment and does not back up Neon.
+
 Report bugs and propose changes in [Issues](https://github.com/tinkertanker/demo-night-app/issues).
 Robot mascot assets are from [tkrobot-stickers](https://github.com/tinkertanker/tkrobot-stickers),
 copied into `public/images/stickers`.

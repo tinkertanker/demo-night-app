@@ -69,7 +69,10 @@ code loads; an old tab can still hold its previous draft until reloaded or site
 data is cleared. Previously downloaded CSVs and Neon recovery copies are outside
 this live-data deletion. Do not claim they have been erased; organiser-owned
 exports require separate handling and Neon recovery retention must be confirmed
-by the owner. Do not silently restore old contacts from a backup.
+by the owner. Do not silently restore old contacts from a backup. The R2 bucket
+`demo-night-backups` still holds pre-removal dumps under `2026-10-12/` (no
+lifecycle expiry) that contain contact addresses; the nightly backup refuses to
+dump until the four guards are validated.
 
 Roll back only to code that also omits contact fields. The database guards
 intentionally reject legacy email writes. Do not drop guards or roll back to an
