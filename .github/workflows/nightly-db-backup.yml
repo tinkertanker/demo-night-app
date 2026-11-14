@@ -32,9 +32,18 @@ jobs:
           DATABASE_URL: ${{ secrets.NEON_BACKUP_DATABASE_URL }}
         run: |
           test -n "$DATABASE_URL" || { echo "NEON_BACKUP_DATABASE_URL is not set"; exit 1; }
+          # Copy no contact emails: dump only once the post-deploy purge has
+          # added and validated all four guards (docs/contact-email-removal.md).
+          guards=$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -tAc "SELECT count(*) FROM pg_constraint WHERE convalidated AND conname IN ('Submission_no_contact_email', 'Demo_no_contact_email', 'Attendee_no_contact_email', 'Event_no_partner_email')")
+          test "$guards" = 4 || { echo "Contact-email guards missing ($guards of 4); not backing up"; exit 1; }
           pg_dump --version
-          pg_dump -Fc -d "$DATABASE_URL" -f postgres.dump
+          # Organiser sign-in rows hold Google OAuth and session tokens. Keep
+          # their tables (empty) and Admin; organisers sign in again after a restore.
+          pg_dump -Fc -d "$DATABASE_URL" -f postgres.dump \
+            --exclude-table-data='"User"' --exclude-table-data='"Account"' \
+            --exclude-table-data='"Session"' --exclude-table-data='"VerificationToken"'
           pg_restore --list postgres.dump > toc.txt
+          if grep -E 'TABLE DATA public "?(User|Account|Session|VerificationToken)"? ' toc.txt; then exit 1; fi
           echo "Tables with data: $(grep -c 'TABLE DATA' toc.txt)"
           ls -l postgres.dump
 

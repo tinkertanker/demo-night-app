@@ -15,7 +15,9 @@ export default function PrivacyPage() {
         <Sticker name="face" size={64} />
       </Link>
       <h1 className="pt-4 text-3xl font-bold tracking-tight">Privacy notice</h1>
-      <p className="pt-1 text-sm text-gray-500">Last updated 8 November 2026</p>
+      <p className="pt-1 text-sm text-gray-500">
+        Last updated 14 November 2026
+      </p>
 
       <div className="space-y-8 pt-6 leading-7 text-gray-800 [&_h2]:pb-2 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-black [&_li]:pl-1 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
         <p>
@@ -105,9 +107,11 @@ export default function PrivacyPage() {
           <p>
             The app runs on Cloudflare Workers, and data is stored in a Neon
             Postgres database hosted on AWS in Singapore, with the app set to
-            run close to it. Organiser sign-in goes through Google. Links to
-            presenter websites and event surveys take you to other sites with
-            their own privacy policies.
+            run close to it. Nightly backups of that database, without
+            organisers&apos; Google sign-in records, are kept for 30 days in
+            private Cloudflare R2 storage in North America. Organiser sign-in
+            goes through Google. Links to presenter websites and event surveys
+            take you to other sites with their own privacy policies.
           </p>
         </section>
 
