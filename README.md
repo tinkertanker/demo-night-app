@@ -151,7 +151,10 @@ With approval, restore a nightly dump into a newly created, empty database and
 check it before pointing the app at it. A new Neon branch copies its parent's
 data, so create a fresh database on an isolated branch (for example
 `CREATE DATABASE restore_check;`) rather than restoring into the branch's copy of
-`neondb`. Organisers sign in again afterwards. Never restore the pre-removal
+`neondb`. If production moves to the restored database, point
+`NEON_BACKUP_DATABASE_URL` at it too, or the nightly job keeps dumping the old
+one; `backup_reader` reads it through `pg_read_all_data`, so it needs no table
+grants. Organisers sign in again afterwards. Never restore the pre-removal
 dumps under `2026-10-12/`: they predate the guards and still hold contact
 addresses.
 
