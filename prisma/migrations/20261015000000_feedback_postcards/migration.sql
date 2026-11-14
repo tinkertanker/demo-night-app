@@ -1,0 +1,5 @@
+ALTER TABLE "Feedback"
+  ADD COLUMN "liked" TEXT,
+  ADD COLUMN "wonder" TEXT,
+  ADD COLUMN "tryNext" TEXT,
+  ADD COLUMN "badges" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

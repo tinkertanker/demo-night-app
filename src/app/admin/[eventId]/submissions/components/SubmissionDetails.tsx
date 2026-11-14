@@ -243,7 +243,6 @@ function Submission({
         name: data.name,
         tagline: data.tagline,
         description: data.description,
-        email: data.email,
         url: data.url,
         demoUrl: data.demoUrl,
         pocName: data.pocName,
@@ -337,10 +336,6 @@ function Submission({
             <div className="flex w-full flex-col gap-1">
               <Label className="font-semibold">PoC Name</Label>
               <Input type="text" {...register("pocName")} disabled={!isAdmin} />
-            </div>
-            <div className="flex w-full flex-col gap-1">
-              <Label className="font-semibold">PoC Email</Label>
-              <Input type="email" {...register("email")} disabled={!isAdmin} />
             </div>
           </div>
         </div>

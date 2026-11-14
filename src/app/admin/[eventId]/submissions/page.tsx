@@ -14,6 +14,7 @@ export default async function SubmissionsPage({
 }) {
   const event = await db.event.findUnique({
     where: { id: params.eventId },
+    select: { id: true, name: true, date: true, url: true, secret: true },
   });
 
   if (!event) {
@@ -21,14 +22,18 @@ export default async function SubmissionsPage({
   }
 
   const auth = await getServerAuthSession();
+  const email = auth?.user.email?.toLowerCase();
+  const isAdmin = !!(
+    email && (await db.admin.findUnique({ where: { email } }))
+  );
 
-  if (!auth && searchParams.secret !== event.secret) {
+  if (!isAdmin && searchParams.secret !== event.secret) {
     return redirect("/404?type=invalid-secret");
   }
 
   return (
     <main className="flex h-dvh w-full flex-col p-4">
-      <SubmissionsDashboard event={event} isAdmin={!!auth} />
+      <SubmissionsDashboard event={event} isAdmin={isAdmin} />
     </main>
   );
 }

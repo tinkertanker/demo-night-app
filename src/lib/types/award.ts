@@ -30,3 +30,33 @@ export const DEFAULT_AWARDS = [
 ];
 
 export const PITCH_NIGHT_AWARDS = DEFAULT_AWARDS;
+
+export const CATEGORY_AWARDS = [
+  {
+    name: "💡 Most Creative",
+    description: "An original idea that surprised you.",
+    index: 0,
+    votable: true,
+  },
+  {
+    name: "🛠️ Most Useful",
+    description: "A project that makes a real difference.",
+    index: 1,
+    votable: true,
+  },
+  {
+    name: "🎤 Best Explanation",
+    description: "A clear and engaging presentation.",
+    index: 2,
+    votable: true,
+  },
+];
+
+export function stickerAwardId(
+  awards: { id: string; votable: boolean; winnerRank: number | null }[],
+) {
+  return (
+    awards.find((award) => award.votable && award.winnerRank === 1) ??
+    awards.find((award) => award.votable)
+  )?.id;
+}

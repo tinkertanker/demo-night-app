@@ -1,5 +1,8 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { toSingaporeMidnight } from "~/lib/singaporeDate";
+import { submissionInputSchema } from "~/lib/submission";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -18,27 +21,39 @@ const submissionStatus = z.enum([
 
 export const submissionRouter = createTRPCRouter({
   create: publicProcedure
-    .input(
-      z.object({
-        eventId: z.string(),
-        name: z.string(),
-        tagline: z.string(),
-        description: z.string(),
-        email: z.string().email(),
-        url: z.string().url(),
-        pocName: z.string(),
-        demoUrl: z.string().optional(),
-      }),
-    )
+    .input(submissionInputSchema)
     .mutation(async ({ input }) => {
+      const event = await db.event.findUnique({
+        where: { id: input.eventId },
+        select: { date: true },
+      });
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+      }
+      if (new Date() > toSingaporeMidnight(event.date)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Submissions closed",
+        });
+      }
       try {
         const result = await db.submission.create({
           data: input,
         });
         return result;
-      } catch (error: any) {
-        if (error.code === "P2002") {
-          throw new Error("A submission with this email already exists.");
+      } catch (error: unknown) {
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "P2002"
+        ) {
+          // Do not return an existing submission (or overwrite it): knowing a
+          // request token is not permission to read or edit a proposal.
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "This submission has already been received.",
+          });
         }
         throw new Error("Failed to create submission.");
       }
@@ -73,7 +88,6 @@ export const submissionRouter = createTRPCRouter({
         name: z.string().optional(),
         tagline: z.string().optional(),
         description: z.string().optional(),
-        email: z.string().email().optional(),
         url: z.string().url().optional(),
         pocName: z.string().optional(),
         demoUrl: z.string().nullable().optional(),
@@ -108,7 +122,6 @@ export const submissionRouter = createTRPCRouter({
           index,
           name: submission.name,
           description: submission.tagline,
-          email: submission.email,
           url: submission.url,
         },
       });
@@ -134,7 +147,7 @@ export const submissionRouter = createTRPCRouter({
         throw new Error("Unauthorized");
       }
       return db.submission.update({
-        where: { id: input.id },
+        where: { id: input.id, eventId: input.eventId },
         data: {
           status: input.status,
           flagged: input.flagged,
@@ -153,7 +166,6 @@ export const submissionRouter = createTRPCRouter({
             name: z.string(),
             tagline: z.string(),
             description: z.string(),
-            email: z.string().email(),
             url: z.string().url(),
             pocName: z.string(),
             demoUrl: z.string().nullable(),

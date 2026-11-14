@@ -2,6 +2,8 @@ import { type Demo, type Feedback } from "@prisma/client";
 import { cache } from "react";
 import { z } from "zod";
 
+import { webUrlSchema } from "~/lib/submission";
+import { votingSettings } from "~/lib/types/eventConfig";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -17,15 +19,15 @@ type BaseFeedback = {
   cheers: number;
   confetti: number;
   comment: string | null;
+  liked: string | null;
+  wonder: string | null;
+  tryNext: string | null;
+  badges: string[];
 };
 
+// Presenters see who gave feedback by the name they entered, nothing else.
 type FeedbackAttribution = {
-  attendee: {
-    name: string | null;
-    email: string | null;
-    linkedin: string | null;
-    type: string | null;
-  };
+  attendee: { name: string | null };
 };
 
 export type DemoFeedback = BaseFeedback & Partial<FeedbackAttribution>;
@@ -63,13 +65,12 @@ export const demoRouter = createTRPCRouter({
           cheers: feedback.cheers,
           confetti: feedback.confetti,
           comment: feedback.comment,
+          liked: feedback.liked,
+          wonder: feedback.wonder,
+          tryNext: feedback.tryNext,
+          badges: feedback.badges,
           rating: feedback.rating,
-          attendee: {
-            name: feedback.attendee?.name,
-            email: feedback.attendee?.email,
-            linkedin: feedback.attendee?.linkedin,
-            type: feedback.attendee.type,
-          },
+          attendee: { name: feedback.attendee.name },
         });
       }
       return { ...demo, feedback: allFeedback };
@@ -81,8 +82,7 @@ export const demoRouter = createTRPCRouter({
         secret: z.string(),
         name: z.string(),
         description: z.string().optional(),
-        email: z.string().email().optional().or(z.literal("")),
-        url: z.string().url().optional().or(z.literal("")),
+        url: webUrlSchema.optional().or(z.literal("")),
       }),
     )
     .mutation(async ({ input }) => {
@@ -91,7 +91,6 @@ export const demoRouter = createTRPCRouter({
         data: {
           ...input,
           description: input.description ?? null,
-          email: input.email ?? null,
           url: input.url ?? null,
         },
       });
@@ -117,7 +116,6 @@ export const demoRouter = createTRPCRouter({
         eventId: z.string(),
         name: z.string(),
         description: z.string().optional(),
-        email: z.string().email().optional().or(z.literal("")),
         url: z.string().url().optional().or(z.literal("")),
         votable: z.boolean(),
       }),
@@ -126,7 +124,6 @@ export const demoRouter = createTRPCRouter({
       const processedInput = {
         ...input,
         description: input.description ?? null,
-        email: input.email ?? null,
         url: input.url ?? null,
       };
 
@@ -137,7 +134,6 @@ export const demoRouter = createTRPCRouter({
             id: processedInput.id,
             name: processedInput.name,
             description: processedInput.description,
-            email: processedInput.email,
             url: processedInput.url,
             votable: processedInput.votable,
           },
@@ -219,7 +215,6 @@ export const demoRouter = createTRPCRouter({
             id: z.string().optional(),
             name: z.string(),
             description: z.string().optional(),
-            email: z.string().optional(),
             url: z.string().optional(),
             votable: z.boolean(),
           }),
@@ -235,7 +230,6 @@ export const demoRouter = createTRPCRouter({
           data: input.demos.map((demo, index) => ({
             ...demo,
             description: demo.description ?? null,
-            email: demo.email ?? null,
             url: demo.url ?? null,
             eventId: input.eventId,
             index,
@@ -274,7 +268,11 @@ export const demoRouter = createTRPCRouter({
     .query(async ({ input }): Promise<DemoStats> => {
       const demo = await db.demo.findUnique({
         where: { id: input.id, secret: input.secret },
-        select: { id: true, eventId: true },
+        select: {
+          id: true,
+          eventId: true,
+          event: { select: { config: true } },
+        },
       });
 
       if (!demo) {
@@ -300,7 +298,9 @@ export const demoRouter = createTRPCRouter({
         totalClaps: feedbackAgg._sum.claps ?? 0,
         totalCheers: feedbackAgg._sum.cheers ?? 0,
         totalConfetti: feedbackAgg._sum.confetti ?? 0,
-        totalMoneyRaised: voteAgg._sum.amount ?? 0,
+        totalMoneyRaised: votingSettings(demo.event.config).showResults
+          ? voteAgg._sum.amount ?? 0
+          : 0,
       };
     }),
 });
@@ -317,14 +317,11 @@ const readDemoWithFeedback = cache(async (id: string, secret: string) => {
           cheers: true,
           confetti: true,
           comment: true,
-          attendee: {
-            select: {
-              name: true,
-              email: true,
-              linkedin: true,
-              type: true,
-            },
-          },
+          liked: true,
+          wonder: true,
+          tryNext: true,
+          badges: true,
+          attendee: { select: { name: true } },
         },
       },
     },

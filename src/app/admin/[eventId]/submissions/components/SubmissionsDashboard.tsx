@@ -41,7 +41,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "~/components/ui/resizable";
-import { SidebarTrigger } from "~/components/ui/sidebar";
 import {
   Table,
   TableBody,
@@ -58,7 +57,6 @@ const CSV_HEADERS = [
   "name",
   "tagline",
   "description",
-  "email",
   "url",
   "pocName",
   "demoUrl",
@@ -159,7 +157,6 @@ export default function SubmissionsDashboard({
     name: escapeCsvField(submission.name),
     tagline: escapeCsvField(submission.tagline),
     description: escapeCsvField(submission.description),
-    email: escapeCsvField(submission.email),
     url: escapeCsvField(submission.url),
     pocName: escapeCsvField(submission.pocName),
     demoUrl: escapeCsvField(submission.demoUrl),
@@ -170,10 +167,30 @@ export default function SubmissionsDashboard({
   }));
 
   const onUploadSubmissions = (rows: Record<string, string>[]) => {
+    if (
+      rows.some((row) =>
+        ["name", "tagline", "description", "url", "pocName"].some(
+          (column) => !(column in row),
+        ),
+      )
+    ) {
+      toast.error(
+        "CSV must include name, tagline, description, url and pocName columns.",
+      );
+      return;
+    }
     setSubmissionsMutation
       .mutateAsync({
         eventId: initialEvent.id,
-        submissions: rows as any,
+        submissions: rows.map((row) => ({
+          id: row.id === "" ? undefined : row.id,
+          name: row.name!,
+          tagline: row.tagline!,
+          description: row.description!,
+          url: row.url!,
+          pocName: row.pocName!,
+          demoUrl: row.demoUrl === "" ? null : row.demoUrl ?? null,
+        })),
       })
       .then(() => {
         toast.success("Submissions updated!");
@@ -200,7 +217,6 @@ export default function SubmissionsDashboard({
                 />
               )}
               <div className="flex items-center justify-start gap-2">
-                {isAdmin && <SidebarTrigger className="md:hidden" />}
                 <h2 className="line-clamp-1 text-2xl font-semibold">
                   Submissions ({submissions?.length ?? 0})
                 </h2>

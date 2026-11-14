@@ -49,6 +49,13 @@ export default async function HomePage({
             className="underline decoration-gray-300 underline-offset-4 hover:text-gray-900 hover:decoration-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             Credit: AI Collective
+          </Link>{" "}
+          /{" "}
+          <Link
+            href="/privacy"
+            className="underline decoration-gray-300 underline-offset-4 hover:text-gray-900 hover:decoration-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            Privacy
           </Link>
         </p>
       </div>

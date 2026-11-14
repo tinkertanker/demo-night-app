@@ -18,12 +18,17 @@ import {
   singaporeCalendarDaysBetween,
   toSingaporeMidnight,
 } from "~/lib/singaporeDate";
-import { DEFAULT_AWARDS, PITCH_NIGHT_AWARDS } from "~/lib/types/award";
-import * as kv from "~/lib/types/currentEvent";
+import {
+  CATEGORY_AWARDS,
+  DEFAULT_AWARDS,
+  stickerAwardId,
+} from "~/lib/types/award";
 import { DEFAULT_DEMOS } from "~/lib/types/demo";
 import {
   DEFAULT_EVENT_CONFIG,
+  EVENT_TEMPLATES,
   eventConfigSchema,
+  votingSettings,
 } from "~/lib/types/eventConfig";
 import {
   createTRPCRouter,
@@ -32,6 +37,7 @@ import {
 } from "~/server/api/trpc";
 import { assignAutomaticAwardWinners } from "~/server/automaticAwardWinners";
 import { db } from "~/server/db";
+import * as live from "~/server/liveEvent";
 import { lockCurrentEventState, lockVotingEvent } from "~/server/votingLock";
 
 import { type AdminEvent } from "~/app/admin/[eventId]/contexts/DashboardContext";
@@ -43,6 +49,7 @@ export type CompleteEvent = Event & {
   eventFeedback: EventFeedback[];
 };
 
+// Public event reads exclude organiser-only fields.
 export type PublicDemo = Omit<
   Demo,
   "eventId" | "secret" | "createdAt" | "updatedAt"
@@ -51,7 +58,7 @@ export type PublicDemo = Omit<
 const liveEventSchema = z.object({
   id: z.string(),
   name: z.string(),
-  phase: z.nativeEnum(kv.EventPhase),
+  phase: z.nativeEnum(live.EventPhase),
   currentDemoId: z.string().nullable(),
   currentAwardId: z.string().nullable(),
   isPitchNight: z.boolean().optional().default(false),
@@ -69,13 +76,14 @@ export const eventRouter = createTRPCRouter({
         .optional(),
     )
     .query(async ({ input }): Promise<CompleteEvent[]> => {
-      return db.event.findMany({
+      const events = await db.event.findMany({
         where: { date: { lte: new Date() } },
         select: completeEventSelect,
         orderBy: { date: "desc" },
         take: input?.limit,
         skip: input?.offset,
       });
+      return events.map(publicEvent);
     }),
   // Kept for the public OpenAPI contract, which predates multiple live events:
   // returns the most recently started live event.
@@ -84,12 +92,12 @@ export const eventRouter = createTRPCRouter({
     .input(z.undefined())
     .output(liveEventSchema.nullable())
     .query(async () => {
-      const ids = await kv.getLiveEventIds();
+      const ids = await live.getLiveEventIds();
       const latestId = ids[ids.length - 1];
       return latestId ? readLiveEvent(latestId) : null;
     }),
-  getLive: protectedProcedure.query(async (): Promise<kv.CurrentEvent[]> => {
-    const liveEvents = await kv.getLiveEvents();
+  getLive: protectedProcedure.query(async (): Promise<live.CurrentEvent[]> => {
+    const liveEvents = await live.getLiveEvents();
     return Promise.all(liveEvents.map(withDurableState));
   }),
   getLiveEvent: publicProcedure
@@ -148,19 +156,57 @@ export const eventRouter = createTRPCRouter({
         config: input.config,
         joinCode,
       };
+      if (data.config?.template) {
+        data.config.isPitchNight = data.config.template === "pitching";
+      }
+      if (
+        data.config?.template === "categories" &&
+        votingSettings(data.config).mode === "stickers"
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Categories use one choice or an allocation per category, not event-wide stickers.",
+        });
+      }
 
       try {
         if (input.originalId) {
-          return await db.event
-            .update({
-              where: { id: input.originalId },
-              data,
+          return await db
+            .$transaction(async (prisma) => {
+              await lockVotingEvent(prisma, input.originalId!);
+              const previous = await prisma.event.findUniqueOrThrow({
+                where: { id: input.originalId },
+                select: { config: true },
+              });
+              if (input.config) {
+                const before = votingSettings(previous.config);
+                const after = votingSettings(input.config);
+                if (
+                  (before.template !== after.template ||
+                    before.mode !== after.mode ||
+                    before.budget !== after.budget) &&
+                  (await prisma.vote.count({
+                    where: { eventId: input.originalId },
+                  }))
+                ) {
+                  throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message:
+                      "Template, voting mechanics and allowance cannot change after votes are recorded. Create a new event instead.",
+                  });
+                }
+              }
+              return prisma.event.update({
+                where: { id: input.originalId },
+                data,
+              });
             })
             .then(async (res: Event) => {
               await db.$transaction(async (prisma) => {
                 await lockCurrentEventState(prisma);
                 await lockVotingEvent(prisma, res.id);
-                const liveEvent = await kv.getLiveEvent(res.id);
+                const liveEvent = await live.getLiveEvent(res.id, prisma);
                 if (!liveEvent) return;
 
                 const event = await prisma.event.findUniqueOrThrow({
@@ -174,16 +220,44 @@ export const eventRouter = createTRPCRouter({
                     data: { livePhase },
                   });
                 }
-                await kv.startLiveEvent(res, livePhase as kv.EventPhase);
+                await live.startLiveEvent(
+                  res,
+                  livePhase as live.EventPhase,
+                  prisma,
+                );
               });
-              return res;
+              return { ...res, config: eventConfigSchema.parse(res.config) };
             });
         }
-        const eventConfig = data.config ?? DEFAULT_EVENT_CONFIG;
-        const isPitchNight = eventConfig.isPitchNight ?? false;
-        const awardsToCreate = isPitchNight
-          ? PITCH_NIGHT_AWARDS
-          : DEFAULT_AWARDS;
+        const template =
+          data.config?.template ?? DEFAULT_EVENT_CONFIG.template!;
+        const defaults = EVENT_TEMPLATES[template].defaults;
+        const eventConfig = {
+          ...DEFAULT_EVENT_CONFIG,
+          ...defaults,
+          ...data.config,
+          template,
+          isPitchNight: template === "pitching",
+          votingMode: data.config?.votingMode ?? defaults.votingMode,
+          votingUnit: data.config?.votingUnit ?? defaults.votingUnit,
+        };
+        const awardsToCreate = (
+          template === "categories"
+            ? CATEGORY_AWARDS
+            : template === "noLeaderboard"
+              ? DEFAULT_AWARDS.filter((award) => award.winnerRank === 1)
+              : DEFAULT_AWARDS
+        ).map((award) =>
+          "winnerRank" in award &&
+          award.winnerRank === 1 &&
+          !votingSettings(eventConfig).financial
+            ? {
+                ...award,
+                name: "⭐ Crowd Favourite",
+                description: "The project with the most audience support!",
+              }
+            : award,
+        );
 
         const createEvent = (joinCode: string) =>
           db.event.create({
@@ -217,8 +291,8 @@ export const eventRouter = createTRPCRouter({
         throw error;
       }
     }),
-  allAdmin: protectedProcedure.query(() => {
-    return db.event.findMany({
+  allAdmin: protectedProcedure.query(async () => {
+    const events = await db.event.findMany({
       orderBy: { date: "desc" },
       select: {
         id: true,
@@ -237,11 +311,15 @@ export const eventRouter = createTRPCRouter({
         },
       },
     });
+    return events.map((event) => ({
+      ...event,
+      config: eventConfigSchema.parse(event.config),
+    }));
   }),
   getAdmin: protectedProcedure
     .input(z.string())
     .query(async ({ input }): Promise<AdminEvent | null> => {
-      return db.event.findUnique({
+      const event = await db.event.findUnique({
         where: { id: input },
         include: {
           demos: { orderBy: { index: "asc" } },
@@ -254,6 +332,9 @@ export const eventRouter = createTRPCRouter({
           },
         },
       });
+      return event
+        ? { ...event, config: eventConfigSchema.parse(event.config) }
+        : null;
     }),
   setLive: protectedProcedure
     .input(z.object({ eventId: z.string(), live: z.boolean() }))
@@ -262,7 +343,7 @@ export const eventRouter = createTRPCRouter({
         return db.$transaction(async (prisma) => {
           await lockCurrentEventState(prisma);
           await lockVotingEvent(prisma, input.eventId);
-          await kv.stopLiveEvent(input.eventId);
+          await live.stopLiveEvent(input.eventId, prisma);
         });
       }
       const event = await db.event.findUnique({
@@ -277,27 +358,27 @@ export const eventRouter = createTRPCRouter({
         await lockCurrentEventState(prisma);
         await stopStaleLiveEvents(prisma, event.id);
         await lockVotingEvent(prisma, event.id);
-        const liveEvent = await kv.getLiveEvent(event.id);
+        const liveEvent = await live.getLiveEvent(event.id, prisma);
         const durableEvent = await prisma.event.findUniqueOrThrow({
           where: { id: event.id },
           select: { livePhase: true },
         });
         const livePhase =
-          durableEvent.livePhase ?? liveEvent?.phase ?? kv.EventPhase.Pre;
+          durableEvent.livePhase ?? liveEvent?.phase ?? live.EventPhase.Pre;
         if (durableEvent.livePhase === null) {
           await prisma.event.update({
             where: { id: event.id },
             data: { livePhase },
           });
         }
-        return kv.startLiveEvent(event, livePhase as kv.EventPhase);
+        return live.startLiveEvent(event, livePhase as live.EventPhase, prisma);
       });
     }),
   updateLiveState: protectedProcedure
     .input(
       z.object({
         eventId: z.string(),
-        phase: z.nativeEnum(kv.EventPhase).optional(),
+        phase: z.nativeEnum(live.EventPhase).optional(),
         currentDemoId: z.string().optional().nullable(),
         currentAwardId: z.string().optional().nullable(),
       }),
@@ -306,18 +387,27 @@ export const eventRouter = createTRPCRouter({
       if (input.phase !== undefined) {
         await db.$transaction(async (prisma) => {
           await lockVotingEvent(prisma, eventId);
-          const liveEvent = await kv.getLiveEvent(eventId);
+          const liveEvent = await live.getLiveEvent(eventId, prisma);
           if (!liveEvent) throw notLiveError();
 
           const event = await prisma.event.findUniqueOrThrow({
             where: { id: eventId },
-            select: { livePhase: true },
+            select: { livePhase: true, config: true },
           });
+          if (!votingSettings(event.config).showResults) {
+            if (input.currentAwardId)
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "No Leaderboard events do not reveal winners.",
+              });
+            if (input.phase === live.EventPhase.Results)
+              input.phase = live.EventPhase.Recap;
+          }
           const previousPhase = event.livePhase ?? liveEvent.phase;
 
           if (
-            previousPhase === kv.EventPhase.Voting &&
-            input.phase === kv.EventPhase.Results
+            previousPhase === live.EventPhase.Voting &&
+            input.phase === live.EventPhase.Results
           ) {
             await assignAutomaticAwardWinners(prisma, eventId);
           }
@@ -346,7 +436,12 @@ export const eventRouter = createTRPCRouter({
         );
       }
 
-      const { eventId, isPitchNight } = input;
+      const { eventId } = input;
+      const testEvent = await db.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { config: true },
+      });
+      const settings = votingSettings(testEvent.config);
 
       // Test demo data from seed.ts
       const demosInfo = [
@@ -411,23 +506,21 @@ export const eventRouter = createTRPCRouter({
       const attendeesInfo = [
         {
           name: "Chappy Asel",
-          email: "chappy@aicollective.com",
           type: "Founder",
           linkedin: "https://linkedin.com/in/chappyasel",
         },
-        { name: "Tim Cook", email: "tim@apple.com", type: "Founder" },
-        { name: "Elon Musk", email: "elon@x.com", type: "Investor" },
-        { name: "Sam Altman", email: "sam@openai.com", type: "Founder" },
+        { name: "Tim Cook", type: "Founder" },
+        { name: "Elon Musk", type: "Investor" },
+        { name: "Sam Altman", type: "Founder" },
         {
           name: "Satya Nadella",
-          email: "satya@microsoft.com",
           type: "Founder",
         },
-        { name: "Sundar Pichai", email: "sundar@google.com", type: "Founder" },
-        { name: "Mark Zuckerberg", email: "mark@meta.com", type: "Founder" },
-        { name: "Jeff Bezos", email: "jeff@amazon.com", type: "Investor" },
-        { name: "Jensen Huang", email: "jensen@nvidia.com", type: "Founder" },
-        { name: "Marc Andreessen", email: "marc@a16z.com", type: "Investor" },
+        { name: "Sundar Pichai", type: "Founder" },
+        { name: "Mark Zuckerberg", type: "Founder" },
+        { name: "Jeff Bezos", type: "Investor" },
+        { name: "Jensen Huang", type: "Founder" },
+        { name: "Marc Andreessen", type: "Investor" },
       ];
 
       return db.$transaction(async (tx) => {
@@ -438,7 +531,6 @@ export const eventRouter = createTRPCRouter({
               data: {
                 id: `${eventId}-attendee-${index + 1}`,
                 name: attendee.name,
-                email: attendee.email,
                 type: attendee.type,
                 linkedin: attendee.linkedin,
                 events: { connect: { id: eventId } },
@@ -462,7 +554,6 @@ export const eventRouter = createTRPCRouter({
                 name: demoInfo.name,
                 description: demoInfo.description,
                 url: demoInfo.url,
-                email: `${demoInfo.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
               },
             }),
           ),
@@ -510,7 +601,23 @@ export const eventRouter = createTRPCRouter({
           orderBy: { index: "asc" },
         });
 
-        if (isPitchNight) {
+        if (settings.mode === "stickers") {
+          const award = awards.find(
+            (award) => award.id === stickerAwardId(awards),
+          );
+          if (award)
+            await tx.vote.createMany({
+              data: attendees.flatMap((attendee) =>
+                demos.slice(0, settings.budget).map((demo) => ({
+                  eventId,
+                  attendeeId: attendee.id,
+                  awardId: award.id,
+                  demoId: demo.id,
+                  amount: 1,
+                })),
+              ),
+            });
+        } else if (settings.weighted) {
           // Pitch Night: Create votes with investment amounts ($100k budget per attendee)
           const crowdFavoriteAward = awards.find((a) => a.votable);
           if (crowdFavoriteAward) {
@@ -597,28 +704,19 @@ export const eventRouter = createTRPCRouter({
         return { success: true };
       });
     }),
+  // Deleting the event also deletes its LiveEvent row (cascade)
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
-    return db.event
-      .delete({
-        where: { id: input },
-      })
-      .then(async () => {
-        const liveIds = await kv.getLiveEventIds();
-        if (liveIds.includes(input)) {
-          return db.$transaction(async (prisma) => {
-            await lockCurrentEventState(prisma);
-            await lockVotingEvent(prisma, input);
-            return kv.stopLiveEvent(input);
-          });
-        }
-      });
+    return db.event.delete({
+      where: { id: input },
+      select: { id: true },
+    });
   }),
 });
 
 async function projectLiveEventState(
   eventId: string,
   input: {
-    phase?: kv.EventPhase;
+    phase?: live.EventPhase;
     currentDemoId?: string | null;
     currentAwardId?: string | null;
   },
@@ -626,27 +724,32 @@ async function projectLiveEventState(
   return db.$transaction(async (prisma) => {
     await lockVotingEvent(prisma, eventId);
     const [liveEvent, event] = await Promise.all([
-      kv.getLiveEvent(eventId),
+      live.getLiveEvent(eventId, prisma),
       prisma.event.findUniqueOrThrow({
         where: { id: eventId },
-        select: { livePhase: true },
+        select: { livePhase: true, config: true },
       }),
     ]);
 
     if (!liveEvent) throw notLiveError();
+    if (input.currentAwardId && !votingSettings(event.config).showResults)
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "No Leaderboard events do not reveal winners.",
+      });
     if (input.phase !== undefined && event.livePhase !== input.phase) {
       return;
     }
 
-    return kv.updateLiveEventState(eventId, input);
+    return live.updateLiveEventState(eventId, input, prisma);
   });
 }
 
-// The database holds the durable phase and join code; KV holds the fast-moving
+// The Event row holds the durable phase and join code; LiveEvent holds the fast-moving
 // presentation state.
 async function withDurableState(
-  liveEvent: kv.CurrentEvent,
-): Promise<kv.CurrentEvent & { date?: Date }> {
+  liveEvent: live.CurrentEvent,
+): Promise<live.CurrentEvent & { date?: Date }> {
   const event = await db.event.findUnique({
     where: { id: liveEvent.id },
     select: { livePhase: true, joinCode: true, date: true },
@@ -656,8 +759,8 @@ async function withDurableState(
   const joinCode = event.joinCode ?? (await ensureJoinCode(liveEvent.id));
   const livePhase = event.livePhase;
   const phase =
-    livePhase !== null && kv.allPhases.includes(livePhase as kv.EventPhase)
-      ? (livePhase as kv.EventPhase)
+    livePhase !== null && live.allPhases.includes(livePhase as live.EventPhase)
+      ? (livePhase as live.EventPhase)
       : liveEvent.phase;
 
   return { ...liveEvent, phase, joinCode, date: event.date };
@@ -685,7 +788,7 @@ async function stopStaleLiveEvents(
   prisma: Prisma.TransactionClient,
   keepEventId: string,
 ) {
-  const otherIds = (await kv.getLiveEventIds()).filter(
+  const otherIds = (await live.getLiveEventIds(prisma)).filter(
     (id) => id !== keepEventId,
   );
   if (!otherIds.length) return;
@@ -699,7 +802,7 @@ async function stopStaleLiveEvents(
     const date = dates.get(id);
     if (!date || isBeyondCurrentEventWindow(date)) {
       await lockVotingEvent(prisma, id);
-      await kv.stopLiveEvent(id);
+      await live.stopLiveEvent(id, prisma);
     }
   }
 }
@@ -767,19 +870,34 @@ const completeEventSelect: Prisma.EventSelect = {
       index: true,
       name: true,
       description: true,
-      email: true,
       url: true,
       votable: true,
     },
   },
-  awards: { orderBy: { index: "asc" } },
+  awards: { orderBy: [{ index: "asc" }, { id: "asc" }] },
 };
 
-const readStoredLiveEvent = cache(kv.getLiveEvent);
+const readStoredLiveEvent = cache(live.getLiveEvent);
 
-const readCompleteEvent = cache(async (id: string) =>
-  db.event.findUnique({
+// Keep organiser records intact, but never expose retained winners publicly
+// for a No Leaderboard event (including historical recaps and Hall of Fame).
+function publicEvent(event: CompleteEvent): CompleteEvent {
+  event = { ...event, config: eventConfigSchema.parse(event.config) };
+  if (votingSettings(event.config).showResults) return event;
+  return {
+    ...event,
+    awards: event.awards.map((award) => ({
+      ...award,
+      winnerId: null,
+      winnerName: null,
+    })),
+  };
+}
+
+const readCompleteEvent = cache(async (id: string) => {
+  const event = await db.event.findUnique({
     where: { id },
     select: completeEventSelect,
-  }),
-);
+  });
+  return event ? publicEvent(event) : null;
+});

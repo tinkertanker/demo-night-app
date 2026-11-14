@@ -9,6 +9,9 @@ const config = {
   output: "standalone",
   experimental: {
     optimizePackageImports: ["lucide-react"],
+    // Let OpenNext resolve Prisma's workerd build (it loads its Wasm engine
+    // as a module rather than from disk)
+    serverComponentsExternalPackages: ["@prisma/client", ".prisma/client"],
   },
   redirects: async () => {
     const cities = ["sf", "nyc", "boston"];

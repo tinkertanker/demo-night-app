@@ -6,16 +6,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
-import {
-  getAwardWinner,
-  type AwardWinnerDisplay,
-} from "~/lib/awardWinner";
+import { type AwardWinnerDisplay, getAwardWinner } from "~/lib/awardWinner";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { type PublicDemo } from "~/server/api/routers/event";
 import { api } from "~/trpc/react";
 
 import { LogoConfetti } from "~/components/Confetti";
+import PostcardContent from "~/components/PostcardContent";
 import Sticker from "~/components/Sticker";
 
 import { useEventFeedback } from "./hooks/useEventFeedback";
@@ -45,13 +43,13 @@ export default function RecapWorkspace() {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      setAwardIndex((i) => (i + 1) % (event?.awards.length ?? 1));
+      setAwardIndex((i) => (i + 1) % (event?.awards.length || 1));
     }, 5000);
 
     return () => clearInterval(intervalId);
   }, [event?.awards.length]);
 
-  const award = event.awards[awardIndex]!;
+  const award = event.awards[awardIndex];
   const surveyUrl = config?.surveyUrl;
 
   return (
@@ -78,18 +76,20 @@ export default function RecapWorkspace() {
           placeholder={`What did you think? How can we make these events even better?`}
         />
       </div>
-      <div className="flex w-full flex-col gap-2">
-        <h2 className="w-full text-2xl font-bold">Award Winners 🏆</h2>
-        <div className="z-10 flex w-full flex-row">
-          <AnimatePresence initial={false} mode="wait">
-            <AwardWinnerItem
-              key={award.id}
-              award={award}
-              winner={getAwardWinner(award, event.demos)}
-            />
-          </AnimatePresence>
+      {votingSettings(config).showResults && award && (
+        <div className="flex w-full flex-col gap-2">
+          <h2 className="w-full text-2xl font-bold">Award Winners 🏆</h2>
+          <div className="z-10 flex w-full flex-row">
+            <AnimatePresence initial={false} mode="wait">
+              <AwardWinnerItem
+                key={award.id}
+                award={award}
+                winner={getAwardWinner(award, event.demos)}
+              />
+            </AnimatePresence>
+          </div>
         </div>
-      </div>
+      )}
       {config.partners.length > 0 && (
         <div className="flex w-full flex-col gap-2">
           <h2 className="w-full text-2xl font-bold">Hosts & Sponsors 🤝</h2>
@@ -194,12 +194,10 @@ function AwardWinnerItem({
 function PartnerItem({
   name,
   url,
-  email,
   description,
 }: {
   name: string;
   url: string;
-  email?: string;
   description: string;
 }) {
   return (
@@ -219,11 +217,6 @@ function PartnerItem({
             className="h-5 w-5 flex-none rounded-md bg-gray-300/50 p-[2px] text-gray-500 group-hover:bg-gray-400/50 group-hover:text-gray-700"
           />
         </div>
-        {email && (
-          <p className="flex-shrink-0 truncate text-gray-500">
-            📬 <span>{email}</span>
-          </p>
-        )}
       </div>
       <p className="italic leading-5 text-gray-700">{description}</p>
     </Link>
@@ -231,20 +224,10 @@ function PartnerItem({
 }
 
 function DemoItem({ demo }: { demo: PublicDemo }) {
-  const copyEmailToClipboard = () => {
-    if (!demo.email) return;
-    navigator.clipboard.writeText(demo.email);
-    toast.success("Email copied to clipboard!");
-  };
-
-  const hasEmail = Boolean(demo.email);
   const hasUrl = Boolean(demo.url);
 
   return (
-    <div
-      className={`group z-10 flex w-full flex-col gap-1 rounded-lg bg-gray-300/50 p-4 font-medium leading-6 shadow-xl backdrop-blur ${hasEmail ? "cursor-pointer" : ""}`}
-      onClick={hasEmail ? copyEmailToClipboard : undefined}
-    >
+    <div className="group z-10 flex w-full flex-col gap-1 rounded-lg bg-gray-300/50 p-4 font-medium leading-6 shadow-xl backdrop-blur">
       <div className="flex w-full items-center justify-between gap-2">
         {hasUrl ? (
           <Link
@@ -263,11 +246,6 @@ function DemoItem({ demo }: { demo: PublicDemo }) {
           </Link>
         ) : (
           <h3 className="line-clamp-1 text-xl font-bold">{demo.name}</h3>
-        )}
-        {hasEmail && (
-          <p className="flex-shrink-0 truncate text-gray-500">
-            📬 <span className="group-hover:underline">{demo.email}</span>
-          </p>
         )}
       </div>
       {demo.description && (
@@ -324,9 +302,7 @@ function FeedbackItem({
             <RatingSlider feedback={feedback} />
           </div>
         )}
-        {feedback.comment && (
-          <p className="italic leading-5 text-gray-700">{`"${feedback.comment}"`}</p>
-        )}
+        <PostcardContent feedback={feedback} />
       </Link>
     </div>
   );

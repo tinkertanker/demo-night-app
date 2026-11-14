@@ -1,6 +1,9 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { type Feedback, PrismaClient, SubmissionStatus } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 async function main() {
   await prisma.user.upsert({
@@ -80,7 +83,6 @@ async function main() {
     name: demo.name,
     description: demo.description,
     index: index,
-    email: `demo-${index + 1}@example.com`,
     url: demo.url,
   }));
 
@@ -89,7 +91,6 @@ async function main() {
     name: demo.name,
     tagline: demo.description.split(".")[0]?.trim() ?? demo.name,
     description: demo.description,
-    email: demo.email,
     url: demo.url,
     pocName: "Ada Lovelace",
     demoUrl: demo.url,
@@ -125,13 +126,11 @@ async function main() {
   const attendeesInfo = [
     {
       name: "Chappy Asel",
-      email: "chappy@aicollective.com",
       linkedin: "https://linkedin.com/in/chappyasel",
       type: "Founder",
     },
     {
       name: "Tim Cook",
-      email: "tim@apple.com",
     },
     {
       name: "Elon Musk",
@@ -142,7 +141,6 @@ async function main() {
   const attendees = attendeesInfo.map((attendee, index) => ({
     id: `attendee-${index + 1}`,
     name: attendee.name,
-    email: attendee.email,
     linkedin: attendee.linkedin,
     type: attendee.type,
   }));

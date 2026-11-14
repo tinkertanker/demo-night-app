@@ -26,30 +26,34 @@ install_tooling() {
     sudo npm install --global "yarn@$expected_yarn"
   fi
 
-  if ! command -v docker >/dev/null 2>&1; then
-    if ! command -v curl >/dev/null 2>&1; then
-      sudo apt-get update
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl
+  # Some orb images ship Docker without the Compose plugin, so check each
+  # piece separately instead of assuming a present `docker` means Compose too.
+  local packages=()
+  command -v docker >/dev/null 2>&1 \
+    || packages+=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin)
+  sudo docker compose version >/dev/null 2>&1 || packages+=(docker-compose-plugin)
+
+  if ((${#packages[@]})); then
+    if [[ ! -f /etc/apt/sources.list.d/docker.list ]]; then
+      if ! command -v curl >/dev/null 2>&1; then
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl
+      fi
+
+      sudo install -m 0755 -d /etc/apt/keyrings
+      sudo curl -fsSL https://download.docker.com/linux/debian/gpg \
+        -o /etc/apt/keyrings/docker.asc
+      sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+      local architecture codename
+      architecture="$(dpkg --print-architecture)"
+      codename="$(. /etc/os-release && printf '%s' "$VERSION_CODENAME")"
+      echo "deb [arch=$architecture signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $codename stable" \
+        | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
     fi
 
-    sudo install -m 0755 -d /etc/apt/keyrings
-    sudo curl -fsSL https://download.docker.com/linux/debian/gpg \
-      -o /etc/apt/keyrings/docker.asc
-    sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-    local architecture codename
-    architecture="$(dpkg --print-architecture)"
-    codename="$(. /etc/os-release && printf '%s' "$VERSION_CODENAME")"
-    echo "deb [arch=$architecture signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $codename stable" \
-      | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-
     sudo apt-get update
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      docker-ce \
-      docker-ce-cli \
-      containerd.io \
-      docker-buildx-plugin \
-      docker-compose-plugin
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
 
     # Amp supervises dockerd through .amp/services.yaml instead of relying on
     # an init process that may not survive an orb pause or executor restart.
@@ -82,7 +86,9 @@ install_dependencies() {
 }
 
 start_backing_services() {
-  amp orb services ensure
+  # Only the Docker daemon: the portal-backed web service needs a thread, so
+  # .agents/resume starts it with `amp orb services ensure`.
+  sudo docker info >/dev/null 2>&1 || amp orb service restart docker-daemon
 
   local attempt
   for attempt in {1..60}; do

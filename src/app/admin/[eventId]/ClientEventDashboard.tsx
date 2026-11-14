@@ -13,6 +13,7 @@ import AttendeesTab from "./components/Attendees/AttendeesTab";
 import { AwardsTab } from "./components/Awards/AwardsTab";
 import ControlCenterTab from "./components/ControlCenter/ControlCenterTab";
 import { DemosTab } from "./components/Demos/DemosTab";
+import LiveUpdatesPaused from "~/components/LiveUpdatesPaused";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 
 import { type AdminEvent, DashboardContext } from "./contexts/DashboardContext";
@@ -89,6 +90,7 @@ export function ClientEventDashboard({
           <SidebarInset className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:p-4">
             {dashboard()}
           </SidebarInset>
+          {currentEvent && <LiveUpdatesPaused />}
         </div>
       </SidebarProvider>
     </DashboardContext.Provider>

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { awardHasWinner } from "~/lib/awardWinner";
 import { EventPhase, displayName } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -77,7 +78,12 @@ export default function ControlCenterTab({
         }
         break;
       case EventPhase.Voting:
+        if (!votingSettings(eventConfig).showResults) {
+          setSuggestedPhase(EventPhase.Recap);
+          return;
+        }
         if (
+          votingSettings(eventConfig).categories ||
           event?.awards.every(
             (award) => award.winnerRank !== null || awardHasWinner(award),
           )
@@ -96,7 +102,7 @@ export default function ControlCenterTab({
         setSuggestedPhase(null);
     }
     setSuggestedPhase(null);
-  }, [currentEvent, event?.demos, event?.awards]);
+  }, [currentEvent, event?.demos, event?.awards, eventConfig]);
 
   if (!event) return null;
 
@@ -115,16 +121,32 @@ export default function ControlCenterTab({
           <SidebarTrigger className="size-11 shrink-0 md:hidden" />
           {isLive && currentEvent ? (
             <div className="flex min-w-0 flex-1 gap-1 md:justify-between md:gap-1.5">
-              {phaseConfigs.map((config) => (
-                <PhaseButton
-                  key={config.phase}
-                  config={config}
-                  currentPhase={currentEvent.phase}
-                  suggestedPhase={suggestedPhase}
-                  isPitchNight={isPitchNight}
-                  onPhaseSelect={() => setPhase(config.phase)}
-                />
-              ))}
+              {phaseConfigs
+                .filter(
+                  (config) =>
+                    votingSettings(eventConfig).showResults ||
+                    config.phase !== EventPhase.Results,
+                )
+                .map((config) => (
+                  <PhaseButton
+                    key={config.phase}
+                    config={
+                      !votingSettings(eventConfig).showResults &&
+                      config.phase === EventPhase.Recap
+                        ? {
+                            ...config,
+                            warningPhase: undefined,
+                            suggestedDescription:
+                              "Finish voting and share the event recap, without revealing winners.",
+                          }
+                        : config
+                    }
+                    currentPhase={currentEvent.phase}
+                    suggestedPhase={suggestedPhase}
+                    isPitchNight={isPitchNight}
+                    onPhaseSelect={() => setPhase(config.phase)}
+                  />
+                ))}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground md:hidden">
@@ -159,7 +181,12 @@ function PhaseButton({
   isPitchNight,
   onPhaseSelect,
 }: PhaseButtonProps) {
-  const label = displayName(config.phase, isPitchNight);
+  const { event } = useDashboardContext();
+  const label = displayName(
+    config.phase,
+    isPitchNight,
+    votingSettings(event?.config).financial,
+  );
   const tooltipContent = useMemo(() => {
     if (suggestedPhase === config.phase) {
       return (
@@ -203,7 +230,11 @@ function PhaseButton({
             <config.icon className="size-4 shrink-0" />
             <span className="hidden truncate md:inline">{label}</span>
             <span className="max-w-full truncate text-[10px] leading-none md:hidden">
-              {shortPhaseLabel(config.phase, isPitchNight)}
+              {shortPhaseLabel(
+                config.phase,
+                isPitchNight,
+                votingSettings(event?.config).financial,
+              )}
             </span>
           </div>
         </Button>
@@ -213,14 +244,18 @@ function PhaseButton({
   );
 }
 
-function shortPhaseLabel(phase: EventPhase, isPitchNight: boolean): string {
+function shortPhaseLabel(
+  phase: EventPhase,
+  isPitchNight: boolean,
+  financial: boolean,
+): string {
   switch (phase) {
     case EventPhase.Pre:
       return "Pre";
     case EventPhase.Demos:
       return isPitchNight ? "Pitch" : "Demo";
     case EventPhase.Voting:
-      return isPitchNight ? "Invest" : "Vote";
+      return financial ? "Invest" : "Vote";
     case EventPhase.Results:
       return "Results";
     case EventPhase.Recap:

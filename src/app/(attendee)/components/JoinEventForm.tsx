@@ -25,6 +25,7 @@ export default function JoinEventForm({
   const router = useRouter();
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
+  const [tooShort, setTooShort] = useState(false);
   const [isRechecking, startRecheck] = useTransition();
   const [lastCode, setLastCode] = useState<string | null>(null);
 
@@ -47,7 +48,10 @@ export default function JoinEventForm({
         className="flex w-full flex-col items-center gap-4 font-medium"
         onSubmit={(e) => {
           e.preventDefault();
-          if (joinCode.length !== JOIN_CODE_LENGTH) return;
+          if (joinCode.length !== JOIN_CODE_LENGTH) {
+            setTooShort(true);
+            return;
+          }
           // Same code as the failed one: the event may have gone live since,
           // so re-render this page rather than navigating to itself.
           if (joinCode === invalidCode) {
@@ -65,10 +69,16 @@ export default function JoinEventForm({
           <input
             type="text"
             value={code}
-            onChange={(e) =>
-              setCode(e.target.value.replace(/[^a-z0-9]/gi, "").toUpperCase())
-            }
-            maxLength={JOIN_CODE_LENGTH}
+            // Trim after stripping, so a pasted " qad2 " keeps all 4 characters
+            onChange={(e) => {
+              setCode(
+                e.target.value
+                  .replace(/[^a-z0-9]/gi, "")
+                  .toUpperCase()
+                  .slice(0, JOIN_CODE_LENGTH),
+              );
+              setTooShort(false);
+            }}
             autoCapitalize="characters"
             autoComplete="off"
             autoCorrect="off"
@@ -78,8 +88,16 @@ export default function JoinEventForm({
             className="z-30 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-center font-mono text-3xl font-bold uppercase tracking-[0.4em] backdrop-blur placeholder:text-gray-300"
           />
         </label>
-        {invalidCode && (
-          <p className="text-center text-sm font-semibold text-red-600">
+        {tooShort && (
+          <p
+            role="alert"
+            className="text-center text-sm font-semibold text-red-600"
+          >
+            Event codes have {JOIN_CODE_LENGTH} letters or numbers.
+          </p>
+        )}
+        {invalidCode && !tooShort && (
+          <p className="break-all text-center text-sm font-semibold text-red-600">
             No live event with code {invalidCode}. Check the code on screen and
             try again.
           </p>

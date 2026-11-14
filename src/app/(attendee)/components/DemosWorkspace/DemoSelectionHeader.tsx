@@ -42,7 +42,7 @@ export function DemoSelectionHeader({
 
   return (
     <>
-      <div className="fixed z-20 w-full max-w-xl select-none px-4">
+      <div className="sticky top-20 z-20 w-full max-w-xl select-none px-4">
         <div
           onClick={toggleExpand}
           className={cn(
@@ -50,7 +50,9 @@ export function DemoSelectionHeader({
             selectedDemo?.id === currentDemoId
               ? "border-primary/40 bg-primary/10"
               : "border-primary/30 bg-primary/5",
-            isExpanded ? "border-transparent bg-black/40 hover:bg-black/50" : "",
+            isExpanded
+              ? "border-transparent bg-black/40 hover:bg-black/50"
+              : "",
           )}
         >
           <motion.div
@@ -73,7 +75,7 @@ export function DemoSelectionHeader({
                 <p className="line-clamp-1">
                   {selectedDemo?.name ?? ""}
                   <span className="font-bold text-primary-dark">
-                    {selectedDemo?.id !== currentDemoId
+                    {currentDemoId && selectedDemo?.id !== currentDemoId
                       ? " (NOT current!)"
                       : ""}
                   </span>

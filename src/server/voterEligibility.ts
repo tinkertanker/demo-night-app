@@ -55,7 +55,7 @@ export async function assertVoterCanVote(
   if (eligibility.nameRequired) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Please enter your name before investing",
+      message: "Please enter your name before voting",
     });
   }
 }

@@ -1,13 +1,16 @@
+import { votingSettings } from "~/lib/types/eventConfig";
 import { type DemoStats as Stats } from "~/server/api/routers/demo";
 
 export default function DemoStats({
   stats,
-  isPitchNight,
+  config,
 }: {
   stats: Stats;
-  isPitchNight: boolean;
+  config: unknown;
 }) {
-  const showMoneyRaised = isPitchNight && stats.totalMoneyRaised > 0;
+  const settings = votingSettings(config);
+  const showMoneyRaised =
+    settings.showResults && settings.weighted && stats.totalMoneyRaised > 0;
 
   return (
     <div className="z-10 flex w-full flex-col gap-4">
@@ -16,10 +19,10 @@ export default function DemoStats({
         <div className="flex w-full flex-row gap-2 rounded-lg bg-gray-300/50 p-2 shadow-xl backdrop-blur">
           <div className="flex basis-full flex-col items-center justify-center rounded-lg bg-white/50 py-2">
             <p className="line-clamp-1 text-sm font-bold text-gray-500">
-              💸 Money Raised
+              {settings.financial ? "💸 Money Raised" : "Total support"}
             </p>
             <p className="line-clamp-1 text-xl font-bold">
-              ${stats.totalMoneyRaised.toLocaleString()}
+              {settings.format(stats.totalMoneyRaised)}
             </p>
           </div>
         </div>

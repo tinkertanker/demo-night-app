@@ -7,11 +7,10 @@
  * need to use are documented accordingly near the end.
  */
 import { TRPCError, initTRPC } from "@trpc/server";
+import { type Session } from "next-auth";
 import superjson from "superjson";
 import { type OpenApiMeta } from "trpc-to-openapi";
 import { ZodError } from "zod";
-
-import { type Session } from "next-auth";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
@@ -23,9 +22,7 @@ async function sessionFromCookieHeader(
   const match =
     /(?:^|;\s*)__Secure-next-auth\.session-token\.v2=([^;]+)/.exec(cookie) ??
     /(?:^|;\s*)next-auth\.session-token\.v2=([^;]+)/.exec(cookie);
-  const sessionToken = match?.[1]
-    ? decodeURIComponent(match[1])
-    : undefined;
+  const sessionToken = match?.[1] ? decodeURIComponent(match[1]) : undefined;
   if (!sessionToken) return null;
 
   const dbSession = await db.session.findUnique({
@@ -124,10 +121,10 @@ export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 
 /**
- * Protected (authenticated) procedure
+ * Protected (administrator) procedure
  *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
+ * Requires a valid session and current administrator membership, including for
+ * sessions issued before an administrator was removed.
  *
  * @see https://trpc.io/docs/procedures
  */
@@ -138,6 +135,13 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     (await sessionFromCookieHeader(ctx.headers));
   if (!session || !session.user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  const email = session.user.email?.toLowerCase();
+  const admin = email
+    ? await ctx.db.admin.findUnique({ where: { email } })
+    : null;
+  if (!admin) {
+    throw new TRPCError({ code: "FORBIDDEN" });
   }
   return next({
     ctx: {

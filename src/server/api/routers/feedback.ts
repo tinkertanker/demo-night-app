@@ -1,6 +1,7 @@
 import { type Feedback } from "@prisma/client";
 import { z } from "zod";
 
+import { postcardFields } from "~/lib/postcards";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -41,11 +42,27 @@ export const feedbackRouter = createTRPCRouter({
         cheers: z.number().min(0).optional(),
         confetti: z.number().min(0).optional(),
         comment: z.string().optional().nullable(),
+        ...postcardFields,
       }),
     )
     .mutation(async ({ input }) => {
       try {
-        return db.feedback.upsert({
+        const [demo, attendee] = await Promise.all([
+          db.demo.findFirst({
+            where: { id: input.demoId, eventId: input.eventId },
+            select: { id: true },
+          }),
+          db.attendee.findFirst({
+            where: {
+              id: input.attendeeId,
+              events: { some: { id: input.eventId } },
+            },
+            select: { id: true },
+          }),
+        ]);
+        if (!demo || !attendee)
+          throw new Error("Feedback does not belong to this event");
+        return await db.feedback.upsert({
           where: {
             eventId_attendeeId_demoId: {
               eventId: input.eventId,

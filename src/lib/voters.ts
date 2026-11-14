@@ -3,7 +3,8 @@ import { z } from "zod";
 export const attendeeNameSchema = z
   .string()
   .trim()
-  .min(1, "Please enter your name");
+  .min(1, "Please enter your name")
+  .max(100, "Please use a shorter name");
 
 export function duplicateVoterIds(
   voters: { id: string; name: string | null }[],
@@ -16,7 +17,9 @@ export function duplicateVoterIds(
       .replace(/\s+/g, " ")
       .toLowerCase();
     if (!name) continue;
-    idsByName.set(name, [...(idsByName.get(name) ?? []), voter.id]);
+    const ids = idsByName.get(name);
+    if (ids) ids.push(voter.id);
+    else idsByName.set(name, [voter.id]);
   }
   return new Set(
     [...idsByName.values()].filter((ids) => ids.length > 1).flat(),

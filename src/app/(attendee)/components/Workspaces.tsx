@@ -5,13 +5,13 @@ import { useAttendee } from "../hooks/useAttendee";
 import useEventSync from "../hooks/useEventSync";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { UpdateAttendeeForm } from "~/app/(attendee)/components/UpdateAttendee";
 
 import { animationVariants } from "~/lib/animation";
 import { type CurrentEvent, EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig, eventConfigSchema } from "~/lib/types/eventConfig";
 
 import Button from "~/components/Button";
+import LiveUpdatesPaused from "~/components/LiveUpdatesPaused";
 import LoadingScreen from "~/components/loading/LoadingScreen";
 
 import DemosWorkspace from "./DemosWorkspace";
@@ -21,6 +21,7 @@ import PreWorkspace from "./PreWorkspace";
 import RecapWorkspace from "./RecapWorkspace";
 import ResultsWorkspace from "./ResultsWorkspace";
 import VotingWorkspace from "./VotingWorkspace";
+import { UpdateAttendeeForm } from "~/app/(attendee)/components/UpdateAttendee";
 
 export default function Workspaces({
   currentEvent: initialCurrentEvent,
@@ -94,8 +95,7 @@ export default function Workspaces({
         if (!event) return <LoadingScreen />;
         return <ResultsWorkspace />;
       case EventPhase.Recap:
-        if (!event || !event.awards.length || !event.demos.length)
-          return <LoadingScreen />;
+        if (!event || !event.demos.length) return <LoadingScreen />;
         return <RecapWorkspace />;
     }
   }
@@ -107,6 +107,7 @@ export default function Workspaces({
       value={{ currentEvent, event, attendee, setAttendee, config }}
     >
       <EventHeader />
+      <LiveUpdatesPaused />
       <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           key={currentEvent?.phase}

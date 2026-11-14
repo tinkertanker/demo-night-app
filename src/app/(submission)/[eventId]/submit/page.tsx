@@ -109,7 +109,7 @@ function SubmitDemoMessagePage({
 }) {
   const title = success ? "Submission successful! 🥳" : "Submissions closed 😬";
   const message = success
-    ? "Your submission has been received. Expect to hear from us a few days before the event!"
+    ? "Your submission has been received. Check the event page for updates!"
     : "Oof. Sorry, but the buzzer has already sounded!";
 
   return (

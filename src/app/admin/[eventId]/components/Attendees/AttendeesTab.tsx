@@ -120,11 +120,7 @@ export default function AttendeesTab() {
     (attendee) =>
       (attendee.name?.toLowerCase() ?? "").includes(
         searchFilter.toLowerCase(),
-      ) ||
-      (attendee.email?.toLowerCase() ?? "").includes(
-        searchFilter.toLowerCase(),
-      ) ||
-      attendee.type?.toLowerCase().includes(searchFilter.toLowerCase()),
+      ) || attendee.type?.toLowerCase().includes(searchFilter.toLowerCase()),
   );
 
   const stats = useMemo(() => {
@@ -153,7 +149,7 @@ export default function AttendeesTab() {
           <h2 className="text-2xl font-semibold">Attendees</h2>
         </div>
         <Input
-          placeholder="Search by name, type, or email..."
+          placeholder="Search by name or type..."
           value={searchFilter}
           onChange={(e) => setSearchFilter(e.target.value)}
           className="max-w-xs"
@@ -187,7 +183,6 @@ export default function AttendeesTab() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>Email</TableHead>
               <TableHead className="text-center">Survey</TableHead>
               <TableHead className="text-center">Feedback</TableHead>
               <TableHead className="text-center">Votes</TableHead>
@@ -199,7 +194,7 @@ export default function AttendeesTab() {
               {isLoading ? (
                 <TableRow>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="h-24 text-center italic text-muted-foreground/50"
                   >
                     Loading attendees...
@@ -208,7 +203,7 @@ export default function AttendeesTab() {
               ) : !filteredAttendees || filteredAttendees.length === 0 ? (
                 <TableRow>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="h-24 text-center italic text-muted-foreground/50"
                   >
                     No attendees (yet!)
@@ -228,9 +223,6 @@ export default function AttendeesTab() {
                     </TableCell>
                     <TableCell>
                       <AttendeeTypeBadge type={attendee.type} />
-                    </TableCell>
-                    <TableCell>
-                      <span className="line-clamp-1">{attendee.email}</span>
                     </TableCell>
                     <TableCell className="text-center">
                       {attendee.eventFeedback[0]?.surveyOpened ? (

@@ -1,9 +1,11 @@
+import { useWorkspaceContext } from "../../contexts/WorkspaceContext";
 import { type FeedbackByDemoId } from "../DemosWorkspace/hooks/useFeedback";
 import { type Award } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
-import { CircleCheck, Expand } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { ChevronDown, CircleCheck } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { votingSettings } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { type PublicDemo } from "~/server/api/routers/event";
 
@@ -25,29 +27,70 @@ export default function AwardVoteSelect({
   feedbackByDemoId: FeedbackByDemoId;
 }) {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const { config } = useWorkspaceContext();
 
   const vote = votes[award.id];
   const selectedDemo = demos.find((d) => d.id === vote?.demoId);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const firstChoiceRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const toggleExpand = () => setIsExpanded(!isExpanded);
-
-  const onKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      setIsExpanded(false);
-    }
+  const close = useCallback(() => {
+    setIsExpanded(false);
+    triggerRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (isExpanded) firstChoiceRef.current?.focus();
+  }, [isExpanded]);
+
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isExpanded) return;
+      if (e.key === "Escape") close();
+      // Keep Tab and Shift+Tab inside the open dialog.
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = Array.from(
+          dialogRef.current.querySelectorAll<HTMLElement>(
+            'button, [tabindex="0"]',
+          ),
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!first || !last) return;
+        const inside = dialogRef.current.contains(document.activeElement);
+        if (e.shiftKey && (document.activeElement === first || !inside)) {
+          e.preventDefault();
+          last.focus();
+        } else if (
+          !e.shiftKey &&
+          (document.activeElement === last || !inside)
+        ) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    },
+    [isExpanded, close],
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onKeyDown]);
 
-  const voteDemoIds = Object.values(votes).map((v) => v.demoId);
+  const voteDemoIds = votingSettings(config).categories
+    ? []
+    : Object.values(votes).map((v) => v.demoId);
   const votableDemos = demos.filter((demo) => demo.votable);
 
   return (
     <>
-      <div
+      <button
+        ref={triggerRef}
+        type="button"
         onClick={toggleExpand}
+        aria-haspopup="dialog"
         className={cn(
           "flex w-full cursor-pointer flex-row items-center justify-between rounded-lg border px-4 py-3 text-center text-lg font-semibold shadow-md backdrop-blur transition-all duration-300 ease-in-out",
           vote?.demoId
@@ -65,8 +108,8 @@ export default function AwardVoteSelect({
         >
           <p>{selectedDemo?.name ?? "Pick your winner..."}</p>
         </motion.div>
-        <Expand size={22} strokeWidth={2.25} color={"black"} />
-      </div>
+        <ChevronDown size={24} strokeWidth={2.25} color={"black"} />
+      </button>
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -74,7 +117,11 @@ export default function AwardVoteSelect({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[15] h-full w-full bg-black/30 backdrop-blur"
-            onClick={() => setIsExpanded(false)}
+            ref={dialogRef}
+            onClick={close}
+            role="dialog"
+            aria-modal="true"
+            aria-label={award.name}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.5, y: "50%" }}
@@ -87,7 +134,7 @@ export default function AwardVoteSelect({
                   className="left-0 z-20 m-auto flex w-full max-w-xl flex-col rounded-lg bg-black/60 px-4 pb-2 pt-3 shadow-xl backdrop-blur-lg"
                   onClick={() => {
                     onSelect(award.id, null);
-                    setIsExpanded(false);
+                    close();
                   }}
                 >
                   <h1 className="text-2xl font-bold text-white">
@@ -97,20 +144,42 @@ export default function AwardVoteSelect({
                     {award.description}
                   </p>
                 </div>
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <p className="text-base font-semibold text-white">
+                    Tap to vote.
+                  </p>
+                  <button
+                    type="button"
+                    className="rounded-lg bg-white px-4 py-2 font-semibold"
+                    onClick={close}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
               <div className="left-0 z-20 flex max-h-[calc(100vh-4rem)] w-full flex-col gap-2 overflow-y-auto p-4 pb-[60vh]">
-                {votableDemos.map((demo) => (
+                {votableDemos.map((demo, i) => (
                   <motion.div
+                    ref={i === 0 ? firstChoiceRef : undefined}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={vote?.demoId === demo.id}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      onSelect(award.id, demo.id);
+                      close();
+                    }}
                     initial={{ opacity: 0, y: -(demo.index + 1) * 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -(demo.index + 1) * 30 }}
                     key={demo.id}
                     onClick={() => {
                       onSelect(award.id, demo.id);
-                      setIsExpanded(false);
+                      close();
                     }}
                     className={cn(
-                      "flex cursor-pointer flex-row items-center justify-between gap-2 rounded-lg border border-black/5 bg-white/90 px-4 py-3 text-lg font-semibold shadow-md backdrop-blur-lg hover:bg-secondary focus:outline-none",
+                      "flex cursor-pointer flex-row items-center justify-between gap-2 rounded-lg border border-black/5 bg-white/90 px-4 py-3 text-lg font-semibold shadow-md backdrop-blur-lg hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                       voteDemoIds.includes(demo.id) &&
                         "bg-gray-100/90 text-muted-foreground",
                       vote?.demoId === demo.id &&

@@ -23,6 +23,9 @@ export default function RatingSlider({
     <Slider
       min={1}
       max={5}
+      ariaLabelledByForHandle={setFeedback ? "rating-prompt" : undefined}
+      // Read-only previews (award picker) must not be a tab stop.
+      tabIndex={setFeedback ? 0 : -1}
       marks={RATING_EMOJIS}
       // @ts-ignore
       value={feedback?.rating}

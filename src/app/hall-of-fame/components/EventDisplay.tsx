@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { awardHasWinner } from "~/lib/awardWinner";
 import { formatSingaporeDate } from "~/lib/singaporeDate";
-import { eventConfigSchema } from "~/lib/types/eventConfig";
+import { eventConfigSchema, votingSettings } from "~/lib/types/eventConfig";
 import type { CompleteEvent } from "~/server/api/routers/event";
 
 import AwardWinnerItem from "./AwardWinnerItem";
@@ -58,7 +58,10 @@ export default function EventDisplay({ events }: EventDisplayProps) {
       </div>
       <div className="flex w-full flex-col gap-8 pt-4">
         {selectedEvent.awards
-          .filter((award) => awardHasWinner(award))
+          .filter(
+            (award) =>
+              votingSettings(config).showResults && awardHasWinner(award),
+          )
           .map((award) => (
             <AwardWinnerItem
               key={award.id}

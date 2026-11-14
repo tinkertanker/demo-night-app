@@ -3,6 +3,7 @@ import InfoButton from "../InfoButton";
 import { ChevronRight } from "lucide-react";
 
 import { awardHasWinner, getAwardWinner } from "~/lib/awardWinner";
+import { votingSettings } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -14,6 +15,12 @@ export default function ResultsDashboard() {
     return null;
   }
 
+  if (!votingSettings(event.config).showResults)
+    return (
+      <p className="p-4">
+        No Leaderboard: share postcards and the recap, without public winners.
+      </p>
+    );
   if (event.awards.some((a) => !awardHasWinner(a))) {
     return (
       <div className="flex size-full flex-1 flex-col items-center justify-center gap-2 rounded-lg bg-gray-100 p-4">

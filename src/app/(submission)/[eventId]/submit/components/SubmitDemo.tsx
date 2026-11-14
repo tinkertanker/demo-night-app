@@ -1,9 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { getBrandingClient } from "~/lib/branding";
+import { addSingaporeDays, formatEventDate } from "~/lib/singaporeDate";
+import {
+  DESCRIPTION_MAX_LENGTH,
+  submissionInputSchema,
+  withWebScheme,
+} from "~/lib/submission";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { TAGLINE_MAX_LENGTH } from "~/lib/types/taglineMaxLength";
 import { cn } from "~/lib/utils";
@@ -18,6 +25,23 @@ const DEMO_GUIDELINES_URL =
   "https://theaicollective.notion.site/demo-night-guidelines";
 const PITCH_GUIDELINES_URL =
   "https://theaicollective.notion.site/pitch-night-guidelines";
+
+const emptyForm = {
+  id: "",
+  name: "",
+  tagline: "",
+  description: "",
+  url: "",
+  pocName: "",
+  demoUrl: "",
+};
+
+// Storage can be blocked or full; a draft must never break editing or submit.
+function bestEffort(write: () => void) {
+  try {
+    write();
+  } catch {}
+}
 
 export default function SubmitDemoPage({ event }: { event: CompleteEvent }) {
   return (
@@ -45,40 +69,90 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
     handleSubmit,
     formState: { errors },
     watch,
-  } = useForm({
-    values: {
-      name: "",
-      tagline: "",
-      description: "",
-      email: "",
-      url: "",
-      pocName: "",
-      demoUrl: "",
-    },
-  });
+    setError,
+    reset,
+  } = useForm({ defaultValues: emptyForm });
+
+  // Keep a draft on this device so a reload does not lose what was typed.
+  const draftKey = `submissionDraft:${event.id}`;
+  useEffect(() => {
+    const values = { ...emptyForm, id: crypto.randomUUID() };
+    try {
+      const draft = localStorage.getItem(draftKey);
+      if (draft) {
+        const stored: unknown = JSON.parse(draft);
+        if (stored && typeof stored === "object") {
+          for (const key of Object.keys(
+            emptyForm,
+          ) as (keyof typeof emptyForm)[]) {
+            const value: unknown = Reflect.get(stored, key);
+            if (typeof value === "string") values[key] = value;
+          }
+        }
+      }
+    } catch {
+      bestEffort(() => localStorage.removeItem(draftKey));
+    }
+    if (!submissionInputSchema.shape.id.safeParse(values.id).success)
+      values.id = crypto.randomUUID();
+    reset(values);
+    bestEffort(() => localStorage.setItem(draftKey, JSON.stringify(values)));
+    const subscription = watch((values) =>
+      bestEffort(() => localStorage.setItem(draftKey, JSON.stringify(values))),
+    );
+    return () => subscription.unsubscribe();
+  }, [draftKey, reset, watch]);
+  const descriptionLength = watch("description")?.trim().length ?? 0;
 
   return (
     <form
       onSubmit={handleSubmit(async (data) => {
+        const received = () => {
+          bestEffort(() => localStorage.removeItem(draftKey));
+          toast.success(
+            `Successfully submitted ${branding.isPitchNight ? "pitch" : "demo"}!`,
+          );
+          window.location.href = `${window.location.pathname}?success=true`;
+        };
         await createMutation
           .mutateAsync({
+            id: data.id,
             eventId: event.id,
             name: data.name,
             tagline: data.tagline,
             description: data.description,
-            email: data.email,
-            url: data.url,
+            url: withWebScheme(data.url),
             pocName: data.pocName,
-            demoUrl: data.demoUrl,
+            demoUrl: withWebScheme(data.demoUrl),
           })
-          .then(() => {
-            toast.success(
-              `Successfully submitted ${branding.isPitchNight ? "pitch" : "demo"}!`,
-            );
-            window.location.href = `${window.location.pathname}?success=true`;
-          })
-          .catch((error) => {
-            toast.error(error.message);
+          .then(received)
+          .catch((error: { message: string; data?: unknown }) => {
+            const details = error.data as {
+              code?: string;
+              zodError?: { fieldErrors?: Record<string, string[]> };
+            } | null;
+            // A retry can arrive after the original response was lost.
+            if (details?.code === "CONFLICT") {
+              received();
+              return;
+            }
+            // Show server validation next to the field instead of raw JSON.
+            const fieldErrors = details?.zodError?.fieldErrors;
+            const fields = Object.entries(fieldErrors ?? {});
+            if (fields.length) {
+              for (const [field, messages] of fields) {
+                setError(field as keyof typeof data, {
+                  message: messages[0],
+                });
+              }
+              toast.error("Please fix the highlighted fields.");
+            } else {
+              toast.error(
+                error.message.startsWith("[")
+                  ? "Something went wrong. Please check the form and try again."
+                  : error.message,
+              );
+            }
           });
       })}
       className="flex w-full flex-col items-center gap-4 font-medium"
@@ -92,7 +166,8 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
         </h1>
         <p className="text-md max-w-xl pt-2 text-center font-medium leading-5 text-gray-500">
           We are so excited to see what you&apos;ve been building! Submissions
-          close the Saturday before the event at 11:59pm.{" "}
+          close at 11:59pm Singapore time on{" "}
+          {formatEventDate(addSingaporeDays(event.date, -1))}.{" "}
           {event.url && (
             <>
               For more info, see our{" "}
@@ -112,9 +187,7 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
           Please read our{" "}
           <a
             href={
-              branding.isPitchNight
-                ? PITCH_GUIDELINES_URL
-                : DEMO_GUIDELINES_URL
+              branding.isPitchNight ? PITCH_GUIDELINES_URL : DEMO_GUIDELINES_URL
             }
             className="text-blue-500 underline"
             target="_blank"
@@ -134,7 +207,11 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
             placeholder="The AI Collective"
             {...register("name", {
               required: `${branding.isPitchNight ? "Startup" : "Startup / demo"} name is required`,
+              validate: (value) =>
+                !!value.trim() ||
+                `${branding.isPitchNight ? "Startup" : "Startup / demo"} name is required`,
             })}
+            maxLength={100}
             className={cn(
               "z-10 rounded-lg border-2 bg-white/60 p-2 text-lg backdrop-blur",
               errors.name ? "border-red-500" : "border-gray-200",
@@ -151,10 +228,16 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
               : "Demo / Startup Website"}
           </span>
           <input
-            type="url"
-            placeholder="https://aicollective.com"
+            type="text"
+            inputMode="url"
+            autoComplete="url"
+            placeholder="aicollective.com"
             {...register("url", {
               required: `${branding.isPitchNight ? "Startup" : "Startup / demo"} website is required`,
+              validate: (value) =>
+                submissionInputSchema.shape.url.safeParse(withWebScheme(value))
+                  .success ||
+                "Please enter a website address, like aicollective.com",
             })}
             className={cn(
               "z-10 rounded-lg border-2 bg-white/60 p-2 text-lg backdrop-blur",
@@ -172,30 +255,16 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
           <input
             type="text"
             placeholder="Ada Lovelace"
+            autoComplete="name"
+            maxLength={100}
             {...register("pocName", {
-              required: "Point of contact name is required",
+              required: "Your name is required",
+              validate: (value) => !!value.trim() || "Your name is required",
             })}
             className={`z-10 rounded-lg border-2 p-2 text-lg backdrop-blur ${errors.pocName ? "border-red-500" : "border-gray-200 bg-white/60"}`}
           />
           {errors.pocName && (
             <span className="text-red-500">{errors.pocName.message}</span>
-          )}
-        </label>
-        <label className="flex w-full flex-col gap-1">
-          <span className="text-lg font-semibold">Your Email</span>
-          <input
-            type="email"
-            placeholder="ada@aicollective.com"
-            {...register("email", {
-              required: "Point of contact email is required",
-            })}
-            className={cn(
-              "z-10 rounded-lg border-2 bg-white/60 p-2 text-lg backdrop-blur",
-              errors.email ? "border-red-500" : "border-gray-200",
-            )}
-          />
-          {errors.email && (
-            <span className="text-red-500">{errors.email.message}</span>
           )}
         </label>
       </div>
@@ -224,6 +293,7 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
           placeholder="Building a global community of the brightest minds in AI to discuss, exchange, and innovate."
           {...register("tagline", {
             required: "Tagline is required",
+            validate: (value) => !!value.trim() || "Tagline is required",
             maxLength: {
               value: TAGLINE_MAX_LENGTH,
               message: `Tagline must be ${TAGLINE_MAX_LENGTH} characters or less`,
@@ -240,11 +310,23 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
         )}
       </label>
       <label className="flex w-full flex-col gap-1">
-        <span className="text-lg font-semibold">
-          {branding.isPitchNight
-            ? "Pitch Description 🧑‍💻"
-            : "Demo Description 🧑‍💻"}
-        </span>
+        <div className="flex w-full flex-row items-center justify-start gap-1 font-semibold">
+          <span className="text-lg">
+            {branding.isPitchNight
+              ? "Pitch Description 🧑‍💻"
+              : "Demo Description 🧑‍💻"}
+          </span>
+          <span
+            className={cn(
+              "text-sm italic",
+              descriptionLength > DESCRIPTION_MAX_LENGTH
+                ? "text-red-500"
+                : "text-gray-400",
+            )}
+          >
+            {`(${descriptionLength} / ${DESCRIPTION_MAX_LENGTH})`}
+          </span>
+        </div>
         <span className="italic text-gray-400">
           {branding.isPitchNight
             ? "What does your startup do? What will you pitch during your five minutes? What feedback would you like from investors and the community?"
@@ -254,6 +336,13 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
           placeholder="Tell us more!"
           {...register("description", {
             required: `${branding.isPitchNight ? "Pitch" : "Demo"} description is required`,
+            // Checked here instead of a maxLength attribute, which silently
+            // cuts pasted text. Trimmed, like the server checks it.
+            validate: (value) =>
+              !value.trim()
+                ? `${branding.isPitchNight ? "Pitch" : "Demo"} description is required`
+                : value.trim().length <= DESCRIPTION_MAX_LENGTH ||
+                  `Please keep this under ${DESCRIPTION_MAX_LENGTH} characters`,
           })}
           className={cn(
             "z-30 max-h-96 min-h-24 rounded-lg border-2 bg-white/60 p-2 text-lg backdrop-blur",
@@ -275,15 +364,35 @@ export function SubmitDemoForm({ event }: { event: CompleteEvent }) {
         <span className="italic text-gray-400">
           {branding.isPitchNight
             ? "Have a link that showcases your startup? (e.g., pitch deck, demo video, website)"
-            : "Have a link which could help us get a better picture of what you plan to demo? Drop it here!"}
+            : "Do you have a link that shows what you plan to demo (for example a video or slides)? Paste it here."}
         </span>
         <input
-          type="url"
-          placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-          {...register("demoUrl")}
-          className="z-10 rounded-lg border-2 border-gray-200 bg-white/60 p-2 text-lg backdrop-blur"
+          type="text"
+          inputMode="url"
+          placeholder="youtube.com/watch?v=dQw4w9WgXcQ"
+          {...register("demoUrl", {
+            validate: (value) =>
+              !value.trim() ||
+              submissionInputSchema.shape.url.safeParse(withWebScheme(value))
+                .success ||
+              "Please enter a link, like youtube.com/watch?v=…",
+          })}
+          className={cn(
+            "z-10 rounded-lg border-2 bg-white/60 p-2 text-lg backdrop-blur",
+            errors.demoUrl ? "border-red-500" : "border-gray-200",
+          )}
         />
+        {errors.demoUrl && (
+          <span className="text-red-500">{errors.demoUrl.message}</span>
+        )}
       </label>
+      <p className="w-full text-sm text-gray-500">
+        If you present, your {branding.isPitchNight ? "startup" : "demo"} name,
+        tagline and website are shown publicly. No contact email is collected.{" "}
+        <a href="/privacy" target="_blank" className="text-blue-500 underline">
+          Privacy notice
+        </a>
+      </p>
       <Button
         pending={createMutation.isPending}
         isPitchNight={branding.isPitchNight}

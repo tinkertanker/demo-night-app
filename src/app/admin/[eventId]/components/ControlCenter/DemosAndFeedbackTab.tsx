@@ -3,15 +3,19 @@ import { LiveIndicator } from "../LiveIndicator";
 import { type Demo } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
+  Copy,
   EyeIcon,
   Radio,
   Trash,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { feedbackScore } from "~/lib/feedback";
+import { feedbackScore, formatFeedbackForCopy } from "~/lib/feedback";
+import { liveQueryOptions } from "~/lib/liveQuery";
 import { EventPhase } from "~/lib/types/currentEvent";
 import { type EventConfig } from "~/lib/types/eventConfig";
 import { cn } from "~/lib/utils";
@@ -19,9 +23,10 @@ import { type FeedbackAndAttendee } from "~/server/api/routers/demo";
 import { api } from "~/trpc/react";
 
 import AttendeeTypeBadge from "~/components/AttendeeTypeBadge";
+import PostcardContent from "~/components/PostcardContent";
+import Sticker from "~/components/Sticker";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
-import Sticker from "~/components/Sticker";
 import {
   Table,
   TableBody,
@@ -38,7 +43,6 @@ import {
 
 import FeedbackOverview from "./FeedbackOverview";
 import { type MobilePanel, SplitPanels } from "./SplitPanels";
-import { liveQueryOptions } from "~/lib/liveQuery";
 
 export default function DemosAndFeedbackTab() {
   const { currentEvent, event, refetchEvent } = useDashboardContext();
@@ -79,7 +83,8 @@ export default function DemosAndFeedbackTab() {
     return event.demos.findIndex((d) => d.id === currentEvent.currentDemoId);
   }, [event, currentEvent?.currentDemoId]);
 
-  const liveDemo = currentDemoIndex >= 0 ? event?.demos[currentDemoIndex] : undefined;
+  const liveDemo =
+    currentDemoIndex >= 0 ? event?.demos[currentDemoIndex] : undefined;
   const prevDemo =
     currentDemoIndex > 0 ? event?.demos[currentDemoIndex - 1] : undefined;
   const nextDemo =
@@ -125,9 +130,7 @@ export default function DemosAndFeedbackTab() {
       feedback={feedback ?? []}
       scoredFeedback={scoredFeedback}
       onDelete={(id) =>
-        deleteFeedbackMutation
-          .mutateAsync(id)
-          .then(() => refetchFeedback())
+        deleteFeedbackMutation.mutateAsync(id).then(() => refetchFeedback())
       }
     />
   );
@@ -200,7 +203,9 @@ function StageControls({
           <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <Radio className="size-3 text-red-500" />
             On stage
-            {position && <span className="normal-case tracking-normal">· {position}</span>}
+            {position && (
+              <span className="normal-case tracking-normal">· {position}</span>
+            )}
           </div>
           <p className="line-clamp-2 text-base font-semibold leading-tight md:text-lg">
             {liveDemo?.name ?? `No ${itemLabel} selected`}
@@ -350,14 +355,45 @@ function FeedbackPanel({
   scoredFeedback: FeedbackAndAttendee[];
   onDelete: (id: string) => void;
 }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  const copyFeedback = () => {
+    if (!selectedDemo) return;
+    navigator.clipboard
+      .writeText(formatFeedbackForCopy(selectedDemo.name, scoredFeedback))
+      .then(
+        () => setCopied(true),
+        () => toast.error("Couldn't copy feedback"),
+      );
+  };
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 bg-background md:min-w-[300px]">
       <div className="flex shrink-0 flex-col items-start gap-2">
-        <h2 className="line-clamp-2 text-xl font-semibold md:text-2xl">
-          {selectedDemo?.name
-            ? `Feedback for ${selectedDemo.name}`
-            : "Feedback"}
-        </h2>
+        <div className="flex w-full items-start justify-between gap-2">
+          <h2 className="line-clamp-2 text-xl font-semibold md:text-2xl">
+            {selectedDemo?.name
+              ? `Feedback for ${selectedDemo.name}`
+              : "Feedback"}
+          </h2>
+          {selectedDemo && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              disabled={feedback.length === 0}
+              onClick={copyFeedback}
+            >
+              {copied ? <Check /> : <Copy />}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          )}
+        </div>
         <FeedbackOverview feedback={feedback} />
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
@@ -394,7 +430,9 @@ function FeedbackItem({
       summary.push(`👏<span class="text-xs text-black"> x${item.claps}</span>`);
     }
     if (item.cheers) {
-      summary.push(`🥳<span class="text-xs text-black"> x${item.cheers}</span>`);
+      summary.push(
+        `🥳<span class="text-xs text-black"> x${item.cheers}</span>`,
+      );
     }
     if (item.confetti) {
       summary.push(
@@ -444,9 +482,7 @@ function FeedbackItem({
           </Button>
         </CardHeader>
         <CardContent className="-mt-3 p-3 pt-0 md:-mt-4 md:p-4 md:pt-0">
-          {item.comment && (
-            <p className="text-sm italic">&ldquo;{item.comment}&rdquo;</p>
-          )}
+          <PostcardContent feedback={item} />
         </CardContent>
       </Card>
     </motion.div>

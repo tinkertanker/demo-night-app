@@ -1,8 +1,10 @@
 "use client";
 
 import { useWorkspaceContext } from "../contexts/WorkspaceContext";
+import { rememberedName } from "../hooks/useAttendee";
 import { type Attendee } from "@prisma/client";
 import { CircleUserRoundIcon } from "lucide-react";
+import Link from "next/link";
 import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -85,7 +87,7 @@ export function UpdateAttendeeForm({
     formState: { errors, isSubmitting },
   } = useForm({
     values: {
-      name: attendee?.name ?? "",
+      name: attendee?.name ?? rememberedName(),
     },
   });
 
@@ -125,6 +127,7 @@ export function UpdateAttendeeForm({
           type="text"
           placeholder="Ada Lovelace"
           autoComplete="name"
+          maxLength={100}
           aria-required="true"
           aria-invalid={!!errors.name}
           aria-describedby={errors.name ? `${nameId}-error` : `${nameId}-hint`}
@@ -139,7 +142,11 @@ export function UpdateAttendeeForm({
           id={`${nameId}-hint`}
           className="text-sm font-normal text-gray-600"
         >
-          Please use your real name so the organiser can recognise you.
+          Use your real name so the organiser can recognise you. Presenters see
+          it with your feedback.{" "}
+          <Link href="/privacy" target="_blank" className="underline">
+            Privacy
+          </Link>
         </span>
         {errors.name && (
           <span

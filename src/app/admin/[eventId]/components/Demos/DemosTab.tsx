@@ -16,10 +16,11 @@ import { useState } from "react";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
 
+import { escapeCsvField } from "~/lib/csvUtils";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import { escapeCsvField } from "~/lib/csvUtils";
 
+import Sticker from "~/components/Sticker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +37,6 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "~/components/ui/hover-card";
-import Sticker from "~/components/Sticker";
 import { SidebarTrigger } from "~/components/ui/sidebar";
 import {
   Table,
@@ -58,7 +58,6 @@ const DEMO_CSV_HEADERS = [
   "id",
   "name",
   "description",
-  "email",
   "url",
   "votable",
   "feedbackUrl",
@@ -80,7 +79,6 @@ export function DemosTab() {
         eventId: event.id,
         name: updates.name ?? demo.name,
         description: updates.description ?? demo.description ?? "",
-        email: updates.email ?? demo.email ?? "",
         url: updates.url ?? demo.url ?? "",
         votable: updates.votable ?? demo.votable,
       });
@@ -99,7 +97,6 @@ export function DemosTab() {
           id: row.id,
           name: row.name!,
           description: row.description!,
-          email: row.email!,
           url: row.url!,
           votable: !["0", "false", "FALSE"].includes(row.votable ?? ""),
         })),
@@ -117,7 +114,6 @@ export function DemosTab() {
     id: demo.id,
     name: escapeCsvField(demo.name),
     description: escapeCsvField(demo.description),
-    email: escapeCsvField(demo.email),
     url: escapeCsvField(demo.url),
     votable: demo.votable,
     feedbackUrl: `${window.location.origin}/${event.id}/${demo.id}?secret=${demo.secret}`,

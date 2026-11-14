@@ -4,9 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SuperJSON from "superjson";
 
+import { pauseQueriesWhenIdle } from "~/lib/liveQuery";
 import { type AppRouter } from "~/server/api/root";
 
 const createQueryClient = () => new QueryClient();
@@ -39,6 +40,10 @@ export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
+
+  useEffect(() => {
+    pauseQueriesWhenIdle();
+  }, []);
 
   const [trpcClient] = useState(() =>
     api.createClient({

@@ -2,12 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { Rubik } from "next/font/google";
 import { Toaster } from "sonner";
 
+import { getBranding } from "~/lib/branding.server";
 import { TRPCReactProvider } from "~/trpc/react";
 
+import LegacyContactCleanup from "~/components/LegacyContactCleanup";
 import { ModalProvider } from "~/components/modal/provider";
 
 import "~/styles/globals.css";
-import { getBranding } from "~/lib/branding.server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding();
@@ -108,6 +109,7 @@ export default function RootLayout({
     <html lang="en" className={`${rubik.variable} font-sans`}>
       <body>
         <TRPCReactProvider>
+          <LegacyContactCleanup />
           <Toaster position="top-center" />
           <ModalProvider>{children}</ModalProvider>
         </TRPCReactProvider>
